@@ -1,4 +1,4 @@
-const units = [
+let units = [
   { id: 1, name: "Infantry Squad", points: 100, type: "Core" },
   { id: 2, name: "Elite Veterans", points: 180, type: "Elite" },
   { id: 3, name: "Heavy Tank", points: 300, type: "Heavy" },
@@ -23,6 +23,32 @@ function loadRoster() {
 
 function saveRoster() {
   localStorage.setItem("armyRoster", JSON.stringify(roster));
+}
+
+async function loadExternalUnits() {
+  try {
+    const res = await fetch("sources.json", { cache: "no-store" });
+    if (!res.ok) return;
+    const sources = await res.json();
+    if (!Array.isArray(sources) || sources.length === 0) return;
+    const lists = await Promise.all(sources.map(async (url) => {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) return [];
+        const data = await r.json();
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.units)) return data.units;
+        return [];
+      } catch { return []; }
+    }));
+    const merged = lists.flat().map((u, idx) => ({
+      id: u.id ?? idx + 1,
+      name: u.name ?? u.title ?? "Unit",
+      points: u.points ?? u.cost ?? 0,
+      type: u.type ?? u.category ?? "Unknown"
+    }));
+    if (merged.length) units = merged;
+  } catch { /* ignore */ }
 }
 
 function renderUnits(filter = "") {
@@ -119,5 +145,7 @@ function removeFromRoster(idx) {
 searchInputEl.addEventListener("input", e => renderUnits(e.target.value));
 clearRosterEl.addEventListener("click", () => { roster = []; saveRoster(); renderRoster(); });
 
-renderUnits("");
-renderRoster();
+loadExternalUnits().finally(() => {
+  renderUnits("");
+  renderRoster();
+});
