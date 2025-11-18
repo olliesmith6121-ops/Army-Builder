@@ -1,30 +1,1577 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
+
+
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Army Builder</title>
-<link rel="stylesheet" href="styles.css">
+
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <title>Xenos Army Builder — updated mins from attachment</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+
+    :root {
+
+      --bg: #071021;
+
+      --card: #0f1724;
+
+      --muted: #94a3b8;
+
+      --accent: #10b981;
+
+      --danger: #ef4444;
+
+      --panel: #08121a
+
+    }
+
+
+
+    body {
+
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+
+      background: var(--bg);
+
+      color: #e6eef8;
+
+      margin: 0
+
+    }
+
+
+
+    .container {
+
+      max-width: 1200px;
+
+      margin: 0 auto;
+
+      padding: 20px
+
+    }
+
+
+
+    .card {
+
+      background: var(--card);
+
+      box-shadow: 0 8px 30px rgba(2, 6, 23, 0.7);
+
+      border-radius: 8px
+
+    }
+
+
+
+    .tabs {
+
+      display: flex;
+
+      gap: 8px;
+
+      margin-bottom: 12px
+
+    }
+
+
+
+    .tab-button {
+
+      padding: 8px 14px;
+
+      border-radius: 8px 8px 0 0;
+
+      background: transparent;
+
+      color: var(--muted);
+
+      cursor: pointer;
+
+      border: 0
+
+    }
+
+
+
+    .tab-button.active {
+
+      color: #fff;
+
+      border-bottom: 3px solid var(--accent);
+
+      background: var(--card)
+
+    }
+
+
+
+    .badge {
+
+      display: inline-block;
+
+      padding: 4px 8px;
+
+      border-radius: 6px;
+
+      background: #15202b;
+
+      color: #e6eef8;
+
+      font-size: .85rem
+
+    }
+
+
+
+    .small {
+
+      font-size: .92rem;
+
+      color: var(--muted)
+
+    }
+
+
+
+    .muted {
+
+      color: var(--muted)
+
+    }
+
+
+
+    .btn {
+
+      border-radius: 6px;
+
+      font-weight: 700;
+
+      padding: 6px 10px;
+
+      cursor: pointer;
+
+      border: 0
+
+    }
+
+
+
+    .btn-green {
+
+      background: var(--accent);
+
+      color: #042a20
+
+    }
+
+
+
+    .btn-blue {
+
+      background: #3b82f6;
+
+      color: #042a20
+
+    }
+
+
+
+    .btn-red {
+
+      background: var(--danger);
+
+      color: #fff
+
+    }
+
+
+
+    .btn-sm {
+
+      padding: 6px 8px;
+
+      font-size: .85rem
+
+    }
+
+
+
+    .input,
+
+    .select-compact {
+
+      background: #0b1520;
+
+      border: 1px solid #23303b;
+
+      padding: 8px;
+
+      border-radius: 6px;
+
+      color: #e6eef8
+
+    }
+
+
+
+    .select-compact {
+
+      width: 220px
+
+    }
+
+
+
+    .table {
+
+      width: 100%;
+
+      border-collapse: collapse;
+
+      margin-top: 8px
+
+    }
+
+
+
+    .table th,
+
+    .table td {
+
+      border: 1px solid rgba(255, 255, 255, 0.06);
+
+      padding: 6px 8px;
+
+      text-align: left;
+
+      font-size: .95rem
+
+    }
+
+
+
+    .table th {
+
+      background: #0b1a23;
+
+      color: #cbd5e1;
+
+      font-weight: 700
+
+    }
+
+
+
+    .modal-backdrop {
+
+      position: fixed;
+
+      inset: 0;
+
+      background: rgba(0, 0, 0, 0.6);
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      z-index: 90
+
+    }
+
+
+
+    .modal {
+
+      width: 760px;
+
+      max-width: 96vw;
+
+      background: var(--panel);
+
+      padding: 16px;
+
+      border-radius: 8px;
+
+      color: #e6eef8
+
+    }
+
+
+
+    .rules {
+
+      color: #9ae6b4
+
+    }
+
+
+
+    .roster-unit {
+
+      background: #0b1620;
+
+      padding: 10px;
+
+      border-radius: 6px;
+
+      margin-bottom: 10px
+
+    }
+
+
+
+    .right-col {
+
+      text-align: right;
+
+      min-width: 160px
+
+    }
+
+
+
+    .notes {
+
+      font-size: .9rem;
+
+      color: #ffd;
+
+      background: rgba(255, 255, 255, 0.02);
+
+      padding: 6px;
+
+      border-radius: 6px;
+
+      margin-top: 6px
+
+    }
+
+
+
+    .section-sub {
+
+      margin-top: 8px;
+
+      margin-bottom: 6px;
+
+      color: var(--muted);
+
+      font-size: 0.9rem
+
+    }
+
+
+
+    .validation-note {
+
+      color: var(--danger);
+
+      font-weight: 700;
+
+      margin-top: 8px
+
+    }
+
+
+
+    .slot-meta {
+
+      font-size: 0.9rem;
+
+      color: var(--muted);
+
+      margin-left: 8px
+
+    }
+
+
+
+    .min-badge {
+
+      color: #fff;
+
+      background: var(--danger);
+
+      padding: 2px 6px;
+
+      border-radius: 6px;
+
+      font-weight: 700;
+
+      margin-left: 8px
+
+    }
+
+
+
+    .form-alert {
+
+      color: var(--danger);
+
+      font-weight: 800;
+
+      margin-left: 12px
+
+    }
+
+
+
+    .effect-pill {
+
+      display: inline-block;
+
+      background: rgba(154, 230, 180, 0.12);
+
+      color: #9ae6b4;
+
+      padding: 3px 8px;
+
+      border-radius: 6px;
+
+      font-weight: 700;
+
+      margin-top: 6px
+
+    }
+
+
+
+    .cost {
+
+      color: #cbd5e1;
+
+      font-weight: 700;
+
+      margin-left: 8px;
+
+      font-size: 0.9rem
+
+    }
+
+  </style>
+
 </head>
+
+
+
 <body>
-<div class="app">
-<header class="header">
-<h1>Army Builder</h1>
-<div class="points">Total: <span id="totalPoints">0</span> pts</div>
-</header>
-<main class="layout">
-<section class="panel">
-<h2>Units</h2>
-<input id="searchInput" type="text" placeholder="Search units">
-<ul id="unitList"></ul>
-</section>
-<section class="panel">
-<h2>Roster</h2>
-<ul id="rosterList"></ul>
-<button id="clearRoster">Clear Roster</button>
-</section>
-</main>
-</div>
-<script src="main.js"></script>
+
+  <div class="container">
+
+    <header style="text-align:center;margin-bottom:16px">
+
+      <h1 style="font-size:30px;color:#7ef0b7;margin:0;">
+
+        Xenos Army Builder
+
+      </h1>
+
+      <p class="small" style="margin:6px 0 14px 0;">
+
+        Minimums updated to match your spreadsheet. "needs X" inline text
+
+        removed; Min badge still shows when unmet and formation-level alert
+
+        uses "Compulsory Unit Missing".
+
+      </p>
+
+    </header>
+
+
+
+    <div class="tabs">
+
+      <button
+
+          id="tab-home"
+
+          class="tab-button active"
+
+          onclick="setActiveTab('home')"
+
+        >
+
+          Home
+
+        </button>
+
+      <button
+
+          id="tab-army-builder"
+
+          class="tab-button"
+
+          onclick="setActiveTab('army-builder')"
+
+        >
+
+          Army Builder
+
+        </button>
+
+      <button
+
+          id="tab-army-rules"
+
+          class="tab-button"
+
+          onclick="setActiveTab('army-rules')"
+
+        >
+
+          Army Rules
+
+        </button>
+
+      <button
+
+          id="tab-roster"
+
+          class="tab-button"
+
+          onclick="setActiveTab('roster')"
+
+        >
+
+          Roster
+
+        </button>
+
+    </div>
+
+
+
+    <div id="content" class="tab-content card" style="padding:16px;"></div>
+
+  </div>
+
+
+
+  <div id="modal-root"></div>
+
+
+
+  <script>
+
+    // ---------- State ----------
+
+      let activeTab = 'home';
+
+      let selectedArmy = 'Select Army';
+
+      let selectedFormationName = 'Select a Formation';
+
+      let armyFormations = [];
+
+      let editContext = null;
+
+      function saveState(){ try{ const s={ activeTab, selectedArmy, selectedFormationName, armyFormations }; localStorage.setItem('xenos_state', JSON.stringify(s)); }catch{} }
+
+      function loadState(){ try{ const raw=localStorage.getItem('xenos_state'); if(!raw) return; const s=JSON.parse(raw); activeTab=s.activeTab||'home'; selectedArmy=s.selectedArmy||'Select Army'; selectedFormationName=s.selectedFormationName||'Select a Formation'; armyFormations=Array.isArray(s.armyFormations)?s.armyFormations:[]; }catch{} }
+
+
+
+      // ---------- Armies & formations (mins updated per attached Excel) ----------
+
+      const ARMIES = {
+
+        "Select Army": { formations: [] },
+
+        "Tyranids": { formations: ["Synaptic Swarm","Assault Swarm","Bio-Titan Swarm"] },
+
+        "Eldar": { formations: ["Warhost","Aspect Warrior Shrine"] },
+
+        "Orks": { formations: ["Warband","Speed Freaks"] }
+
+      };
+
+
+
+      // Min/Max values exactly from attachment:
+
+      // Synaptic Swarm: Compulsory Synapse max1 min1, Core max3 min3; Optional Synapse max2, Core max6; Special Biotitan or Flyer max1
+
+      // Assault Swarm: Compulsory Synapse max1 min1, Core max3 min3, Transport max1 min0; Optional Synapse max2, Core max6, Flyer max2
+
+      // Bio-Titan Swarm: Compulsory Biotitan max3 min3; Optional Biotitan max3
+
+      const FORMATIONS = {
+
+        "Synaptic Swarm": {
+
+          compulsory:[{type:"Synapse",label:"Synapse",max:1,min:1},{type:"Core",label:"Core",max:3,min:3}],
+
+          optional:[{type:"Synapse",label:"Synapse Optional",max:2,min:0},{type:"Core",label:"Core Optional",max:6,min:0}],
+
+          special:{type:"Special",label:"Biotitan or Flyer",max:1,allowedTypes:["Biotitan","Flyer"]}
+
+        },
+
+        "Assault Swarm": {
+
+          compulsory:[{type:"Synapse",label:"Synapse",max:1,min:1},{type:"Core",label:"Core",max:3,min:3},{type:"Transport",label:"Transport",max:1,min:0}],
+
+          optional:[{type:"Synapse",label:"Synapse Optional",max:2,min:0},{type:"Core",label:"Core Optional",max:6,min:0},{type:"Flyer",label:"Flyer Optional",max:2,min:0}],
+
+          special:null
+
+        },
+
+        "Bio-Titan Swarm": {
+
+          compulsory:[{type:"Biotitan",label:"Biotitan",max:3,min:3}],
+
+          optional:[{type:"Biotitan",label:"Biotitan Optional",max:3,min:0}],
+
+          special:null
+
+        }
+
+      };
+
+
+
+      // ---------- Unit registry ----------
+
+      const TYRANID_UNIT_LIST = [
+
+        {id:'hive-tyrant',name:'Hive Tyrant',slotType:'Synapse'},
+
+        {id:'tyranid-warrior',name:'Tyranid Warrior Brood',slotType:'Synapse'},
+
+        {id:'tyrant-guard',name:'Tyrant Guard',slotType:'Synapse'},
+
+        {id:'termagant',name:'Termagant Brood',slotType:'Core'},
+
+        {id:'hormagaunt',name:'Hormagaunt Brood',slotType:'Core'},
+
+        {id:'genestealer',name:'Genestealer Brood',slotType:'Core'},
+
+        {id:'carnifex',name:'Carnifex',slotType:'Biotitan'},
+
+        {id:'exocrine',name:'Exocrine',slotType:'Biotitan'},
+
+        {id:'harpy',name:'Harpy Brood',slotType:'Flyer'},
+
+        {id:'mycetic',name:'Mycetic Spores',slotType:'Transport'},
+
+        {id:'dominatrix',name:'Dominatrix',slotType:'Biotitan'}
+
+      ];
+
+
+
+      const SLOT_FILTERS = {
+
+        Synapse: ['hive-tyrant','tyranid-warrior','tyrant-guard'],
+
+        Core: ['termagant','hormagaunt','genestealer'],
+
+        Flyer: ['harpy'],
+
+        Biotitan: ['carnifex','exocrine','dominatrix'],
+
+        Transport: ['mycetic']
+
+      };
+
+
+
+      // ---------- Minimal stats/loadouts (unchanged) ----------
+
+      const UNIT_BASE = {
+
+        'hive-tyrant':{points:100,movement:'5"',save:'4+',CAF:'+10',morale:'2+',wounds:2},
+
+        'tyranid-warrior':{points:60,movement:'5"',save:'5+',CAF:'+5',morale:'3+',wounds:1},
+
+        'termagant':{points:30,movement:'5"',save:'-',CAF:'+0',morale:'4+',wounds:1},
+
+        'carnifex':{points:150,movement:'6"',save:'3+',CAF:'+0',morale:'3+',wounds:3},
+
+        'mycetic':{points:20,movement:'-',save:'-',CAF:'+0',morale:'-',wounds:0}
+
+      };
+
+
+
+      const WEAPON_LIBRARY = {
+
+        "Venom Cannon":{range:'14"',dice:2,toHit:'5+',AP:-2,traits:'Anti-Tank',points:15},
+
+        "Barbed Strangler":{range:'10"',dice:1,toHit:'4+',AP:0,traits:'Light AT; Blast (3")',points:5},
+
+        "Lash Whip & Bone Sword":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'Rend; Parry',points:0},
+
+        "Fleshborer":{range:'18"',dice:1,toHit:'4+',AP:0,traits:'',points:0},
+
+        "Death Spitter":{range:'24"',dice:2,toHit:'5+',AP:0,traits:'',points:5}
+
+      };
+
+
+
+      const UNIT_LOADOUTS = {
+
+        'hive-tyrant':{
+
+          baseCAF:'+10', baseWounds:2,
+
+          weapons:[
+
+            {id:'w_lashbone',name:'Lash Whip & Bone Sword',src:'Lash Whip & Bone Sword',base:true},
+
+            {id:'w_venom',name:'Venom Cannon',src:'Venom Cannon',base:false},
+
+            {id:'w_barbed',name:'Barbed Strangler',src:'Barbed Strangler',base:false}
+
+          ],
+
+          upgrades:[
+
+            {id:'u_wings',name:'Add Wings',points:20,desc:'Change movement to flying; movement profile 10"'},
+
+            {id:'u_swarm',name:'Upgrade to Swarm Lord',points:25,desc:'CAF becomes +14; Wounds = 3; removes Venom/Barbed'}
+
+          ],
+
+          psychicPowers:[
+
+            {id:'p_horror',name:'The Horror',points:15,desc:'Psychic power that induces fear'},{id:'p_catalyst',name:'Catalyst',points:15,desc:'Grants Feel No Pain to nearby brood'}
+
+          ],
+
+          specialRules:[
+
+            "Synapse: prevents nearby units from breaking morale",
+
+            "Toxic Blood: placeholder special rule"
+
+          ]
+
+        },
+
+        'tyranid-warrior':{
+
+          baseCAF:'+5', baseWounds:1,
+
+          weapons:[{id:'w_default',name:'Death Spitter',src:'Death Spitter',base:true}],
+
+          upgrades:[], psychicPowers:[], specialRules:["Synapse-capable (when leader)"]
+
+        },
+
+        'termagant':{
+
+          baseCAF:'+0', baseWounds:1,
+
+          weapons:[{id:'w_flesh',name:'Fleshborer',src:'Fleshborer',base:true}],
+
+          upgrades:[], psychicPowers:[], specialRules:["Swarm Infantry"]
+
+        },
+
+        'carnifex':{
+
+          baseCAF:'+0', baseWounds:3,
+
+          weapons:[{id:'w_carnifex1',name:'Massive Scything Talons',src:'Lash Whip & Bone Sword',base:true}],
+
+          upgrades:[{id:'u_heavy',name:'Heavy Armour Plating',points:35,desc:'+1 to save (example)'}],
+
+          psychicPowers:[], specialRules:["Behemoth placeholder"]
+
+        }
+
+      };
+
+
+
+      // ---------- Helpers ----------
+
+      function setActiveTab(t){ activeTab=t; document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active')); const el=document.getElementById('tab-'+t); if(el) el.classList.add('active'); renderContent(); }
+
+      function unitsFor(slotType){ if(slotType === 'Special') return TYRANID_UNIT_LIST.filter(u => ['Biotitan','Flyer','Transport'].includes(u.slotType)); const ids = SLOT_FILTERS[slotType] || []; return TYRANID_UNIT_LIST.filter(u => ids.includes(u.id)); }
+
+
+
+      // ---------- Formation & slot management ----------
+
+      function handleArmySelection(val){ selectedArmy=val; selectedFormationName='Select a Formation'; armyFormations=[]; renderContent(); }
+
+      function handleFormationSelection(val){ selectedFormationName=val; }
+
+
+
+      function addFormation(){
+
+        if(!selectedArmy || selectedArmy === 'Select Army'){ alert('Choose an army'); return; }
+
+        if(!selectedFormationName || selectedFormationName === 'Select a Formation'){ alert('Choose a formation'); return; }
+
+        const tpl = FORMATIONS[selectedFormationName];
+
+        if(!tpl){ alert('Formation not available'); return; }
+
+        if(armyFormations.length) armyFormations[armyFormations.length-1].collapsed = true;
+
+        const compulsory = (tpl.compulsory||[]).map(s => ({...s, units:[], _selectedUnitId:''}));
+
+        const optional   = (tpl.optional  ||[]).map(s => ({...s, units:[], _selectedUnitId:''}));
+
+        const special    = tpl.special ? ({...tpl.special, units:[], _selectedUnitId:''}) : null;
+
+        armyFormations.push({ name:selectedFormationName, army:selectedArmy, collapsed:false, compulsory, optional, special });
+
+        selectedFormationName = 'Select a Formation';
+
+        const formSelect = document.getElementById('formation-select');
+
+        if(formSelect) formSelect.value = 'Select a Formation';
+
+        renderContent();
+        saveState();
+
+      ]
+
+
+
+      function removeFormation(idx){ armyFormations.splice(idx,1); renderContent(); saveState(); }
+      function toggleCollapse(idx){ armyFormations[idx].collapsed = !armyFormations[idx].collapsed; renderContent(); saveState(); }
+
+
+
+      function setSlotSelection(fIdx,section,sIdx,val){ const slot = armyFormations[fIdx][section][sIdx]; if(slot) slot._selectedUnitId = val; }
+
+
+
+      function addUnitToSlot(fIdx,section,sIdx){
+
+        const slot = armyFormations[fIdx][section][sIdx];
+
+        if(!slot) return;
+
+        if(!slot._selectedUnitId) return alert('Select a unit');
+
+        const base = TYRANID_UNIT_LIST.find(u=>u.id === slot._selectedUnitId);
+
+        if(!base) return;
+
+        if((slot.units||[]).length >= (slot.max||1)){ alert('Slot is full (max ' + slot.max + ')'); return; }
+
+        const load = UNIT_LOADOUTS[base.id] || {weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[]};
+
+        const weapons = (load.weapons||[]).filter(w=>w.base).map(w=>({ id:w.id, name:w.name, src:w.src, points: (WEAPON_LIBRARY[w.src] && WEAPON_LIBRARY[w.src].points) || 0 }));
+
+        slot.units.push({...base, qty:1, weapons, upgrades:[], psychic:[], notes:[], _appliedEffects:{}});
+
+        slot._selectedUnitId = '';
+
+        renderContent();
+        saveState();
+
+      }
+
+
+
+      function addUnitToSpecial(fIdx,unitId){
+
+        const slot = armyFormations[fIdx].special;
+
+        if(!slot) return;
+
+        const candidate = TYRANID_UNIT_LIST.find(u=>u.id===unitId);
+
+        if(!candidate) return alert('Invalid special selection');
+
+        if(slot.allowedTypes && slot.allowedTypes.length && !slot.allowedTypes.includes(candidate.slotType)){ alert('This unit type is not allowed in this special slot'); return; }
+
+        if((slot.units||[]).length >= (slot.max||1)){ alert('Special slot is full'); return; }
+
+        const load = UNIT_LOADOUTS[candidate.id] || {weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[]};
+
+        const weapons = (load.weapons||[]).filter(w=>w.base).map(w=>({ id:w.id, name:w.name, src:w.src, points: (WEAPON_LIBRARY[w.src] && WEAPON_LIBRARY[w.src].points) || 0 }));
+
+        slot.units.push({...candidate, qty:1, weapons, upgrades:[], psychic:[], notes:[], _appliedEffects:{}});
+
+        const sel = document.getElementById(`special-select-${fIdx}`); if(sel) sel.value = '';
+
+        renderContent();
+        saveState();
+
+      }
+
+
+
+      function removeUnit(fIdx,section,sIdx,uIdx){ const slot = armyFormations[fIdx][section][sIdx]; if(!slot) return; slot.units.splice(uIdx,1); renderContent(); saveState(); }
+      function removeSpecialUnit(fIdx,uIdx){ const slot = armyFormations[fIdx].special; if(!slot) return; slot.units.splice(uIdx,1); renderContent(); saveState(); }
+
+
+
+      // ---------- points & render helpers ----------
+
+      function unitPoints(u){
+
+        const base = (UNIT_BASE[u.id] && UNIT_BASE[u.id].points) || 0;
+
+        const ups = (u.upgrades||[]).reduce((s,x)=>s+(x.points||0),0);
+
+        const wep = (u.weapons||[]).reduce((s,x)=>s+(x.points||0),0);
+
+        const psy = (u.psychic||[]).reduce((s,x)=>s+(x.points||0),0);
+
+        return base + ups + wep + psy;
+
+      }
+
+      function formationPoints(f){
+
+        let s=0;
+
+        ['compulsory','optional'].forEach(k => (f[k]||[]).forEach(slot => (slot.units||[]).forEach(u => s += unitPoints(u))));
+
+        if(f.special) (f.special.units||[]).forEach(u => s+= unitPoints(u));
+
+        return s;
+
+      }
+
+
+
+      // ---------- Modal & dynamic UI (unchanged behavior) ----------
+
+      function openEditModal(fIdx,section,sIdx,uIdx){ editContext = {fIdx,section,sIdx,uIdx}; renderModal(); }
+
+      function closeModal(){ editContext=null; document.getElementById('modal-root').innerHTML=''; }
+
+      function currentLoadout(id){ return UNIT_LOADOUTS[id] || {weapons:[], upgrades:[], psychicPowers:[], baseCAF:'+0', baseWounds:1, specialRules:[]}; }
+
+      function unitHasUpgrade(unit,upgradeId){ return (unit.upgrades||[]).some(u=>u.id === upgradeId); }
+
+
+
+      function onModalUpgradeToggle(){
+
+        const swarmCheckbox = document.querySelector('.modal-upgrade-checkbox[data-id="u_swarm"]');
+
+        const isSwarmChecked = swarmCheckbox && swarmCheckbox.checked;
+
+        const cafBlock = document.getElementById('modal-caf-block');
+
+        const woundsBlock = document.getElementById('modal-wounds-block');
+
+        if(cafBlock) cafBlock.style.display = isSwarmChecked ? '' : 'none';
+
+        if(woundsBlock) woundsBlock.style.display = isSwarmChecked ? '' : 'none';
+
+        const effectPill = document.getElementById('modal-effect-pill');
+
+        if(effectPill){ if(isSwarmChecked) effectPill.textContent = 'Swarm Lord effect: CAF becomes +14; Wounds = 3'; effectPill.style.display = isSwarmChecked ? '' : 'none'; }
+
+        const venomRow = document.querySelector('.modal-weapon-row[data-weapon="Venom Cannon"]');
+
+        const barbedRow = document.querySelector('.modal-weapon-row[data-weapon="Barbed Strangler"]');
+
+        if(venomRow) venomRow.style.display = isSwarmChecked ? 'none' : '';
+
+        if(barbedRow) barbedRow.style.display = isSwarmChecked ? 'none' : '';
+
+        updateModalTotals();
+
+      }
+
+
+
+      function updateModalTotals(){
+
+        const ptsEl = document.getElementById('modal-total-points');
+
+        if(!ptsEl) return;
+
+        const weBoxes = Array.from(document.querySelectorAll('.modal-weapon-checkbox'));
+
+        const upBoxes = Array.from(document.querySelectorAll('.modal-upgrade-checkbox'));
+
+        const psyBoxes = Array.from(document.querySelectorAll('.modal-psychic-checkbox'));
+
+        let total = 0;
+
+        weBoxes.filter(b=>b.checked && b.closest('tr') && b.closest('tr').style.display !== 'none').forEach(b=>{
+
+          const src = b.getAttribute('data-src');
+
+          total += (WEAPON_LIBRARY[src] && WEAPON_LIBRARY[src].points) || 0;
+
+        });
+
+        upBoxes.filter(b=>b.checked).forEach(b=>{
+
+          total += Number(b.getAttribute('data-points') || 0);
+
+        });
+
+        psyBoxes.filter(b=>b.checked).forEach(b=>{
+
+          total += Number(b.getAttribute('data-points') || 0);
+
+        });
+
+        ptsEl.textContent = total + ' pts (weapons/upgrades/psychic)';
+
+      }
+
+
+
+      function saveEditFromModal(){
+
+        if(!editContext) return;
+
+        const {fIdx,section,sIdx,uIdx} = editContext;
+
+        const slot = (section === 'special') ? armyFormations[fIdx].special : armyFormations[fIdx][section][sIdx];
+
+        const unit = slot && slot.units && slot.units[uIdx];
+
+        if(!unit) return;
+
+        const weBoxes = Array.from(document.querySelectorAll('.modal-weapon-checkbox'));
+
+        const chosenWeps = weBoxes.filter(b=>b.checked && b.closest('tr') && b.closest('tr').style.display !== 'none').map(b=>{
+
+          const id = b.getAttribute('data-id'); const name = b.getAttribute('data-name'); const src = b.getAttribute('data-src'); const pts = Number(b.getAttribute('data-points')||0);
+
+          return { id, name, src, points: pts };
+
+        });
+
+        const upBoxes = Array.from(document.querySelectorAll('.modal-upgrade-checkbox'));
+
+        const chosenUps = upBoxes.filter(b=>b.checked).map(b=>{
+
+          return { id: b.getAttribute('data-id'), name: b.getAttribute('data-name'), points: Number(b.getAttribute('data-points')||0), desc: b.getAttribute('data-desc')||'' };
+
+        });
+
+        const psyBoxes = Array.from(document.querySelectorAll('.modal-psychic-checkbox'));
+
+        const chosenPsy = psyBoxes.filter(b=>b.checked).map(b=>{
+
+          return { id: b.getAttribute('data-id'), name: b.getAttribute('data-name'), points: Number(b.getAttribute('data-points')||0), desc: b.getAttribute('data-desc')||'' };
+
+        });
+
+        unit.weapons = chosenWeps;
+
+        unit.upgrades = chosenUps;
+
+        unit.psychic = chosenPsy;
+
+        const hasSwarm = chosenUps.some(u=>u.id === 'u_swarm');
+
+        if(hasSwarm){
+
+          unit._appliedEffects = unit._appliedEffects || {};
+
+          unit._appliedEffects.swarmLord = { CAF: '+14', Wounds: 3, note: 'Swarm Lord applied: CAF +14; Wounds = 3; Venom/Barbed removed.' };
+
+          unit.weapons = (unit.weapons||[]).filter(w => !['Venom Cannon','Barbed Strangler'].includes(w.name));
+
+          unit.notes = unit.notes || [];
+
+          if(!unit.notes.find(n=>n.startsWith('Swarm Lord:'))) unit.notes.push('Swarm Lord applied: CAF +14; Wounds = 3; Venom/Barbed removed.');
+
+        } else {
+
+          if(unit._appliedEffects && unit._appliedEffects.swarmLord) delete unit._appliedEffects.swarmLord;
+
+          unit.notes = (unit.notes||[]).filter(n=>!n.startsWith('Swarm Lord:'));
+
+        }
+
+        closeModal();
+
+        renderContent();
+        saveState();
+
+      }
+
+
+
+      function renderModal(){
+
+        const root = document.getElementById('modal-root'); root.innerHTML = ''; if(!editContext) return;
+
+        const {fIdx,section,sIdx,uIdx} = editContext;
+
+        const slot = (section === 'special') ? armyFormations[fIdx].special : armyFormations[fIdx][section][sIdx];
+
+        const unit = slot && slot.units && slot.units[uIdx];
+
+        if(!unit) return;
+
+        const lib = currentLoadout(unit.id);
+
+        const instanceWeaponIds = (unit.weapons||[]).map(w=>w.id);
+
+        const instanceUpgradeIds = (unit.upgrades||[]).map(u=>u.id);
+
+        const initialHasSwarm = instanceUpgradeIds.includes('u_swarm') || (unit._appliedEffects && unit._appliedEffects.swarmLord);
+
+
+
+        const weaponsHtml = (lib.weapons||[]).map(w=>{
+
+          const stat = WEAPON_LIBRARY[w.src] || {};
+
+          const checked = instanceWeaponIds.includes(w.id) || (w.base && instanceWeaponIds.length===0);
+
+          const pts = stat.points || 0;
+
+          const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${stat.traits||''}</td><td class="cost">${pts} pts</td>`;
+
+          const display = initialHasSwarm && (w.name === 'Venom Cannon' || w.name === 'Barbed Strangler') ? 'style="display:none"' : '';
+
+          return `<tr class="modal-weapon-row" data-weapon="${w.name}" ${display}><td style="width:35%"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="modal-weapon-checkbox" data-id="${w.id}" data-name="${w.name}" data-src="${w.src}" data-points="${pts}" ${checked ? 'checked' : ''}/> ${w.name}</label></td>${statCols}</tr>`;
+
+        }).join('');
+
+
+
+        const upgradesHtml = (lib.upgrades||[]).map(u=>{
+
+          const checked = instanceUpgradeIds.includes(u.id) || (unit._appliedEffects && unit._appliedEffects.swarmLord && u.id === 'u_swarm');
+
+          return `<div style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" ${checked ? 'checked' : ''} onchange="onModalUpgradeToggle()"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div></div></label></div>`;
+
+        }).join('');
+
+
+
+        const psychicHtml = (lib.psychicPowers||[]).map(p=>{
+
+          const checked = (unit.psychic||[]).some(x=>x.id === p.id);
+
+          return `<label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-psychic-checkbox" data-id="${p.id}" data-name="${p.name}" data-points="${p.points||0}" data-desc="${p.desc||''}" ${checked ? 'checked' : ''}/><div><strong>${p.name}</strong> <span class="muted">(+${p.points||0} pts)</span><div class="muted" style="margin-top:6px">${p.desc||''}</div></div></label>`;
+
+        }).join('');
+
+
+
+        const specialRulesHtml = (lib.specialRules||[]).length ? (lib.specialRules||[]).map(r=>`<div class="muted small">- ${r}</div>`).join('') : `<div class="muted small">No special rules listed</div>`;
+
+        const effectText = initialHasSwarm ? 'Swarm Lord effect: CAF becomes +14; Wounds = 3' : '';
+
+        const baseCAF = lib.baseCAF || (UNIT_BASE[unit.id] && UNIT_BASE[unit.id].CAF) || '';
+
+        const baseWounds = lib.baseWounds || (UNIT_BASE[unit.id] && UNIT_BASE[unit.id].wounds) || '';
+
+
+
+        root.innerHTML = `
+
+          <div class="modal-backdrop" onclick="closeModal()">
+
+            <div class="modal" onclick="event.stopPropagation()">
+
+              <h3 style="margin:0 0 8px 0">${unit.name} — Edit</h3>
+
+              <div style="display:flex;gap:12px">
+
+                <div style="flex:1">
+
+                  <div style="margin-bottom:10px">
+
+                    <label class="small">Weapons (base weapons auto-selected)</label>
+
+                    <table class="table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>ToHit</th><th>AP</th><th>Traits</th><th>Cost</th></tr></thead><tbody>${weaponsHtml || '<tr><td colspan="7" class="muted">No weapons available</td></tr>'}</tbody></table>
+
+                  </div>
+
+
+
+                  <div style="margin-bottom:10px">
+
+                    <label class="small">Upgrades</label>
+
+                    <div style="margin-top:6px">${upgradesHtml||'<div class="muted">No upgrades</div>'}</div>
+
+                  </div>
+
+
+
+                  ${unit.id === 'hive-tyrant' ? `
+
+                    <div style="margin-bottom:10px">
+
+                      <label class="small">Psychic Powers</label>
+
+                      <div style="margin-top:6px">${psychicHtml || '<div class="muted">None</div>'}</div>
+
+                    </div>
+
+                  ` : ''}
+
+
+
+                  <div class="small muted" style="margin-top:8px">Per-instance loadout. Base weapon included by default and contributes to points.</div>
+
+                </div>
+
+
+
+                <div style="width:300px">
+
+                  <div id="modal-effect-pill" class="effect-pill" style="display:${effectText? '': 'none'}">${effectText}</div>
+
+
+
+                  <div id="modal-caf-block" style="background:#071a21;padding:10px;border-radius:6px;margin-top:10px;display:${initialHasSwarm ? '' : 'none'}">
+
+                    <div class="small muted">CAF (effective)</div>
+
+                    <div id="modal-caf-value" data-base="${baseCAF}" style="font-weight:700">${initialHasSwarm? '+14' : baseCAF}</div>
+
+                  </div>
+
+
+
+                  <div id="modal-wounds-block" style="background:#071a21;padding:10px;border-radius:6px;margin-top:10px;display:${initialHasSwarm ? '' : 'none'}">
+
+                    <div class="small muted">Wounds (effective)</div>
+
+                    <div id="modal-wounds-value" data-base="${baseWounds}" style="font-weight:700">${initialHasSwarm? '3' : baseWounds}</div>
+
+                  </div>
+
+
+
+                  <div style="background:#071a21;padding:10px;border-radius:6px;margin-top:10px">
+
+                    <div class="small muted">Special rules</div>
+
+                    <div style="margin-top:6px">${specialRulesHtml}</div>
+
+                  </div>
+
+
+
+                  <div style="margin-top:10px" class="small muted">Selected weapon & upgrade totals:
+
+                    <div id="modal-total-points" style="margin-top:8px;font-weight:700">0 pts (weapons/upgrades/psychic)</div>
+
+                  </div>
+
+
+
+                  ${unit.notes && unit.notes.length ? `<div class="notes" style="margin-top:10px">${unit.notes.join('; ')}</div>` : ''}
+
+                </div>
+
+              </div>
+
+
+
+              <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+
+                <button class="btn btn-sm btn-red" onclick="closeModal()">Cancel</button>
+
+                <button id="modal-save-btn" class="btn btn-sm btn-blue">Save</button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        `;
+
+
+
+        setTimeout(()=>{ try{ onModalUpgradeToggle(); updateModalTotals(); } catch(e){} }, 0);
+
+        const saveBtn = document.getElementById('modal-save-btn'); if(saveBtn) saveBtn.addEventListener('click', saveEditFromModal, { once:true });
+
+
+
+        Array.from(document.querySelectorAll('.modal-weapon-checkbox')).forEach(cb => cb.addEventListener('change', updateModalTotals));
+
+        Array.from(document.querySelectorAll('.modal-upgrade-checkbox')).forEach(cb => cb.addEventListener('change', ()=>{ onModalUpgradeToggle(); updateModalTotals(); }));
+
+        Array.from(document.querySelectorAll('.modal-psychic-checkbox')).forEach(cb => cb.addEventListener('change', updateModalTotals));
+
+      }
+
+
+
+      // ---------- Renderers ----------
+
+      function renderContent(){
+
+        const content = document.getElementById('content'); if(!content) return;
+
+        if(activeTab === 'home'){ content.innerHTML = renderHome(); return; }
+
+        if(activeTab === 'army-builder'){ content.innerHTML = renderArmyBuilder(); return; }
+
+        if(activeTab === 'army-rules'){ content.innerHTML = renderArmyRules(); return; }
+
+        if(activeTab === 'roster'){ content.innerHTML = renderRoster(); return; }
+
+      }
+
+
+
+      function renderHome(){ return `<div style="padding:12px"><h2 style="margin:0 0 8px 0;color:#7ef0b7">Welcome</h2><p class="small muted">Formation mins now reflect your spreadsheet; inline "needs X" text removed.</p></div>`; }
+
+
+
+      function renderArmyBuilder(){
+
+        const armyOptions = Object.keys(ARMIES).map(a => `<option value="${a}" ${a === selectedArmy ? 'selected' : ''}>${a}</option>`).join('');
+
+        const formationList = ARMIES[selectedArmy]?.formations || [];
+
+        const formationOptions = ['Select a Formation', ...formationList].map(n => `<option value="${n}" ${n === selectedFormationName ? 'selected' : ''}>${n}</option>`).join('');
+
+        const formsHtml = armyFormations.length ? armyFormations.map((f,i)=>renderFormationCard(f,i)).join('') : `<div class="muted small p-4">No formations yet.</div>`;
+
+        return `<div style="padding:12px"><div style="display:flex;gap:12px;align-items:end;margin-bottom:12px"><div style="flex:0 0 220px"><label class="small muted">Select army</label><select id="army-select" class="input" onchange="handleArmySelection(this.value)">${armyOptions}</select></div><div style="flex:0 0 320px"><label class="small muted">Formation</label><select id="formation-select" class="input" onchange="handleFormationSelection(this.value)">${formationOptions}</select></div><div><button class="btn btn-green" onclick="addFormation()">Add</button></div></div>${formsHtml}</div>`;
+
+      }
+
+
+
+      function formationHasMinViolations(f){
+
+        if(!f || !f.compulsory) return false;
+
+        return f.compulsory.some(slot => (slot.min || 0) > (slot.units ? slot.units.length : 0));
+
+      }
+
+
+
+      function renderFormationCard(f, idx){
+
+        const total = formationPoints(f);
+
+        const hasViolation = formationHasMinViolations(f);
+
+        const headerActions = `<div style="display:flex;gap:8px;align-items:center"><div class="small muted">Total: ${total} pts</div><button class="btn btn-sm" onclick="toggleCollapse(${idx})">${f.collapsed ? 'Expand' : 'Collapse'}</button><button class="btn btn-sm btn-red" onclick="removeFormation(${idx})">Remove</button></div>`;
+
+        const body = f.collapsed ? '' : `<div style="margin-top:10px"><div class="section-sub">Compulsory slots</div>${f.compulsory.map((slot,sIdx)=>renderSlotBlock(f,idx,'compulsory',sIdx,slot)).join('')}<div class="section-sub">Optional slots</div>${f.optional.map((slot,sIdx)=>renderSlotBlock(f,idx,'optional',sIdx,slot)).join('')}${f.special ? `<div class="section-sub">Special slot — ${f.special.label}</div>${renderSpecialBlock(f,idx,f.special)}` : ''}${ hasViolation ? `<div class="validation-note">Compulsory Unit Missing — one or more compulsory slots are below the minimum required</div>` : ''}</div>`;
+
+        return `<div style="padding:12px;margin-bottom:12px;border-radius:8px;background:${hasViolation ? 'linear-gradient(180deg, rgba(239,68,68,0.02), transparent)' : '#071a21'}; border:${hasViolation ? '1px solid rgba(239,68,68,0.12)' : 'none'}"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong style="color:#ffd">${f.name}</strong>${ hasViolation ? `<span class="form-alert"> Compulsory Unit Missing</span>` : '' }<div class="small muted">${f.army}</div></div>${headerActions}</div>${body}</div>`;
+
+      }
+
+
+
+      function renderSlotBlock(f,fIdx,section,sIdx,slot){
+
+        const allowed = unitsFor(slot.type);
+
+        const options = `<option value="">Select unit</option>` + allowed.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+
+        const selectedCount = (slot.units||[]).length;
+
+        const canAdd = selectedCount < (slot.max||1);
+
+        const isMinViolated = (slot.min || 0) > selectedCount;
+
+        const unitsHtml = (slot.units||[]).length ? slot.units.map((u,i)=>`
+
+          <div style="margin-top:8px;padding:8px;background:#071a2a;border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+
+            <div>
+
+              <div style="font-weight:700">${u.name} <span class="muted">- ${unitPoints(u)} pts</span></div>
+
+              <div class="small muted">${(u.upgrades&&u.upgrades.length)?'Upgrades: '+u.upgrades.map(x=>x.name).join(', '):'No upgrades'}</div>
+
+            </div>
+
+            <div style="display:flex;gap:6px">
+
+              <button class="btn btn-sm btn-blue" onclick="openEditModal(${fIdx},'${section}',${sIdx},${i})">Edit</button>
+
+              <button class="btn btn-sm btn-red" onclick="removeUnit(${fIdx},'${section}',${sIdx},${i})">Remove</button>
+
+            </div>
+
+          </div>
+
+        `).join('') : `<div class="small muted" style="margin-top:8px">No units</div>`;
+
+
+
+        const selectHtml = canAdd ? `<select class="select-compact" onchange="setSlotSelection(${fIdx},'${section}',${sIdx}, this.value)">${options}</select>` : '';
+
+        const addButtonHtml = canAdd ? `<button class="btn btn-sm btn-green" onclick="addUnitToSlot(${fIdx},'${section}',${sIdx})">Add</button>` : `<button class="btn btn-sm btn-green" disabled style="opacity:0.5">Full</button>`;
+
+        // show Min badge (red) when unmet, hide otherwise (and no "needs X" inline text)
+
+        const minHtml = (slot.min && slot.min > 0 && selectedCount < slot.min) ? `<span class="min-badge">Min: ${slot.min}</span>` : '';
+
+        return `<div style="margin-top:10px;padding:10px;background:#071424;border-radius:8px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="display:flex;align-items:center;gap:8px"><div class="badge">${slot.label}</div><div class="slot-meta">Max: ${slot.max} — Selected: ${selectedCount}</div>${ minHtml }</div><div style="display:flex;align-items:center;gap:8px">${selectHtml}${addButtonHtml}</div></div>${unitsHtml}</div>`;
+
+      }
+
+
+
+      function renderSpecialBlock(f,fIdx,special){
+
+        const allowedUnits = TYRANID_UNIT_LIST.filter(u => special.allowedTypes.includes(u.slotType));
+
+        const options = `<option value="">Select special unit</option>` + allowedUnits.map(u=>`<option value="${u.id}">${u.name} (${u.slotType})</option>`).join('');
+
+        const selectedCount = (special.units||[]).length;
+
+        const canAdd = selectedCount < (special.max||1);
+
+        const unitsHtml = (special.units||[]).length ? special.units.map((u,i)=>`
+
+          <div style="margin-top:8px;padding:8px;background:#071a2a;border-radius:6px;display:flex;justify-content:space-between;align-items:center">
+
+            <div><div style="font-weight:700">${u.name} <span class="muted">- ${unitPoints(u)} pts</span></div></div>
+
+            <div style="display:flex;gap:6px">
+
+              <button class="btn btn-sm btn-blue" onclick="openEditModal(${fIdx},'special',0,${i})">Edit</button>
+
+              <button class="btn btn-sm btn-red" onclick="removeSpecialUnit(${fIdx},${i})">Remove</button>
+
+            </div>
+
+          </div>
+
+        `).join('') : `<div class="small muted" style="margin-top:8px">No special unit added</div>`;
+
+
+
+        const selectHtml = canAdd ? `<select id="special-select-${fIdx}" class="select-compact">${options}</select>` : '';
+
+        const addButtonHtml = canAdd ? `<button id="special-add-btn-${fIdx}" class="btn btn-sm btn-green" onclick="(function(){ const sel=document.getElementById('special-select-${fIdx}'); if(sel && sel.value) addUnitToSpecial(${fIdx}, sel.value); })()">Add</button>` : `<button class="btn btn-sm btn-green" disabled style="opacity:0.5">Full</button>`;
+
+
+
+        return `<div style="margin-top:10px;padding:10px;border-radius:8px;background:#071424"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="small muted">Allowed: ${special.allowedTypes.join(', ')} <span class="slot-meta">Max: ${special.max} — Selected: ${selectedCount}</span></div><div style="display:flex;align-items:center;gap:8px">${selectHtml}${addButtonHtml}</div></div>${unitsHtml}</div>`;
+
+      }
+
+
+
+      function renderArmyRules(){ return `<div style="padding:12px"><h2 style="margin:0 0 8px 0;color:#7ef0b7">Army Rules</h2><div class="card p-4"><p class="small muted">Mins updated from attached spreadsheet. Min badge visible only while unmet; wording uses "Compulsory Unit Missing".</p></div></div>`; }
+
+
+
+      function renderRoster(){
+
+        if(!armyFormations.length) return `<div style="padding:12px" class="muted small">No formations added.</div>`;
+
+        return `<div style="padding:12px">${armyFormations.map((f,fi)=>`<div style="padding:12px;margin-bottom:12px;background:#071a21;border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong style="color:#ffd">${f.name}</strong>${ formationHasMinViolations(f) ? `<span class="form-alert"> Compulsory Unit Missing</span>` : '' }<div class="small muted">${f.army}</div></div><div class="small muted">Total: ${formationPoints(f)} pts</div></div><div style="margin-top:10px"><div class="section-sub">Compulsory</div>${(f.compulsory||[]).map(slot=>`<div style="margin-top:6px"><div class="badge">${slot.label}</div><span class="slot-meta"> Max: ${slot.max} — Selected: ${(slot.units||[]).length}</span>${ slot.min && (slot.units||[]).length < slot.min ? `<span class="min-badge" style="margin-left:8px">Min: ${slot.min}</span>` : '' }${(slot.units||[]).map(u=>renderUnitReference(u)).join('')}</div>`).join('')}<div class="section-sub">Optional</div>${(f.optional||[]).map(slot=>`<div style="margin-top:6px"><div class="badge">${slot.label}</div><span class="slot-meta"> Max: ${slot.max} — Selected: ${(slot.units||[]).length}</span>${(slot.units||[]).map(u=>renderUnitReference(u)).join('')}</div>`).join('')}${f.special?`<div class="section-sub">Special</div><div style="margin-top:6px"><div class="badge">${f.special.label}</div><span class="slot-meta"> Max: ${f.special.max} — Selected: ${(f.special.units||[]).length}</span>${(f.special.units||[]).map(u=>renderUnitReference(u)).join('')}</div>`:''}</div></div>`).join('')}</div>`;
+
+      }
+
+
+
+      function renderUnitReference(u){
+
+        let caf = (UNIT_LOADOUTS[u.id] && UNIT_LOADOUTS[u.id].baseCAF) || (UNIT_BASE[u.id] && UNIT_BASE[u.id].CAF) || '';
+
+        let wounds = (UNIT_LOADOUTS[u.id] && UNIT_LOADOUTS[u.id].baseWounds) || (UNIT_BASE[u.id] && UNIT_BASE[u.id].wounds) || '-';
+
+        const applied = u._appliedEffects || {};
+
+        const swarm = applied.swarmLord;
+
+        if(swarm){ caf = swarm.CAF; wounds = swarm.Wounds; }
+
+        const weaponsHtml = (u.weapons||[]).length ? `<table class="table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>ToHit</th><th>AP</th><th>Traits</th><th>Cost</th></tr></thead><tbody>` + (u.weapons||[]).map(w => { const stat = WEAPON_LIBRARY[w.src] || {}; return `<tr><td>${w.name}</td><td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${stat.traits||''}</td><td class="cost">${w.points||0} pts</td></tr>`; }).join('') + `</tbody></table>` : `<div class="small muted">No weapons selected</div>`;
+
+
+
+        const upgradesHtml = (u.upgrades||[]).length ? (u.upgrades||[]).map(up=>`<div><strong>${up.name}</strong> <span class="muted">(+${up.points||0} pts)</span><div class="muted">${up.desc||''}</div></div>`).join('') : `<div class="small muted">No upgrades</div>`;
+
+        const psychicHtml = (u.psychic||[]).length ? (u.psychic||[]).map(p=>`<div><strong>${p.name}</strong> <span class="muted">(+${p.points||0} pts)</span><div class="muted">${p.desc||''}</div></div>`).join('') : '';
+
+        const effectHtml = swarm ? `<div class="effect-pill" style="display:inline-block;margin-top:6px">Swarm Lord: CAF ${swarm.CAF}; W ${swarm.Wounds}</div>` : '';
+
+        const specialRules = (UNIT_LOADOUTS[u.id] && UNIT_LOADOUTS[u.id].specialRules) ? (UNIT_LOADOUTS[u.id].specialRules.map(r => `<div class="muted small">- ${r}</div>`).join('')) : '';
+
+
+
+        return `
+
+          <div class="roster-unit">
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+
+              <div style="flex:1">
+
+                <div style="font-weight:800">${u.name} <span class="muted">x${u.qty||1} — ${unitPoints(u)} pts</span></div>
+
+                <div class="small muted">Type: ${(UNIT_BASE[u.id] && UNIT_BASE[u.id].type) || u.slotType} | CAF: ${caf} | W: ${wounds}</div>
+
+                ${effectHtml}
+
+                ${specialRules ? `<div style="margin-top:8px"><strong>Special rules</strong>${specialRules}</div>` : ''}
+
+                <div style="margin-top:8px"><strong>Weapons</strong>${weaponsHtml}</div>
+
+                <div style="margin-top:8px"><strong>Upgrades</strong>${upgradesHtml}</div>
+
+                ${psychicHtml ? `<div style="margin-top:8px"><strong>Psychic powers</strong>${psychicHtml}</div>` : ''}
+
+                ${u.notes && u.notes.length ? `<div class="notes" style="margin-top:8px">${u.notes.join('; ')}</div>` : ''}
+
+              </div>
+
+              <div class="right-col small muted">
+
+                <div>Base pts: ${(UNIT_BASE[u.id] && UNIT_BASE[u.id].points) || 0}</div>
+
+                <div style="margin-top:8px">Calculated: ${unitPoints(u)} pts</div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+
+
+
+      // ---------- Bootstrap ----------
+
+      document.addEventListener('DOMContentLoaded', ()=>{ loadState(); setActiveTab(activeTab || 'home'); });
+
+
+
+      // expose for quick debugging
+
+      window._app = { armyFormations, renderContent, setActiveTab, UNIT_LOADOUTS, WEAPON_LIBRARY };
+
+  </script>
+
 </body>
+
+
+
 </html>
