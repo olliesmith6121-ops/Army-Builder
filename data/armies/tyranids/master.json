@@ -1,0 +1,121 @@
+{
+  "faction_info": {
+    "name": "Tyranids",
+    "description": "The Great Devourer, an alien swarm controlled by a collective Hive Mind.",
+    "faction_rules": [
+      {
+        "name": "Objectives",
+        "effect": "Tyranid armies cannot score Victory Points from holding Objective counters. Instead: 1 VP for each detachment destroyed. 1 VP for each quadrant of the playing field not occupied by enemy forces each turn."
+      },
+      {
+        "name": "The Hive Mind",
+        "effect": "One Synapse Creature must be taken for every 3 Core Broods chosen. Bio-Titans and Flyers do not count toward this limit."
+      },
+      {
+        "name": "Brood",
+        "effect": "The term 'Brood' is used instead of 'Detachment' but has the exact same meaning."
+      }
+    ]
+  },
+  "unique_orders": {
+    "rampage": {
+      "name": "Rampage",
+      "description": "Move at double rate towards nearest enemy. Must fight if in contact. Moves around impassable terrain via shortest path."
+    },
+    "hunt": {
+      "name": "Hunt",
+      "description": "Move normal rate towards nearest enemy not in combat. Will engage if possible. If not pinned, shoots at nearest enemy in Advance Fire segment."
+    },
+    "nest": {
+      "name": "Nest",
+      "description": "Will not move. Shoots at nearest enemy in First Fire segment."
+    }
+  },
+  "psychic_powers": {
+    "psychic_scream": {
+      "name": "Psychic Scream",
+      "effect": "First Fire phase. Morale check (caster). If passed, all units within 8\" must take Morale test; if failed, they Fall Back."
+    },
+    "catalyst": {
+      "name": "Catalyst",
+      "effect": "Combat phase. Morale check (caster). If passed, a single brood within 8\" gains Feel No Pain."
+    },
+    "the_horror": {
+      "name": "The Horror",
+      "effect": "Before rolling engagement die. Morale check (caster). If passed, enemy rolls one extra die but discards the highest (CAF applies as normal)."
+    }
+  },
+  "formations": {
+    "synaptic_swarm": {
+      "name": "Synaptic Swarm",
+      "flavor": "The archetypical swarm linked to the Hive Mind.",
+      "compulsory": ["HQ", "Core", "Core", "Core"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Support", "Vanguard", "Vanguard", "Artillery", "Transport", "Air Support", "Titan", "Knight"],
+      "rules": ["One Synapse Creature must be taken for every 3 Core Broods."]
+    },
+    "assault_swarm": {
+      "name": "Assault Swarm",
+      "flavor": "Waves of Mycetic Spores launched from orbit.",
+      "compulsory": ["HQ", "Core", "Core", "Core"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Support", "Vanguard", "Vanguard", "Artillery", "Transport", "Air Support", "Titan", "Knight"],
+      "rules": [
+        "Mycetic Spore Assault: All broods must be carried in Mycetic Spores unless they have Deep Strike, Infiltrate, or Flyer rules.",
+        "Player may deploy Deep Strike broods from turn one."
+      ]
+    },
+    "bio_titan_swarm": {
+      "name": "Bio-Titan Swarm",
+      "flavor": "Late stage invasion with massive bio-constructs.",
+      "compulsory": ["Titan", "Titan"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Support", "Vanguard", "Vanguard", "Artillery", "Transport", "Air Support", "Titan", "Knight"],
+      "rules": ["Late Stage Invasion: All units in this formation re-roll failed Morale checks."]
+    }
+  },
+  "special_rules_library": {
+    "synapse": "Aura effect (X inches). Units within range auto-pass Morale checks (except Psychic tests).",
+    "instinct": "Take Morale check at end of Initiative Phase. If failed, unit receives the specified order (Rampage, Hunt, Nest).",
+    "regeneration": "When reduced to 0 wounds, do not remove. In End Phase, if not wiped out, roll D6 per wound lost; 6+ restores 1 wound.",
+    "chameleon_skin": "Cannot be targeted by enemy units engaged outside of X inches.",
+    "winged": "Can partake in close combat even if they have Flyer rule.",
+    "burrow": "Instead of moving, return to reserves to Deep Strike in later turns.",
+    "spawn": "Spawn Y units of type X. Added to brood if same type, else form new brood. Placed close to spawner.",
+    "miasma": "Shooting attacks against this unit suffer -1 To Hit. Enemies engaged with this unit suffer -1 CAF."
+  },
+  "weapon_traits_library": {
+    "attract": "If target not killed, move closest model D6\" towards attacker. Can cause Engagement. Ignored by Void/Ion Shields.",
+    "hunger": "When enemy slain, attacker regains 1 wound (up to max).",
+    "beam": "Trace straight line to target. All formations under line are hit.",
+    "parry": "In Close Combat, force opponent to re-roll one die.",
+    "spore_launcher": "Target closest model in detachment. Roll 2D6 + scatter. If hit, detonates as Spore Mine.",
+    "spore_mine": "Moves randomly D6\" in End Phase. Detonates on contact with non-Tyranid or impassable. Blast (3\"), AP -1, Light AT."
+  },
+  "unit_roster": {
+    "hive_tyrant": { "name": "Hive Tyrant", "role": "HQ", "detachment_size": 1, "points": 100, "stats": { "move": "5\"", "save": "4+", "caf": "+10", "morale": "2+", "wounds": 2, "scale": 1 }, "upgrades": [ { "name": "The Horror", "cost": 15 }, { "name": "Catalyst", "cost": 15 }, { "name": "Add Wings (Move 10\", Winged)", "cost": 20 }, { "name": "Swarm Lord (CAF+14, W3, no ranged)", "cost": 25 } ], "weapons": ["venom_cannon", "lash_whip_bone_sword"], "special_rules": ["Commander", "Invulnerable Save (5+)", "Synapse (12\")", "Psychic Scream"] },
+    "tyranid_warrior_brood": { "name": "Tyranid Warrior Brood", "role": "INFANTRY", "detachment_size": 3, "points": 60, "stats": { "move": "5\"", "save": "5+", "caf": "+5", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 3 (Max 12)", "cost": 50 }, { "name": "Replace Scything Talons with Bone Swords (per model)", "cost": 3 }, { "name": "Replace Death Spitter with Barbed Strangler (1 per 3 models)", "cost": 15 }, { "name": "Replace Death Spitter with Venom Cannon (1 per 3 models)", "cost": 15 } ], "weapons": ["death_spitter", "scything_talons"], "special_rules": ["Bulky", "Synapse (6\")", "Implacable"] },
+    "termagant_brood": { "name": "Termagant Brood", "role": "INFANTRY", "detachment_size": 6, "points": 30, "stats": { "move": "5\"", "save": "-", "caf": "+0", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 3 (Max 12)", "cost": 10 }, { "name": "Replace Fleshborer with Stranglewebs (per model)", "cost": 3 }, { "name": "Replace Fleshborer with Devourer (per model)", "cost": 1 } ], "weapons": ["fleshborer"], "special_rules": ["Instinct: Hunt"] },
+    "hormagaunt_brood": { "name": "Hormagaunt Brood", "role": "INFANTRY", "detachment_size": 6, "points": 30, "stats": { "move": "6\"", "save": "-", "caf": "+2", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 3 (Max 12)", "cost": 10 } ], "weapons": ["scything_talons"], "special_rules": ["Instinct: Rampage"] },
+    "genestealer_brood": { "name": "Genestealer Brood", "role": "INFANTRY", "detachment_size": 4, "points": 40, "stats": { "move": "6\"", "save": "6+", "caf": "+6", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 4", "cost": 12 }, { "name": "Increase Brood size by 8", "cost": 24 } ], "weapons": ["rending_claws"], "special_rules": ["Forward Deployment"] },
+    "lictor_brood": { "name": "Lictor Brood", "role": "INFANTRY", "detachment_size": 1, "points": 40, "stats": { "move": "8\"", "save": "6+", "caf": "+5", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 3)", "cost": 35 }, { "name": "Increase Brood size by 2 (Max 3)", "cost": 60 }, { "name": "Replace Lictor w/ Deathleaper", "cost": 20 } ], "weapons": ["rending_claws", "flesh_hooks"], "special_rules": ["Invulnerable Save (6+)", "Chameleon Skin (10\")", "Infiltrate"] },
+    "carnifex_brood": { "name": "Carnifex Brood", "role": "WALKER", "detachment_size": 3, "points": 90, "stats": { "move": "5\"", "save": "4+", "caf": "+7", "morale": "4+", "wounds": 2, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 6)", "cost": 30 }, { "name": "Replace Bio-Plasma with Barbed Strangler", "cost": 5 }, { "name": "Replace Bio-Plasma with Venom Cannon", "cost": 5 } ], "weapons": ["claws", "bio_plasma"], "special_rules": ["Instinct: Rampage", "Armored", "Bulky", "Implacable", "Regenerate"] },
+    "zoanthrope_brood": { "name": "Zoanthrope Brood", "role": "INFANTRY", "detachment_size": 3, "points": 65, "stats": { "move": "5\"", "save": "6+", "caf": "0", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 2 (Max 7)", "cost": 20 } ], "weapons": ["warp_blast_focused", "warp_blast_diffused"], "special_rules": ["Synapse (6\")", "Invulnerable Save (4+)"] },
+    "biovore_brood": { "name": "Biovore Brood", "role": "WALKER", "detachment_size": 3, "points": 50, "stats": { "move": "4\"", "save": "5+", "caf": "0", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 6)", "cost": 15 }, { "name": "Upgrade all Biovores to Pyrovores", "cost": 0 } ], "weapons": ["spore_launcher"], "special_rules": ["Instinct: Nest", "Bulky"] },
+    "gargoyle_brood": { "name": "Gargoyle Brood", "role": "INFANTRY", "detachment_size": 6, "points": 35, "stats": { "move": "12\"", "save": "6+", "caf": "+1", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 3 (Max 12)", "cost": 15 }, { "name": "Replace Fleshborer with Flamespurt", "cost": 1 } ], "weapons": ["fleshborer"], "special_rules": ["Jink (6+)", "Skimmer"] },
+    "ravener_brood": { "name": "Ravener Brood", "role": "INFANTRY", "detachment_size": 3, "points": 35, "stats": { "move": "8\"", "save": "4+", "caf": "+5", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 3 (Max 12)", "cost": 10 } ], "weapons": ["scything_talons", "thoracic_spinefist"], "special_rules": ["Instinct: Rampage", "Deep Strike", "Burrow"] },
+    "malanthrope_brood": { "name": "Malanthrope Brood", "role": "INFANTRY", "detachment_size": 3, "points": 25, "stats": { "move": "5\"", "save": "5+", "caf": "+1", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [], "weapons": ["stunning_tendrils"], "special_rules": ["Synapse (12\")"] },
+    "venomthrope_brood": { "name": "Venomthrope Brood", "role": "INFANTRY", "detachment_size": 3, "points": 65, "stats": { "move": "6\"", "save": "4+", "caf": "+5", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 6)", "cost": 20 } ], "weapons": ["toxic_lashes"], "special_rules": ["Instinct: Rampage", "Miasma"] },
+    "ripperswarm_brood": { "name": "Ripperswarm Brood", "role": "INFANTRY", "detachment_size": 2, "points": 35, "stats": { "move": "5\"", "save": "-", "caf": "0", "morale": "-", "wounds": 3, "scale": 1 }, "upgrades": [ { "name": "Increase Brood size by 1", "cost": 15 } ], "weapons": ["nasty_teeth"], "special_rules": ["Implacable"] },
+    "tervigon_brood": { "name": "Tervigon Brood", "role": "VEHICLE", "detachment_size": 2, "points": 100, "stats": { "move": "5\"", "save": "3+", "caf": "+3", "morale": "3+", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 2 (Max 6)", "cost": 90 } ], "weapons": ["claws"], "special_rules": ["Instinct: Nest", "Spawn (Termagant, D3)"] },
+    "haruspex_brood": { "name": "Haruspex Brood", "role": "VEHICLE", "detachment_size": 2, "points": 100, "stats": { "move": "6\"", "save": "3+", "caf": "+8", "morale": "3+", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 2 (Max 6)", "cost": 90 } ], "weapons": ["ravenous_maw", "grasping_tongue"], "special_rules": ["Instinct: Rampage"] },
+    "toxicrene_brood": { "name": "Toxicrene Brood", "role": "VEHICLE", "detachment_size": 3, "points": 120, "stats": { "move": "6\"", "save": "4+", "caf": "+8", "morale": "3+", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 2 (Max 6)", "cost": 100 } ], "weapons": ["toxic_lashes", "toxic_fumes"], "special_rules": ["Instinct: Rampage", "Miasma"] },
+    "harpy_brood": { "name": "Harpy Brood", "role": "VEHICLE", "detachment_size": 2, "points": 120, "stats": { "move": "18\"", "save": "5+", "caf": "+2", "morale": "4+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 4)", "cost": 55 }, { "name": "Replace Stranglethorn Cannon with Drool Cannon", "cost": 0 } ], "weapons": ["stranglethorn_cannon", "spore_launcher_harpy"], "special_rules": ["Flyer", "Winged", "Hover", "Interceptor", "Jink(5+)"] },
+    "harridan_brood": { "name": "Harridan Brood", "role": "VEHICLE", "detachment_size": 1, "points": 110, "stats": { "move": "16\"", "save": "4+", "caf": "+4", "morale": "3+", "wounds": 2, "scale": 2 }, "upgrades": [], "weapons": ["bio_cannon_harridan", "spore_launcher_harridan", "horrible_claws"], "special_rules": ["Flyer", "Winged", "Hover", "Jink(5+)", "Spawn (Gargoyle, 4)", "Synapse (12\")"] },
+    "malefactor_brood": { "name": "Malefactor Brood", "role": "SUPER-HEAVY VEHICLE", "detachment_size": 1, "points": 110, "stats": { "move": "9\"", "save": "3+", "caf": "+7", "morale": "3+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 3)", "cost": 100 } ], "weapons": ["mauling_limbs", "frag_spines", "spore_cysts"], "special_rules": ["Instinct : Rampage", "Armored", "Large Assault Transport (8)"] },
+    "exocrine_brood": { "name": "Exocrine Brood", "role": "SUPER-HEAVY VEHICLE", "detachment_size": 1, "points": 100, "stats": { "move": "5\"", "save": "3+", "caf": "+4", "morale": "3+", "wounds": 2, "scale": 4 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 3)", "cost": 90 } ], "weapons": ["bio_plasmic_cannon", "spore_cysts"], "special_rules": ["Instinct: Nest", "Armored"] },
+    "tyrannofex_brood": { "name": "Tyrannofex Brood", "role": "SUPER-HEAVY VEHICLE", "detachment_size": 1, "points": 90, "stats": { "move": "5\"", "save": "3+", "caf": "+5", "morale": "3+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 3)", "cost": 80 } ], "weapons": ["rupture_cannon"], "special_rules": ["Instinct : Hunt", "Armored"] },
+    "trygon_brood": { "name": "Trygon Brood", "role": "KNIGHT", "detachment_size": 1, "points": 120, "stats": { "move": "10\"", "save": "3+", "caf": "+8", "morale": "2+", "wounds": 3, "scale": 4 }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 3)", "cost": 110 }, { "name": "Upgrade to Trygon Prime", "cost": 60 } ], "weapons": ["bio_shock", "razor_claws", "toxin_spike"], "special_rules": ["Instinct: Rampage", "Deep Strike", "Burrow", "Nimble"] },
+    "hierodule": { "name": "Hierodule", "role": "KNIGHT", "detachment_size": 1, "points": 150, "stats": { "move": "8\"", "save": "3+", "caf": "+10", "morale": "2+", "wounds": 3, "scale": 4 }, "upgrades": [], "weapons": ["razor_claws", "bio_cannon", "pyro_acid_spray", "ripper_tentacles", "spore_pods", "stinger_salvo"], "special_rules": ["Instinct: Hunt", "Agile", "Regenerate"] },
+    "hierophant": { "name": "Hierophant", "role": "TITAN", "detachment_size": 1, "points": 450, "stats": { "move": "10\"", "save": "2+", "caf": "+16", "morale": "2+", "wounds": 5, "scale": 5 }, "upgrades": [], "weapons": ["bio_cannon", "razor_claws", "bile_launcher", "pyro_acid_spray", "ripper_tentacles", "spore_pods", "stinger_salvo"], "special_rules": ["Agile", "Regenerate", "The Horror"] },
+    "dominatrix": { "name": "Dominatrix", "role": "TITAN", "detachment_size": 1, "points": 500, "stats": { "move": "6\"", "save": "2+", "caf": "+12", "morale": "2+", "wounds": 4, "scale": 5 }, "upgrades": [], "weapons": ["bio_cannon", "warp_pulse", "spore_cysts"], "special_rules": ["Invulnerable Save (2+)", "Synapse (24\")", "Psychic Scream", "Catalyst", "Regenerate", "The Horror"] },
+    "mycetic_spores": { "name": "Mycetic Spores", "role": "TRANSPORT", "detachment_size": 1, "points": 20, "stats": { "move": "-", "save": "5+", "caf": "+1", "morale": "4+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 1", "cost": 15 } ], "weapons": ["flensing_whips"], "special_rules": ["Deep Strike", "Large Assault Transport (8)", "Drop Pod"] }
+  }
+}

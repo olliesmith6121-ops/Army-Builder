@@ -1,0 +1,122 @@
+{
+  "faction_info": {
+    "name": "Eldar",
+    "description": "Ancient, highly advanced alien race known for psychic prowess and speed.",
+    "faction_rules": [
+      {
+        "name": "Prescient Fate",
+        "effect": "For each 1000 pts, receive a Fate Token. [cite_start]Use to add a die to Psychic Pool OR change order tokens before reveal. [cite: 4190-4192]"
+      },
+      {
+        "name": "Path of the Seer",
+        "effect": "Total the Psychic Power Level of all Farseers and Warlocks. [cite_start]Available powers are 1 up to that Total Level. [cite: 4193-4195]"
+      }
+    ]
+  },
+  "formations": {
+    "craftworld_defenders_warhost": {
+      "name": "Craftworld Defenders Warhost",
+      "flavor": "Militia and specialized troops.",
+      "compulsory": ["HQ", "Core", "Core", "Battle Tank"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Transport", "Air Support", "Artillery", "Vanguard"],
+      [cite_start]"rules": ["Dedicated Transports: Any Infantry-only Detachment may upgrade with Wave Serpents. [cite: 4207]"]
+    },
+    "aspect_warhost": {
+      "name": "Aspect Warhost",
+      "flavor": "Highly specialized fighting units.",
+      "compulsory": ["HQ", "Vanguard", "Vanguard", "Vanguard"],
+      "optional": ["Vanguard", "Vanguard", "Vanguard", "Air Support", "Transport", "Transport", "Battle Tank", "Battle Tank"],
+      [cite_start]"rules": ["Dedicated Transports: Any Infantry-only Detachment may upgrade with Wave Serpents. [cite: 4212]"]
+    },
+    "strike_warhost": {
+      "name": "Strike Warhost",
+      "flavor": "Speed and accuracy.",
+      "compulsory": ["HQ", "Battle Tank", "Battle Tank", "Battle Tank"],
+      "optional": ["Battle Tank", "Battle Tank", "Battle Tank", "Support", "Transport", "Air Support", "Heavy Armor", "Knight", "Core"],
+      "rules": [
+        "Wraithgate Assault: All models must move >10\" or be in transport. All gain Forward Deployment.",
+        [cite_start]"Tank Commander: One Compulsory Detachment model must upgrade to Commander (+10pts). [cite: 4216]"
+      ]
+    },
+    "engines_of_vaul_warhost": {
+      "name": "Engines of Vaul Warhost",
+      "flavor": "Super-heavy war machines.",
+      "compulsory": ["Heavy Armor", "Heavy Armor"],
+      "optional": ["Air Support", "Heavy Armor", "Titan", "Titan"],
+      "rules": []
+    },
+    "wraith_warhost": {
+      "name": "Wraith Warhost",
+      "flavor": "Wraith constructs en masse.",
+      "compulsory": ["HQ", "Support", "Support", "Transport"],
+      "optional": ["Air Support", "Artillery", "Artillery", "Artillery", "Core"],
+      "rules": [
+        "Wraith Constructs: Compulsory Core must be Wraithlords or Wraithguard. HQ must be Farseer or Warlock.",
+        [cite_start]"Dire Needs: +1 Tactical Strength when contesting marker with Wraith unit. [cite: 4221-4222]"
+      ]
+    }
+  },
+  "psychic_powers": {
+    [cite_start]"embolden": { "level": "5+", "effect": "One detachment within 8\" re-rolls morale. Remains in Play. [cite: 4197-4198]" },
+    [cite_start]"destructor": { "level": "6+", "effect": "Attack: Range T, 4+ To Hit, AP 0, Light. [cite: 4198]" },
+    [cite_start]"conceal": { "level": "8+", "effect": "Detachment within 3\" cannot be fired at from >6\" away. [cite: 4198-4199]" },
+    [cite_start]"strands_of_time": { "level": "9+/11+/14+", "effect": "Replace orders for 3/5/9 detachments. [cite: 4199]" },
+    [cite_start]"force_of_asuryan": { "level": "10+", "effect": "One detachment within 12\" re-rolls hits and gains Rend. [cite: 4199-4200]" },
+    [cite_start]"eldritch_storm": { "level": "12+", "effect": "Unit within 18\" takes 2D6 hits, changes facing randomly. [cite: 4200-4201]" },
+    [cite_start]"doom": { "level": "14+", "effect": "Mark detachment within 12\" as doomed (re-roll successful saves). Remains in Play. [cite: 4201-4202]" },
+    [cite_start]"temporal_weave": { "level": "16+", "effect": "Detachment within 10\" loses move/shoot. Counts as rolling 0 in combat (adds CAF). [cite: 4202-4203]" }
+  },
+  "special_rules_library": {
+    [cite_start]"mandiblasters": "If fight is a tie, unit wins combat. [cite: 3861]",
+    [cite_start]"holo_field": "Targets firing at this unit reduce To Hit roll by X. [cite: 3848-3850]",
+    [cite_start]"jump_generator": "Teleport up to 6D6\". Remove model on rolls of 6 after first. Once per phase. [cite: 3851-3856]",
+    "banshee_mask": "When charged, enemy takes Morale Check. [cite_start]If failed, -2 CAF. [cite: 3837-3838]",
+    "anti_grav": "Move over models/terrain without penalty. [cite_start]Cannot end on other models/Engagement Zone. [cite: 3845-3847]"
+  },
+  "weapon_traits_library": {
+    [cite_start]"lance": "Natural 6 to hit improves AP by 1. [cite: 3884]",
+    "beam": "Line attack. [cite_start]Hits all formations under line. [cite: 139-141]",
+    [cite_start]"parry": "In Close Combat, force opponent to re-roll one die. [cite: 3896]",
+    [cite_start]"pierce": "After rolling Fight dice, re-roll one of your own die. [cite: 3897]",
+    "wraithgate": "Create two-way gate within range. [cite_start]Units scale <= X move through as 0 distance. [cite: 3899-3906]"
+  },
+  "unit_roster": {
+    "farseer": { "name": "Farseer", "role": "HQ", "detachment_size": 1, "points": 125, "stats": { "move": "6\"", "save": "6+", "caf": "+4", "morale": "2+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Psyker(4)", "cost": 25 } ], "weapons": ["shuriken_pistol", "witchblade"], "special_rules": ["Commander", "Master Tactician", "Inspire(8\")", "Psyker(3)", "Invulnerable Save(5+)"] },
+    "warlock_host": { "name": "Warlock Host", "role": "HQ", "detachment_size": 1, "points": 40, "stats": { "move": "6\"", "save": "6+", "caf": "+3", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Psyker(2)", "cost": 25 } ], "weapons": ["shuriken_pistol", "witchblade"], "special_rules": ["Commander", "Master Tactician", "Inspire(6\")", "Psyker(1)"] },
+    "autarch": { "name": "Autarch", "role": "HQ", "detachment_size": 1, "points": 45, "stats": { "move": "6\"", "save": "5+", "caf": "+5", "morale": "2+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add Jump Pack & Deep Strike (Move 8\")", "cost": 0 }, { "name": "Add Jump Generator", "cost": 0 }, { "name": "Add Infiltrate & Mandiblasters", "cost": 0 }, { "name": "Add Banshee Mask (Move 7\")", "cost": 0 }, { "name": "Add Fire Pike", "cost": 0 }, { "name": "Add Tempest Launcher", "cost": 0 }, { "name": "Add Jetbike (Move 14\", Cavalry)", "cost": 15 } ], "weapons": ["shuriken_pistol", "star_glaive"], "special_rules": ["Commander", "Master Tactician", "Marksman", "Inspire(6\")"] },
+    "wave_serpent_host": { "name": "Wave Serpent Host", "role": "TRANSPORT", "detachment_size": 3, "points": 54, "stats": { "move": "14\"", "save": "4+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Replace Shuriken Cannon with Scatter Laser", "cost": 0 }, { "name": "Replace Shuriken Cannon with Plasma Missile Launcher", "cost": 2 }, { "name": "Replace Shuriken Cannon with Star Cannon", "cost": 3 }, { "name": "Replace Shuriken Cannon with Bright Lance", "cost": 3 } ], "weapons": ["shuriken_catapult_turret", "shuriken_cannon"], "special_rules": ["Transport(2)", "Ion Shield(5+)", "Skimmer"] },
+    "guardian_defender_host": { "name": "Guardian Defender Host", "role": "CORE", "detachment_size": 4, "points": 30, "stats": { "move": "6\"", "save": "6+", "caf": "0", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Guardians", "cost": 12 }, { "name": "Add 2 Storm Guardian", "cost": 12 }, { "name": "Add 2 Heavy Weapon Platform w/ Shuriken Cannon", "cost": 10 }, { "name": "Add 2 Heavy Weapon Platform w/ Scatter Laser", "cost": 10 }, { "name": "Add 2 Heavy Weapon Platform w/ Plasma Missile Launcher", "cost": 15 }, { "name": "Add 2 Heavy Weapon Platform w/ Star Cannon", "cost": 18 }, { "name": "Add 2 Heavy Weapon Platform w/ Bright Lance", "cost": 18 } ], "weapons": ["shuriken_catapult"], "special_rules": ["Line"] },
+    "ranger_host": { "name": "Ranger Host", "role": "CORE", "detachment_size": 3, "points": 30, "stats": { "move": "6\"", "save": "-", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Rangers", "cost": 20 } ], "weapons": ["long_rifle"], "special_rules": ["Scout", "Infiltrate", "Holo-Field(-1)", "Auger Array"] },
+    "war_walker_host": { "name": "War Walker Host", "role": "SUPPORT", "detachment_size": 4, "points": 54, "stats": { "move": "8\"", "save": "4+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 War Walkers", "cost": 24 }, { "name": "Replace Shuriken Cannon with Scatter Laser", "cost": 0 }, { "name": "Replace Shuriken Cannon with Plasma Missile Launcher", "cost": 2 }, { "name": "Replace Shuriken Cannon with Star Cannon", "cost": 3 }, { "name": "Replace Shuriken Cannon with Bright Lance", "cost": 3 } ], "weapons": ["shuriken_cannon"], "special_rules": ["Forward Deployment", "Outflank"] },
+    "jet_bike_squadron": { "name": "Jet Bike Squadron", "role": "SUPPORT", "detachment_size": 3, "points": 35, "stats": { "move": "14\"", "save": "6+", "caf": "+1", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Jet Bikes", "cost": 30 }, { "name": "Replace Jet Bike with Vyper", "cost": 5 }, { "name": "Upgrade Vyper Weapon (Star Cannon/Bright Lance/Plasma Missile)", "cost": 3 } ], "weapons": ["shuriken_catapults"], "special_rules": ["Skimmer", "Jink(5+)"] },
+    "wraithlord_host": { "name": "Wraithlord Host", "role": "SUPPORT", "detachment_size": 4, "points": 85, "stats": { "move": "6\"", "save": "4+", "caf": "+5", "morale": "2+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Wraithlord", "cost": 20 }, { "name": "Add Scatter Laser", "cost": 1 }, { "name": "Add Shuriken Cannon", "cost": 1 }, { "name": "Add Plasma Missile Launcher", "cost": 2 }, { "name": "Add Star Cannon", "cost": 5 }, { "name": "Add Bright Lance", "cost": 5 } ], "weapons": ["shuriken_catapult_gloves", "ghostglaive"], "special_rules": ["Armored", "Invulnerable Save (6+)", "Implacable"] },
+    "wraithguard_host": { "name": "Wraithguard Host", "role": "SUPPORT", "detachment_size": 4, "points": 54, "stats": { "move": "5\"", "save": "5+", "caf": "+2", "morale": "2+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Wraithguards", "cost": 24 } ], "weapons": ["wraithcannon", "wraithglaive"], "special_rules": ["Armored", "Invulnerable Save (6+)", "Implacable"] },
+    "dire_avenger_aspect": { "name": "Dire Avenger Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 30, "stats": { "move": "6\"", "save": "6+", "caf": "+3", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Dire Avengers", "cost": 24 } ], "weapons": ["avenger_shuriken_catapult"], "special_rules": ["Marksman", "Invulnerable Save (6+)"] },
+    "fire_dragon_aspect": { "name": "Fire Dragon Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 33, "stats": { "move": "6\"", "save": "5+", "caf": "+2", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Fire Dragons", "cost": 24 } ], "weapons": ["fusion_gun"], "special_rules": ["Marksman", "Invulnerable Save (6+)"] },
+    "howling_banshee_aspect": { "name": "Howling Banshee Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 36, "stats": { "move": "7\"", "save": "6+", "caf": "+5", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Howling Banshees", "cost": 30 } ], "weapons": ["banshee_blade", "shuriken_pistol"], "special_rules": ["Banshee Mask", "Jink (6+)"] },
+    "striking_scorpions_aspect": { "name": "Striking Scorpions Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 36, "stats": { "move": "6\"", "save": "5+", "caf": "+4", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Striking Scorpions", "cost": 30 } ], "weapons": ["shuriken_pistol"], "special_rules": ["Infiltrate", "Scout", "Phospex", "Marksman", "Mandiblasters", "Invulnerable Save (6+)"] },
+    "shining_spears_aspect": { "name": "Shining Spears Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 48, "stats": { "move": "14\"", "save": "6+", "caf": "+3", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Shining Spears", "cost": 42 } ], "weapons": ["laser_lance"], "special_rules": ["Jink (5+)", "Outflank", "Furious Charge", "Invulnerable Save (6+)"] },
+    "swooping_hawk_aspect": { "name": "Swooping Hawk Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 36, "stats": { "move": "10\"", "save": "6+", "caf": "+2", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Swooping Hawks", "cost": 33 } ], "weapons": ["lasblaster", "hawk_grenades"], "special_rules": ["Jump Pack", "Deep Strike", "Invulnerable Save (6+)"] },
+    "warp_spiders_aspect": { "name": "Warp Spiders Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 42, "stats": { "move": "5\"", "save": "5+", "caf": "+2", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Warp Spiders", "cost": 36 } ], "weapons": ["death_spinner"], "special_rules": ["Marksman", "Jump Generator", "Invulnerable Save (6+)"] },
+    "dark_reaper_aspect": { "name": "Dark Reaper Aspect", "role": "VANGUARD", "detachment_size": 3, "points": 36, "stats": { "move": "5\"", "save": "5+", "caf": "+3", "morale": "2+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Dark Reapers", "cost": 30 } ], "weapons": ["reaper_launcher"], "special_rules": ["Marksman", "Invulnerable Save (6+)"] },
+    "falcon_squadron": { "name": "Falcon Squadron", "role": "BATTLE TANK", "detachment_size": 3, "points": 135, "stats": { "move": "14\"", "save": "4+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Falcon", "cost": 45 }, { "name": "Replace Shuriken Cannon with Scatter Laser", "cost": 0 }, { "name": "Replace Shuriken Cannon with Plasma Missile Launcher", "cost": 2 }, { "name": "Replace Shuriken Cannon with Star Cannon", "cost": 3 }, { "name": "Replace Shuriken Cannon with Bright Lance", "cost": 3 } ], "weapons": ["pulse_laser", "shuriken_catapults", "shuriken_cannon_turret"], "special_rules": ["Skimmer", "Transport(1)", "Jink(6+)"] },
+    "fire_prism_squadron": { "name": "Fire Prism Squadron", "role": "BATTLE TANK", "detachment_size": 3, "points": 150, "stats": { "move": "14\"", "save": "4+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Fire Prism", "cost": 50 } ], "weapons": ["fire_prism_focus", "shuriken_catapult_turret", "shuriken_cannon"], "special_rules": ["Skimmer", "Jink(6+)"] },
+    "lynx_squadron": { "name": "Lynx Squadron", "role": "BATTLE TANK", "detachment_size": 2, "points": 135, "stats": { "move": "12\"", "save": "3+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Lynx", "cost": 65 } ], "weapons": ["light_sonic_lance", "light_pulsar", "shuriken_catapult_turret", "twin_bright_lance"], "special_rules": ["Skimmer", "Holo-Field(-1)"] },
+    "firestorm_squadron": { "name": "Firestorm Squadron", "role": "ARTILLERY", "detachment_size": 3, "points": 120, "stats": { "move": "14\"", "save": "4+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Firestorm", "cost": 40 } ], "weapons": ["scatter_laser_battery", "shuriken_catapult_turret", "shuriken_cannon"], "special_rules": ["Skimmer", "Jink(6+)", "Tracking Array"] },
+    "night_spinner_squadron": { "name": "Night Spinner Squadron", "role": "ARTILLERY", "detachment_size": 3, "points": 135, "stats": { "move": "14\"", "save": "4+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Night Spinner", "cost": 45 } ], "weapons": ["doom_weaver", "shuriken_catapult_turret", "shuriken_cannon"], "special_rules": ["Skimmer", "Jink(6+)"] },
+    "heavy_support_weapon_battery": { "name": "Heavy Support Weapon Battery", "role": "ARTILLERY", "detachment_size": 3, "points": 75, "stats": { "move": "5\"", "save": "6+", "caf": "+0", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Heavy Support Weapon", "cost": 25 }, { "name": "Replace Shadow Weaver with D-Cannon", "cost": 10 }, { "name": "Replace Shadow Weaver with Vibro Cannon", "cost": 5 } ], "weapons": ["shadow_weaver", "d_cannon", "vibro_cannon"], "special_rules": ["Bulky"] },
+    "cobra_squadron": { "name": "Cobra Squadron", "role": "SUPER-HEAVY", "detachment_size": 1, "points": 100, "stats": { "move": "9\"", "save": "3+", "caf": "+3", "morale": "2+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Add 1 Cobra", "cost": 100 } ], "weapons": ["shuriken_cannon_turret", "d_impaler"], "special_rules": ["Anti-Grav", "Holo-Field(-1)"] },
+    "scorpion_squadron": { "name": "Scorpion Squadron", "role": "SUPER-HEAVY", "detachment_size": 1, "points": 100, "stats": { "move": "9\"", "save": "3+", "caf": "+3", "morale": "2+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Add 1 Scorpion", "cost": 100 } ], "weapons": ["shuriken_cannon_turret", "twin_light_pulsar_turret"], "special_rules": ["Anti-Grav", "Holo-Field(-1)"] },
+    "void_spinner": { "name": "Void Spinner", "role": "SUPER-HEAVY", "detachment_size": 1, "points": 100, "stats": { "move": "9\"", "save": "3+", "caf": "+3", "morale": "2+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Add 1 Void Spinner", "cost": 100 } ], "weapons": ["shuriken_cannon_turret", "voidspinner_array"], "special_rules": ["Anti-Grav", "Holo-Field(-1)"] },
+    "storm_serpent": { "name": "Storm Serpent", "role": "SUPER-HEAVY", "detachment_size": 1, "points": 100, "stats": { "move": "9\"", "save": "3+", "caf": "+3", "morale": "2+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Add 1 Storm Serpent", "cost": 100 } ], "weapons": ["shuriken_cannon_turret", "wraithgate"], "special_rules": ["Anti-Grav", "Holo-Field (-1)"] },
+    "nightwing_squadron": { "name": "Nightwing Squadron", "role": "AIR SUPPORT", "detachment_size": 1, "points": 100, "stats": { "move": "40\"", "save": "5+", "caf": "+0", "morale": "-", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Nightwing", "cost": 100 } ], "weapons": ["twin_shuriken_cannon", "twin_bright_lance"], "special_rules": ["Flyer", "Interceptor", "Jink (5+)", "Holo-Field(-1)", "Agile"] },
+    "phoenix_squadron": { "name": "Phoenix Squadron", "role": "AIR SUPPORT", "detachment_size": 1, "points": 110, "stats": { "move": "32\"", "save": "4+", "caf": "+0", "morale": "-", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Phoenix", "cost": 110 } ], "weapons": ["twin_shuriken_cannon", "plasma_missile_battery", "doom_weaver_bombs"], "special_rules": ["Flyer", "Interceptor", "Jink (5+)", "Holo-Field(-1)"] },
+    "vampire_raider": { "name": "Vampire Raider", "role": "AIR SUPPORT", "detachment_size": 1, "points": 170, "stats": { "move": "28\"", "save": "4+", "caf": "+0", "morale": "-", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Add 1 Vampire Raider", "cost": 170 } ], "weapons": ["twin_pulse_laser", "scatter_laser_battery"], "special_rules": ["Flyer", "Hover", "Large Transport(8)", "Jink (5+)", "Holo-Field(-1)"] },
+    "vampire_hunter": { "name": "Vampire Hunter", "role": "AIR SUPPORT", "detachment_size": 1, "points": 170, "stats": { "move": "28\"", "save": "4+", "caf": "+0", "morale": "-", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Add 1 Vampire Hunter", "cost": 170 } ], "weapons": ["twin_light_pulsar", "scatter_laser_battery", "phoenix_missile_launcher"], "special_rules": ["Flyer", "Hover", "Interceptor", "Large Transport(3)", "Jink (5+)", "Holo-Field(-1)"] },
+    "wraithknight": { "name": "Wraithknight", "role": "KNIGHT", "detachment_size": 1, "points": 180, "stats": { "move": "8\"", "save": "2+", "caf": "+9", "morale": "-", "wounds": 3, "scale": 4 }, "upgrades": [], "weapons": ["heavy_wraithcannon", "suncannon", "ghostglaive", "shuriken_cannon", "scatter_laser", "star_cannon"], "special_rules": ["Ion-Shield(5+)", "Agile", "Nimble"] },
+    "bright_stallion": { "name": "Bright Stallion", "role": "KNIGHT", "detachment_size": 1, "points": 200, "stats": { "move": "9\"", "save": "2+", "caf": "+9", "morale": "-", "wounds": 3, "scale": 4 }, "upgrades": [], "weapons": ["psychic_lance", "vibro_cannon"], "special_rules": ["Holofield(-1)", "Agile", "Nimble"] },
+    "avatar_of_khaine": { "name": "Avatar of Khaine", "role": "KNIGHT", "detachment_size": 1, "points": 250, "stats": { "move": "8\"", "save": "3+", "caf": "+12", "morale": "-", "wounds": 3, "scale": 4 }, "upgrades": [], "weapons": ["wailing_doom_melee", "wailing_doom_shooting"], "special_rules": ["Inspire(12\")", "Terror (3\")", "Invulnerable Save(4+)", "Furious Charge", "Resilient", "Unique", "Nimble"] },
+    "revenant_scout_party": { "name": "Revenant Scout Party", "role": "TITAN", "detachment_size": 1, "points": 350, "stats": { "move": "12\"", "save": "3+", "caf": "+7", "morale": "-", "wounds": 3, "scale": 5 }, "upgrades": [ { "name": "Add 1 Revenant Scout Titan", "cost": 330 } ], "weapons": ["cloudburst_missiles", "light_pulsar", "sonic_lance"], "special_rules": ["Agile", "Jump Pack", "Outflank", "Holo-field(-2)"] },
+    "phantom_titan": { "name": "Phantom Titan", "role": "TITAN", "detachment_size": 1, "points": 550, "stats": { "move": "10\"", "save": "2+", "caf": "+14", "morale": "-", "wounds": 5, "scale": 5 }, "upgrades": [ { "name": "Upgrade to Warlock Titan", "cost": 200 } ], "weapons": ["voidstorm_missiles", "pulsar", "d_bombard", "vibro_destructor", "fusion_lance", "wraithglaive"], "special_rules": ["Agile", "Holo-Field(-2)"] }
+  }
+}

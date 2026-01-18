@@ -1,0 +1,134 @@
+{
+  "faction_info": {
+    "name": "Orks",
+    "description": "The most brutal and numerous foes, disorganized but strong.",
+    "faction_rules": [
+      {
+        "name": "Strength in Numbers",
+        "effect": "Any mob with more than 5 wounds remaining increases its Morale by 1 (max 2+)."
+      },
+      {
+        "name": "'Ere we go!",
+        "effect": "Ork Transports have no capacity limit; pick amount needed to carry the Formation."
+      }
+    ]
+  },
+  "clans": {
+    "goff": "Specialists in hand-to-hand. +1 Morale when within 6\" of enemy.",
+    "bad_moons": "Show offs. +1 CAF if rival clan model within 6\". Formation must include most expensive mob.",
+    "evil_sunz": "Speed freaks. Vehicles gain +1\" move if painted red.",
+    "deathskulls": "Looters. Can include Solar Aux/Astartes vehicles as 'Looted'.",
+    "blood_axes": "Tactical. Each mob MUST take a Nob. Gain Outflank rule.",
+    "snakebites": "Primitive. No detachment size 2+ unless Clan(Snakebites). Wierdboyz generate +2 psychic dice."
+  },
+  "formations": {
+    "ork_warband": {
+      "name": "Ork Warband",
+      "flavor": "Hodge-podge of Orks.",
+      "compulsory": ["HQ", "Core", "Core", "Core"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Support", "Transport", "Heavy Armor", "Artillery", "Vanguard", "Battle Tank", "Air Support", "Titan", "Knight"],
+      "rules": []
+    },
+    "goff_warband": {
+      "name": "Goff Warband",
+      "flavor": "Massive infantry horde.",
+      "compulsory": ["HQ", "Core", "Core", "Core"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Support", "Transport", "Heavy Armor", "Artillery", "Vanguard", "Battle Tank", "Air Support", "Titan", "Knight"],
+      "rules": ["True Goff Horde: Cannot contain less than 25 models. War is Fun: +1 Morale within 6\" of enemy."]
+    },
+    "bad_moons_warband": {
+      "name": "Bad Moons Warband",
+      "flavor": "Wealthy show-offs.",
+      "compulsory": ["HQ", "Core", "Core", "Core"],
+      "optional": ["HQ", "Core", "Core", "Support", "Support", "Support", "Transport", "Heavy Armor", "Artillery", "Vanguard", "Battle Tank", "Air Support", "Titan", "Knight"],
+      "rules": ["Show Offs: Must include most expensive mob. +1 CAF if rival clan within 6\"."]
+    },
+    "evil_sunz_warband": {
+      "name": "Evil Sunz Warband",
+      "flavor": "Kult of Speed.",
+      "compulsory": ["HQ", "Transport", "Vanguard", "Vanguard", "Light Armor", "Light Armor"],
+      "optional": ["HQ", "Air Support", "Air Support", "Air Support", "Vanguard", "Vanguard", "Light Armor", "Battle Tank", "Battle Tank"],
+      "rules": ["Speedfreeks: All models must move 8\"+ or be in transport. Red Ones Go Fasta: +1\" move if red."]
+    },
+    "deathskulls_warband": {
+      "name": "Deathskulls Warband",
+      "flavor": "Looters and traders.",
+      "compulsory": ["HQ", "Core", "Core", "Battle Tank"],
+      "optional": ["HQ", "Core", "Battle Tank", "Battle Tank", "Air Support", "Heavy Armor", "Artillery", "Artillery"],
+      "rules": ["Mistrusted: No other Clans allowed. Looted Vehicles: Can take Imperial vehicles as 'Looted'."]
+    },
+    "blood_axes_warband": {
+      "name": "Blood Axes Warband",
+      "flavor": "Tactical and sneaky.",
+      "compulsory": ["HQ", "Core", "Core", "Vanguard"],
+      "optional": ["HQ", "Core", "Transport", "Light Armor", "Vanguard", "Vanguard", "Vanguard", "Battle Tank", "Battle Tank"],
+      "rules": ["Sneaky Now: Must take Nob if able. Taktiks: Gain Outflank."]
+    },
+    "snakebites_warband": {
+      "name": "Snakebites Warband",
+      "flavor": "Primitive anti-tech.",
+      "compulsory": ["HQ", "Core", "Core", "Support"],
+      "optional": ["HQ", "Core", "Support", "Support", "Vanguard", "Vanguard", "Vanguard"],
+      "rules": ["Primitive: No size 2+ detachments unless Clan(Snakebites). Wierdboy Shamans: +2 Psychic dice if Wierdboy present."]
+    }
+  },
+  "psychic_powers": {
+    "gorks_blasta": { "level": "5+", "effect": "18\" 2 dice 4+ AP-1 Light AT, Armorbane" },
+    "morks_eadbutt": { "level": "7+", "effect": "One enemy model within 24\" suffers 1 wound, no saves." },
+    "gorks_words": { "level": "6+", "effect": "One detachment within 8\" gains +1 CAF." },
+    "morks_power_vomit": { "level": "9+", "effect": "Flamer Template from caster. Touched models suffer hit." },
+    "hand_of_gork": { "level": "11+", "effect": "One detachment within 12\" moves 2D6\"." },
+    "morks_warpath": { "level": "13+", "effect": "Unit within 18\" suffers D6 hits. Roll D6 to repeat/change target." },
+    "waaaagh": { "level": "15+", "effect": "All Orks within 6\", Warlords, Warbosses move 3\" towards enemy, gain Rend, CAF+1, Feel No Pain." }
+  },
+  "special_rules_library": {
+    "looted": "To Hit modifier -1 (max 6+). Morale changed to 5+.",
+    "little_or_no_value": "Tactical Strength reduced by 3 (min 0).",
+    "power_field": "Like Void Shields but cannot reignite. Roll X die for shields next turn.",
+    "unruly": "Must make Morale check to receive orders; if failed, gets Advance order.",
+    "uncontrolled": "Moves max distance in random direction. Fights anything in contact.",
+    "vehicle_bay": "Structure can be garrisoned by Walker/Cavalry/Vehicle.",
+    "tough_fighter": "Gains +1 CAF for each roll of '6' in fight."
+  },
+  "weapon_traits_library": {
+    "bubble_shield": "Target gains shield marker. When firing, roll extra die per hit; if <= markers, hit self.",
+    "lifta_droppa": "Yeet Strength table. Throw target random direction. Collision damage.",
+    "unreliable": "Natural 1 to hit means weapon malfunction (model takes hit)."
+  },
+  "unit_roster": {
+    "warlord": { "name": "Warlord", "role": "HQ", "detachment_size": 1, "points": 80, "stats": { "move": "5\"", "save": "4+", "caf": "+5", "morale": "3+", "wounds": 2, "scale": 1 }, "upgrades": [ { "name": "Add Gargant", "cost": 350 }, { "name": "Add Great Gargant", "cost": 550 } ], "weapons": ["kustom_shoota", "power_claw"], "special_rules": ["Commander", "Inspire(12\")", "Medicae", "Bulky", "Master Tactician", "Furious Charge", "Clan (X*)"] },
+    "warboss": { "name": "Warboss", "role": "HQ", "detachment_size": 1, "points": 45, "stats": { "move": "5\"", "save": "4+", "caf": "+4", "morale": "3+", "wounds": 1, "scale": 1 }, "upgrades": [], "weapons": ["kustom_shoota", "power_claw"], "special_rules": ["Commander", "Inspire(8\")", "Medicae", "Bulky", "Master Tactician", "Furious Charge", "Clan(X*)"] },
+    "wierdboy": { "name": "Wierdboy", "role": "HQ", "detachment_size": 1, "points": 50, "stats": { "move": "5\"", "save": "-", "caf": "0", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Psyker(2)", "cost": 25 }, { "name": "Psyker(3)", "cost": 50 }, { "name": "Psyker(4)", "cost": 75 } ], "weapons": ["staff"], "special_rules": ["Commander", "Medicae", "Psyker (1)"] },
+    "mek_boss": { "name": "Mek-Boss", "role": "HQ", "detachment_size": 1, "points": 40, "stats": { "move": "5\"", "save": "6+", "caf": "+4", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Kustom Force Field", "cost": 20 }, { "name": "Rokkit Pack", "cost": 5 }, { "name": "Warbike", "cost": 10 }, { "name": "Bionik Eye", "cost": 2 }, { "name": "Painboy & Medical Squigs", "cost": 8 }, { "name": "Cybork Body", "cost": 15 }, { "name": "Mega Armor", "cost": 10 }, { "name": "Replace Kustom Shoota with Kustom Blasta", "cost": 15 }, { "name": "Add Power Claw", "cost": 10 }, { "name": "Add Stompa", "cost": 225 }, { "name": "Add Gargant", "cost": 350 }, { "name": "Add Great Gargant", "cost": 550 } ], "weapons": ["kustom_shoota"], "special_rules": ["Commander", "Battlesmith"] },
+    "war_trukk": { "name": "War Trukk", "role": "TRANSPORT", "detachment_size": 1, "points": 5, "stats": { "move": "10\"", "save": "5+", "caf": "+0", "morale": "5+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Upgrade to Battlewagon", "cost": 5 } ], "weapons": [], "special_rules": ["Assault Transport (1)"] },
+    "battlewagon": { "name": "Battlewagon", "role": "TRANSPORT", "detachment_size": 1, "points": 10, "stats": { "move": "8\"", "save": "4+", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 2 }, "upgrades": [], "weapons": ["big_shoota_turret"], "special_rules": ["Large Assault Transport (3)"] },
+    "boyz_mob": { "name": "Boyz Mob", "role": "CORE", "detachment_size": 4, "points": 25, "stats": { "move": "5\"", "save": "-", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Nobz", "cost": 10 }, { "name": "Add 2 Boyz", "cost": 10 }, { "name": "Add 2 Boyz with Burnas", "cost": 12 }, { "name": "Add 2 Boyz with Rokkits", "cost": 12 } ], "weapons": ["shoota", "slugga_choppa", "burna", "rokkit_launcha"], "special_rules": [] },
+    "grot_mob": { "name": "Grot Mob", "role": "CORE", "detachment_size": 4, "points": 19, "stats": { "move": "5\"", "save": "-", "caf": "-1", "morale": "6+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 4 Grots", "cost": 10 } ], "weapons": ["boomstick"], "special_rules": ["Unruly", "Little or No Value"] },
+    "goff_mob": { "name": "Goff Mob", "role": "CORE", "detachment_size": 4, "points": 33, "stats": { "move": "5\"", "save": "-", "caf": "+2", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Goff Nobz", "cost": 12 }, { "name": "Add 2 Goff Boyz", "cost": 12 }, { "name": "Add 2 Goff Boyz with Burnas", "cost": 12 }, { "name": "Add 2 Goff Boyz with Rokkits", "cost": 12 } ], "weapons": ["slugga_choppa", "burna", "rokkit_launcha"], "special_rules": ["Clan (Goff)", "Furious Charge"] },
+    "lootaz_mob": { "name": "Lootaz Mob", "role": "CORE", "detachment_size": 4, "points": 33, "stats": { "move": "5\"", "save": "-", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Nobz", "cost": 14 }, { "name": "Add 2 Boyz", "cost": 14 } ], "weapons": ["shooty_deffgun", "beamy_deffgun"], "special_rules": ["Clan (Deathskullz)"] },
+    "killa_kans": { "name": "Killa Kans Mob", "role": "SUPPORT", "detachment_size": 4, "points": 50, "stats": { "move": "6\"", "save": "5+", "caf": "+3", "morale": "6+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Killa Kanz", "cost": 25 } ], "weapons": ["big_shoota", "skorcha", "rokkit_launcha"], "special_rules": ["Armored"] },
+    "deff_dread_mob": { "name": "Deff Dread Mob", "role": "SUPPORT", "detachment_size": 4, "points": 70, "stats": { "move": "5\"", "save": "4+", "caf": "+5", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Deff Dreads", "cost": 30 }, { "name": "Add 1 Mega Dread", "cost": 30 }, { "name": "Upgrade 1 Mega Dread to Meka-Dread", "cost": 15 } ], "weapons": ["dread_klaws", "big_shoota", "kustom_mega_blasta", "rokkit_launcha"], "special_rules": ["Armored"] },
+    "meganobz_mob": { "name": "Meganobz Mob", "role": "SUPPORT", "detachment_size": 4, "points": 45, "stats": { "move": "5\"", "save": "4+", "caf": "+3", "morale": "4+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Meganobz", "cost": 20 } ], "weapons": ["kustom_shoota"], "special_rules": ["Bulky", "Inspire(3\")"] },
+    "stormboyz_mob": { "name": "Stormboyz Mob", "role": "SUPPORT", "detachment_size": 4, "points": 25, "stats": { "move": "7\"", "save": "-", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Stormboyz", "cost": 10 } ], "weapons": ["slugga_choppa"], "special_rules": ["Rokkit Pack"] },
+    "flash_gitz_mob": { "name": "Flash Gitz Mob", "role": "SUPPORT", "detachment_size": 4, "points": 29, "stats": { "move": "5\"", "save": "-", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Flash Gitz", "cost": 12 }, { "name": "Add 1 Flash Gitz Nobz", "cost": 12 } ], "weapons": ["kustom_shoota", "snazzgun"], "special_rules": ["Clan (Bad Moons)", "Marksman"] },
+    "squig_herder_mob": { "name": "Squig Herder Mob", "role": "SUPPORT", "detachment_size": 5, "points": 20, "stats": { "move": "5\"", "save": "-", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 1 Herda", "cost": 4 }, { "name": "Add 4 Squigs", "cost": 10 } ], "weapons": [], "special_rules": ["Uncontrolled", "Furious Charge", "Little or No Value"] },
+    "big_gunz_battery": { "name": "Big Gunz Battery", "role": "ARTILLERY", "detachment_size": 4, "points": 40, "stats": { "move": "-", "save": "-", "caf": "-5", "morale": "6+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Grot Crew w/ Lobbaz", "cost": 20 }, { "name": "Replace Lobba with Zzap Gun", "cost": 0 } ], "weapons": ["lobba", "zzap_gun"], "special_rules": ["Little or No Value"] },
+    "pulsa_rokkit_battery": { "name": "Pulsa Rokkit Battery", "role": "ARTILLERY", "detachment_size": 3, "points": 30, "stats": { "move": "-", "save": "-", "caf": "-5", "morale": "6+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 3 Grot Crew w/ Pulsa Rokkit", "cost": 30 } ], "weapons": ["pulsa_rokkit"], "special_rules": ["Little or No Value"] },
+    "kommandoz_mob": { "name": "Kommandoz Mob", "role": "VANGUARD", "detachment_size": 4, "points": 30, "stats": { "move": "5\"", "save": "-", "caf": "+2", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Kommandoz", "cost": 12 }, { "name": "Add 1 Kommandoz Nobz", "cost": 12 } ], "weapons": ["sneaky_slugga", "demo_charges"], "special_rules": ["Clan (Blood Axes)", "Infiltrate"] },
+    "boarboyz_mob": { "name": "Boarboyz Mob", "role": "VANGUARD", "detachment_size": 4, "points": 33, "stats": { "move": "9\"", "save": "5+", "caf": "+2", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 Boar Boyz", "cost": 14 } ], "weapons": ["slugga", "tusks"], "special_rules": ["Clan (Snakebites)", "Bulky", "Furious Charge"] },
+    "speed_freek_mob": { "name": "Speed Freek Mob", "role": "VANGUARD", "detachment_size": 4, "points": 65, "stats": { "move": "11\"", "save": "6+", "caf": "+2", "morale": "5+", "wounds": 1, "scale": 1 }, "upgrades": [ { "name": "Add 2 War Bikes", "cost": 30 }, { "name": "Add 1 War Buggy", "cost": 15 }, { "name": "Add 1 War Track", "cost": 15 } ], "weapons": ["big_shoota", "skorcha_turret", "rokkit_launcha_turret", "big_shoota_turret"], "special_rules": ["Clan (Evil Sunz)", "Jink (6+)"] },
+    "flakwagon_mob": { "name": "Flakwagon Mob", "role": "LIGHT ARMOR", "detachment_size": 4, "points": 65, "stats": { "move": "9\"", "save": "5+", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 2 Flakwagon", "cost": 40 } ], "weapons": ["flakka_dakka_gunz"], "special_rules": [] },
+    "snazzawagon_mob": { "name": "Snazzawagon Mob", "role": "LIGHT ARMOR", "detachment_size": 3, "points": 65, "stats": { "move": "10\"", "save": "5+", "caf": "+1", "morale": "5+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 2 Snazzawagons", "cost": 40 }, { "name": "Remove Arc (Front) from a Weapon", "cost": 1 } ], "weapons": ["mek_speshul", "blasta_kannon", "deff_kannon_wagon", "skorcha"], "special_rules": ["Clan (Evil Sunz)"] },
+    "mekboy_wagons": { "name": "Mekboy Wagons", "role": "LIGHT ARMOR", "detachment_size": 2, "points": 60, "stats": { "move": "9\"", "save": "5+", "caf": "+1", "morale": "4+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 2 Mekboy Wagons", "cost": 60 }, { "name": "Add 1 Mekboy Dragsta", "cost": 35 }, { "name": "Add 1 Rokkit Dragsta", "cost": 25 }, { "name": "Add 1 Bubble Chucka Speedsta", "cost": 25 }, { "name": "Add 1 Lifta-Droppa Speedsta", "cost": 25 } ], "weapons": ["kustom_autokannon"], "special_rules": ["Battlesmith"] },
+    "gunwagon_mob": { "name": "Gunwagon Mob", "role": "BATTLE TANK", "detachment_size": 3, "points": 95, "stats": { "move": "9\"", "save": "4+", "caf": "+3", "morale": "5+", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 2 Gunwagons", "cost": 60 }, { "name": "Remove Arc (Front) from a Weapon", "cost": 1 } ], "weapons": ["blasta_kannon", "supa_blasta_kannon", "multi_blasta_kannon", "deffrolla", "gutrippa"], "special_rules": [] },
+    "squiggoth_mob": { "name": "Squiggoth Mob", "role": "BATTLE TANK", "detachment_size": 2, "points": 85, "stats": { "move": "7\"", "save": "3+", "caf": "+5", "morale": "-", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Add 1 Squiggoth", "cost": 80 } ], "weapons": ["stampeding_rush", "swivel_guns", "bombard"], "special_rules": ["Clan(Snakebites)", "Large Transport (4)", "Agile", "Furious Charge", "Resilient"] },
+    "ork_war_fort": { "name": "Ork War Fort", "role": "BASTION", "detachment_size": 1, "points": 150, "stats": { "move": "-", "save": "5+", "caf": "+4", "morale": "-", "wounds": 8, "scale": "-" }, "upgrades": [ { "name": "Mekshop & Painboy Shack", "cost": 25 }, { "name": "Deff Ray Turret", "cost": 75 }, { "name": "Mega Lifta-Droppa Tower", "cost": 75 } ], "weapons": ["flakka_cannon", "quad_dakka_gun_turret", "lotza_big_shootas", "big_lobba"], "special_rules": ["Bastion", "Forward Deployment"] },
+    "battlefortress_skwadron": { "name": "Battlefortress Skwadron", "role": "SUPER-HEAVY", "detachment_size": 1, "points": 100, "stats": { "move": "7\"", "save": "3+", "caf": "+4", "morale": "5+", "wounds": 2, "scale": 3 }, "upgrades": [ { "name": "Add 1 Battlefortress", "cost": 90 }, { "name": "Flakkfortress", "cost": 0 }, { "name": "Skullhamma", "cost": 20 }, { "name": "Rokkspitta", "cost": 10 } ], "weapons": ["twin_blasta_kannon", "hull_mounted_lobba", "lotza_big_shootas", "gnarly_deffrolla"], "special_rules": ["Large Assault Transport (6)", "Furious Charge"] },
+    "fighta_bommer_skwadron": { "name": "Fighta-Bommer Skwadron", "role": "AIR SUPPORT", "detachment_size": 1, "points": 55, "stats": { "move": "24\"", "save": "5+", "caf": "+0", "morale": "-", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Fighta-Bommer", "cost": 50 }, { "name": "Add Rokkits", "cost": 10 }, { "name": "Add Wing-Bombs", "cost": 10 }, { "name": "Add Big Bomb", "cost": 20 } ], "weapons": ["quad_dakka_gunz", "turret_big_shoota", "tail_big_shoota"], "special_rules": ["Flyer", "Interceptor", "Jink (5+)"] },
+    "dakkajet_skwadron": { "name": "Dakkajet Skwadron", "role": "AIR SUPPORT", "detachment_size": 1, "points": 50, "stats": { "move": "28\"", "save": "5+", "caf": "+0", "morale": "-", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Dakkajet", "cost": 45 }, { "name": "Add Rokkits", "cost": 5 }, { "name": "Add Wing Bombz", "cost": 10 } ], "weapons": ["quad_dakka_gunz"], "special_rules": ["Clan (Evil Sunz)", "Flyer", "Interceptor", "Jink (5+)"] },
+    "eavy_bommer_skwadron": { "name": "Eavy Bommer Skwadron", "role": "AIR SUPPORT", "detachment_size": 1, "points": 85, "stats": { "move": "22\"", "save": "4+", "caf": "+0", "morale": "-", "wounds": 1, "scale": 2 }, "upgrades": [ { "name": "Add 1 Eavy Bommer", "cost": 80 }, { "name": "Add Bomb-Bay", "cost": 0 }, { "name": "Add Big Bomb-Bay", "cost": 40 } ], "weapons": ["nose_big_shoota", "turret_big_shoota", "tail_big_shoota", "rokkit_barrage"], "special_rules": ["Flyer", "Interceptor", "Jink (5+)"] },
+    "stompa_skwadron": { "name": "Stompa Skwadron", "role": "KNIGHT", "detachment_size": 1, "points": 225, "stats": { "move": "5\"", "save": "2+", "caf": "+8", "morale": "4+", "wounds": 3, "scale": 4 }, "upgrades": [ { "name": "Add 1 Stompa", "cost": 220 } ], "weapons": ["blasta_kannon", "mega_choppa", "lotza_big_shootas"], "special_rules": ["Large Transport (4)"] },
+    "gargant": { "name": "Gargant", "role": "TITAN", "detachment_size": 1, "points": 350, "stats": { "move": "5\"", "save": "3+", "caf": "+13", "morale": "-", "wounds": 5, "scale": 5 }, "upgrades": [], "weapons": ["gorks_traktor_kannon", "gaze_of_mork", "gutbusta_mega_kannon", "soopagun", "megarokkit_battery", "snapper", "lotza_big_shootas", "deff_kannon", "betta_lifta_droppa", "gatling_kannon", "skullhamma_kannon", "ripper_fist"], "special_rules": ["Large Transport (8)", "Power Field (D3)"] },
+    "great_gargant": { "name": "Great Gargant", "role": "TITAN", "detachment_size": 1, "points": 550, "stats": { "move": "5\"", "save": "3+", "caf": "+16", "morale": "-", "wounds": 7, "scale": 5 }, "upgrades": [], "weapons": ["gorks_traktor_kannon", "gaze_of_mork", "gutbusta_mega_kannon", "soopagun", "megarokkit_battery", "snapper", "lotza_big_shootas", "deff_kannon", "supa_lifta_droppa", "gatling_kannon", "skullhamma_kannon", "ripper_fist"], "special_rules": ["Large Transport (12)", "Power Field (D6)"] }
+  }
+}

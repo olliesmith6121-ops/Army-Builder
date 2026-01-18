@@ -1,0 +1,165 @@
+{
+  "unit_roster": {
+    "legion_assault_detachment": {
+      "name": "Legion Assault Detachment",
+      "role": "INFANTRY",
+      "detachment_size": 4,
+      "points": 30,
+      "stats": {
+        "move": "7\"",
+        "save": "5+",
+        "caf": "+3",
+        "morale": "3+",
+        "wounds": 1,
+        "scale": 1
+      },
+      "special_rules": ["Jump Packs"],
+      "upgrades": [
+        {
+          "name": "Increase Detachment size by 2",
+          "cost": 12
+        },
+        {
+          "name": "Increase Detachment size by 4",
+          "cost": 24
+        }
+      ],
+      "weapons": ["legion_bolt_pistols"]
+    },
+    "warhound_titan": {
+      "name": "Warhound Titan",
+      "role": "TITAN",
+      "detachment_size": 1,
+      "points": 0,
+      "stats": {
+        "move": "-",
+        "save": "-",
+        "caf": "-",
+        "morale": "-",
+        "wounds": 6,
+        "scale": 5
+      },
+      "special_rules": ["Void Shields", "God-engine"],
+      "upgrades": [],
+      "weapons": ["plasma_blastgun"]
+    }
+  },
+  "structure_roster": {
+    "civitas_imperialis": {
+      "name": "Civitas Imperialis",
+      "role": "STRUCTURE",
+      "type": "Civilian",
+      "stats": {
+        "save": "5+",
+        "garrison_number": 1,
+        "wounds": 2,
+        "structure_bonus_caf": "+1",
+        "structure_bonus_cover": "6+",
+        "hit_modifier": -2
+      }
+    },
+    "militas_imperialis": {
+      "name": "Militas Imperialis",
+      "role": "STRUCTURE",
+      "type": "Military",
+      "stats": {
+        "save": "3+",
+        "garrison_number": 2,
+        "wounds": 3,
+        "structure_bonus_caf": "+2",
+        "structure_bonus_cover": "5+",
+        "hit_modifier": -2
+      }
+    },
+    "imperialis_grandus": {
+      "name": "Imperialis Grandus",
+      "role": "STRUCTURE",
+      "type": "Landmark",
+      "stats": {
+        "save": "4+",
+        "garrison_number": 3,
+        "wounds": 3,
+        "structure_bonus_caf": "+2",
+        "structure_bonus_cover": "4+",
+        "hit_modifier": -2
+      }
+    },
+    "fortification": {
+      "name": "Fortification",
+      "role": "STRUCTURE",
+      "type": "Defense",
+      "stats": {
+        "save": "2+",
+        "garrison_number": 1,
+        "wounds": 2,
+        "structure_bonus_caf": "+3",
+        "structure_bonus_cover": "3+",
+        "hit_modifier": -2
+      }
+    }
+  },
+  "weaponLibrary": {
+    "legion_bolt_pistols": {
+      "range": "6\"",
+      "dice": "1",
+      "toHit": "5+",
+      "ap": 0,
+      "traits": ["Light"]
+    },
+    "plasma_blastgun": {
+      "range": "-",
+      "dice": "3",
+      "toHit": "-",
+      "ap": "-",
+      "traits": ["Blast (3\")"]
+    },
+    "vanquisher_battlecannon": {
+      "range": "-",
+      "dice": "-",
+      "toHit": "-",
+      "ap": "-",
+      "traits": ["Anti-Tank"]
+    }
+  },
+  "traitLibrary": {
+    "accurate": "Re-roll failed Hit rolls.",
+    "anti_tank": "AP counts as 0 against Infantry/Cavalry.",
+    "arc": "Can only target Detachments in specified Arc.",
+    "armourbane": "Successful Saves by Vehicles/Knights/Titans must be re-rolled.",
+    "assault": "Double dice if within half range.",
+    "barrage": "Can target without LoS (suffers -1 to Hit).",
+    "beam": "Hits all models under a 1mm wide line.",
+    "blast": "Uses 3\" or 5\" template; hits based on models under template.",
+    "bombing_run": "Attacks during movement; targets within 3\".",
+    "bunker_buster": "AP counts as double against Structures.",
+    "burrowing": "Counts as hitting Rear Arc; bypasses Void Shields.",
+    "bypass": "Bypasses specified saves (e.g., Void Shields).",
+    "co_axial": "Must target same unit as primary weapon.",
+    "collapsing_singularity": "Roll D6; on 1 firing model takes Wound, on 6 hits bypass Void Shields.",
+    "deflagrate": "Unsaved Wounds generate additional Hits.",
+    "demolisher": "Can damage Structures.",
+    "engine_killer": "Super-heavies/Knights/Titans suffer X additional Wounds.",
+    "firestorm": "Uses Flame template; bypasses Cover Saves.",
+    "light": "Cannot damage Light Armoured vehicles or better.",
+    "point_defence": "Can be fired in Engagement phase against Infantry.",
+    "reach": "Can fight models within 2 inches.",
+    "rend": "Add D6 to Fight rolls against Vehicles/Knights/Titans.",
+    "ripple_fire": "Re-roll failed Hit rolls if stationary.",
+    "saturation_fire": "Target suffers -1 to Save rolls.",
+    "shock_pulse": "Vehicles/Knights/Titans hit reduce Movement and Shield level.",
+    "shred": "Re-roll failed Wound rolls against Infantry/Cavalry.",
+    "skyfire": "Can target Flyers; -2 To Hit against non-Flyers.",
+    "tracking": "Re-roll failed Hit rolls against Flyers.",
+    "warp": "Bypasses Void Shields and Invulnerable Saves.",
+    "wrecker": "Damages Structures and Garrisoned units."
+  },
+  "broodSizes": {
+    "legion_assault_detachment": {
+      "initial_brood_size": 4,
+      "max_brood_size": 8, 
+      "upgrade_increment": 2,
+      "upgrade_cost_per_increment": 12
+    }
+  },
+  "weaponConstraints": {}
+}
