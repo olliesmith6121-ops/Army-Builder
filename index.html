@@ -14,6 +14,20 @@
   <link rel="stylesheet" href="styles.css">
 
   <!-- Inline styles migrated to styles.css -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script>
+    window.XENOS_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCU1-OZq-HFPjGUtDkOnykD7HhZDuxYuIc",
+      authDomain: "army-builder-a6f09.firebaseapp.com",
+      projectId: "army-builder-a6f09",
+      storageBucket: "army-builder-a6f09.firebasestorage.app",
+      messagingSenderId: "303583993851",
+      appId: "1:303583993851:web:6ee3a610db69a3b323755e",
+      measurementId: "G-1DWFSZT8VB"
+    };
+  </script>
 
 </head>
 
@@ -65,18 +79,24 @@
     // ---------- Auth ----------
       let currentUserId = null;
       let currentUserName = '';
-      function loadUser(){ try{ const raw=localStorage.getItem('xenos_current_user'); if(raw){ const u=JSON.parse(raw); currentUserId=u.id||null; currentUserName=u.name||''; } }catch(e){} }
-      function saveUserSession(){ try{ const u={ id: currentUserId, name: currentUserName }; localStorage.setItem('xenos_current_user', JSON.stringify(u)); refreshAuthButton(); }catch(e){} }
+      let currentUserIsGoogle = false;
+      let firebaseApp = null;
+      let firebaseAuth = null;
+      let firebaseDb = null;
+      function loadUser(){ try{ const raw=localStorage.getItem('xenos_current_user'); if(raw){ const u=JSON.parse(raw); currentUserId=u.id||null; currentUserName=u.name||''; currentUserIsGoogle=!!u.google; } }catch(e){} }
+      function saveUserSession(){ try{ const u={ id: currentUserId, name: currentUserName, google: currentUserIsGoogle }; localStorage.setItem('xenos_current_user', JSON.stringify(u)); refreshAuthButton(); }catch(e){} }
+      function initCloudIfAvailable(){ if(firebaseApp || !window.XENOS_FIREBASE_CONFIG || !window.firebase || !window.firebase.initializeApp) return; try{ firebaseApp = firebase.initializeApp(window.XENOS_FIREBASE_CONFIG); firebaseAuth = firebase.auth(); firebaseDb = firebase.firestore(); }catch(e){ firebaseApp=null; firebaseAuth=null; firebaseDb=null; } }
       function storageKey(suffix){ const uid=currentUserId||'default'; return `xenos_${uid}_${suffix}`; }
       function refreshAuthButton(){ const btn=document.getElementById('auth-btn'); if(!btn) return; if(currentUserId){ btn.textContent = `Logout (${currentUserName||'User'})`; btn.onclick = handleLogout; } else { btn.textContent = 'Login'; btn.onclick = openLoginModal; } }
-      function openLoginModal(){ const root=document.getElementById('modal-root'); root.innerHTML = `<div class=\"modal-backdrop\" onclick=\"closeModal()\"><div class=\"modal\" onclick=\"event.stopPropagation()\"><h3 style=\"margin:0 0 8px 0\">Login</h3><div class=\"small muted\">Enter a username and password. New usernames will be created locally.</div><div style=\"margin-top:8px\"><input id=\"login-name\" class=\"mini-input\" placeholder=\"Username\"/></div><div style=\"margin-top:8px\"><input id=\"login-pass\" type=\"password\" class=\"mini-input\" placeholder=\"Password\"/></div><div style=\"display:flex;gap:8px;justify-content:flex-end;margin-top:12px\"><button class=\"btn\" onclick=\"closeModal()\">Cancel</button><button class=\"btn btn-green\" onclick=\"commitLogin()\">Login</button></div></div></div>`; const inp=document.getElementById('login-name'); if(inp) setTimeout(()=>inp.focus(),0); }
+      function openLoginModal(){ initCloudIfAvailable(); const root=document.getElementById('modal-root'); const hasGoogle=!!firebaseAuth; const googleBlock = hasGoogle ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:8px"><button class="btn btn-green" style="width:100%" onclick="googleLogin()">Sign in with Google</button></div>` : `<div class="small muted" style="margin-top:8px">Google login is not configured in this build.</div>`; root.innerHTML = `<div class="modal-backdrop" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3 style="margin:0 0 8px 0">Login</h3><div class="small muted">Sign in with Google to sync lists across devices or use a local account.</div>${googleBlock}<div class="small muted" style="margin-top:8px">Local account</div><div style="margin-top:8px"><input id="login-name" class="mini-input" placeholder="Username"/></div><div style="margin-top:8px"><input id="login-pass" type="password" class="mini-input" placeholder="Password"/></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-green" onclick="commitLogin()">Login</button></div></div></div>`; const inp=document.getElementById('login-name'); if(inp) setTimeout(()=>inp.focus(),0); }
       async function ensureArgon2(){ if(window.argon2) return true; const urls=['https://unpkg.com/argon2-browser/dist/argon2-bundled.min.js','https://cdn.jsdelivr.net/npm/argon2-browser/dist/argon2-bundled.min.js']; for(const u of urls){ try{ const s=document.createElement('script'); s.src=u; document.head.appendChild(s); await new Promise(r=>{ s.onload=r; s.onerror=r; }); if(window.argon2) return true; }catch(e){} } return !!window.argon2; }
       function genSalt(len){ const n=Math.max(8, Number(len||16)); const bytes=new Uint8Array(n); try{ crypto.getRandomValues(bytes); }catch(e){ for(let i=0;i<n;i++) bytes[i]=Math.floor(Math.random()*256); } return bytes; }
       function readUserRecord(id){ try{ const raw=localStorage.getItem('xenos_user_'+id); return raw? JSON.parse(raw): null; }catch(e){ return null; } }
       function writeUserRecord(id, rec){ try{ localStorage.setItem('xenos_user_'+id, JSON.stringify(rec)); }catch(e){} }
       async function commitLogin(){ const inp=document.getElementById('login-name'); const pinp=document.getElementById('login-pass'); const name=(inp&&inp.value||'').trim(); const pass=(pinp&&pinp.value||''); if(!name){ alert('Enter a username'); return; } if(!pass){ alert('Enter a password'); return; } const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); const okLib = await ensureArgon2(); if(!okLib){ alert('Login unavailable: Argon2 library failed to load. Check network and try again.'); return; } const existing=readUserRecord(id); if(existing && existing.hash){ try{ const ok = await window.argon2.verify({ pass, encoded: existing.hash }); if(!ok){ alert('Incorrect password'); return; } }catch(e){ alert('Login failed'); return; } } else { try{ const res = await window.argon2.hash({ pass, salt: genSalt(16), type: window.argon2.ArgonType.Argon2id, time: 3, mem: 4096, parallelism: 1, hashLen: 32 }); writeUserRecord(id, { id, name, hash: res.encoded }); }catch(e){ alert('Could not create user'); return; } }
-        currentUserId=id||'user'; currentUserName=name; closeModal(); saveUserSession(); loadSavedLists(true); loadState(true); selectedListIds=[]; setActiveTab('home'); }
-      function handleLogout(){ currentUserId=null; currentUserName=''; saveUserSession(); selectedListIds=[]; currentListId=null; selectedArmy='Select Army'; armyFormations=[]; builderMeta={ name:'New List', gamemode:'Standard', allegiance:'Loyalist', pointsCap:2000 }; setActiveTab('home'); }
+        currentUserId=id||'user'; currentUserName=name; currentUserIsGoogle=false; closeModal(); saveUserSession(); await loadSavedLists(true); loadState(true); selectedListIds=[]; setActiveTab('home'); renderContent(); }
+      function handleLogout(){ currentUserId=null; currentUserName=''; currentUserIsGoogle=false; if(firebaseAuth){ try{ firebaseAuth.signOut(); }catch(e){} } saveUserSession(); selectedListIds=[]; currentListId=null; selectedArmy='Select Army'; armyFormations=[]; builderMeta={ name:'New List', gamemode:'Standard', allegiance:'Loyalist', pointsCap:2000 }; setActiveTab('home'); renderContent(); }
+      async function googleLogin(){ initCloudIfAvailable(); if(!firebaseAuth){ alert('Google login unavailable'); return; } try{ const provider=new firebase.auth.GoogleAuthProvider(); const res=await firebaseAuth.signInWithPopup(provider); const user=res && res.user; if(!user) return; currentUserId=user.uid; currentUserName=user.displayName||user.email||'Google User'; currentUserIsGoogle=true; closeModal(); saveUserSession(); await loadSavedLists(true); loadState(true); selectedListIds=[]; setActiveTab('home'); renderContent(); }catch(e){ alert('Google login failed'); } }
 
     // ---------- State ----------
 
@@ -96,10 +116,9 @@
       let listsSortBy = 'createdAt';
       let listsSortDir = 'desc';
       let selectedListIds = [];
-      function loadSavedLists(migrate){ const key=storageKey('saved_lists'); let raw=localStorage.getItem(key); if(!raw && migrate){ const legacy=localStorage.getItem('xenos_saved_lists'); if(legacy){ raw=legacy; localStorage.setItem(key, legacy); } }
-        savedLists = raw? JSON.parse(raw):[]; savedLists = (savedLists||[]).map(x=>({ ...x, id: x.id || String(Date.now()+Math.random()), createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || x.createdAt || Date.now() })); }
-      function persistSavedLists(){ const key=storageKey('saved_lists'); localStorage.setItem(key, JSON.stringify(savedLists)); }
-      loadUser(); refreshAuthButton(); loadSavedLists(true);
+      async function loadSavedLists(migrate){ const key=storageKey('saved_lists'); let raw=localStorage.getItem(key); if(!raw && migrate){ const legacy=localStorage.getItem('xenos_saved_lists'); if(legacy){ raw=legacy; localStorage.setItem(key, legacy); } } let fromCloud=false; initCloudIfAvailable(); if(currentUserId && currentUserIsGoogle && firebaseDb){ try{ const doc=await firebaseDb.collection('users').doc(currentUserId).get(); if(doc && doc.exists){ const data=doc.data()||{}; if(Array.isArray(data.savedLists)){ raw=JSON.stringify(data.savedLists); fromCloud=true; localStorage.setItem(key, raw); } } }catch(e){} } savedLists = raw? JSON.parse(raw):[]; savedLists = (savedLists||[]).map(x=>({ ...x, id: x.id || String(Date.now()+Math.random()), createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || x.createdAt || Date.now() })); if(currentUserId && currentUserIsGoogle && firebaseDb && !fromCloud){ try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){} } }
+      async function persistSavedLists(){ const key=storageKey('saved_lists'); try{ localStorage.setItem(key, JSON.stringify(savedLists)); }catch(e){} initCloudIfAvailable(); if(currentUserId && currentUserIsGoogle && firebaseDb){ try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){} } }
+      loadUser(); initCloudIfAvailable(); refreshAuthButton(); loadSavedLists(true);
 
       let referenceView = 'main';
       let referenceDetail = { army:null, unitId:null };
@@ -423,7 +442,7 @@
 
       async function loadMasterRef(){ return null; }
       function formatDateTime(ts){ if(!ts) return '-'; const d=new Date(ts); if(!d || !d.getTime) return '-'; const t=d.getTime(); if(!(t>0)) return '-'; try{ return d.toLocaleString(); }catch(e){ return String(d); } }
-      function applyMasterBroodDefaults(ref){ try{ const roster=ref.unit_roster||{}; const norm=(k)=>k.replace(/_brood$/,'').replace(/_/g,'-'); Object.keys(roster).forEach(key=>{ const appId=norm(key); const data=roster[key]||{}; const det=Number(data.detachment_size||1); if(det>1){ UNIT_DEFAULT_MODELS[appId]=det; const ups=data.upgrades||[]; let step=UNIT_BROOD_STEP[appId]||1; let max=UNIT_MAX_MODELS[appId]||det; let cost=UNIT_BROOD_POINTS[appId]||0; ups.forEach(u=>{ const name=u.name||u.description||''; const mStep=(name.match(/Increase\s+Brood\s+size\s+by\s+(\d+)/i)||[])[1]; const mMax=(name.match(/Max\s+(\d+)/i)||[])[1]; if(mStep){ const n=Number(mStep); step = step>0 ? Math.min(step,n) : n; } if(mMax){ max=Number(mMax); } if(/Increase\s+Brood\s+size/i.test(name) && u.cost!=null){ cost=Number(u.cost); } }); if(appId==='termagant'){ step=3; } UNIT_BROOD_STEP[appId]=step; UNIT_MAX_MODELS[appId]=max; UNIT_BROOD_POINTS[appId]=cost; UNIT_LOADOUTS[appId] = UNIT_LOADOUTS[appId] || { weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const hasB=(UNIT_LOADOUTS[appId].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!hasB && max>det){ UNIT_LOADOUTS[appId].upgrades=(UNIT_LOADOUTS[appId].upgrades||[]).concat([{ id:'u_bsize_'+appId, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); }catch(e){} }
+      function applyMasterBroodDefaults(ref){ try{ const roster=ref.unit_roster||{}; const norm=(k)=>k.replace(/_brood$/,'').replace(/_/g,'-'); Object.keys(roster).forEach(key=>{ const appId=norm(key); const data=roster[key]||{}; const det=Number(data.detachment_size||1); if(det>1){ UNIT_DEFAULT_MODELS[appId]=det; const ups=data.upgrades||[]; let step=UNIT_BROOD_STEP[appId]||0; let max=UNIT_MAX_MODELS[appId]||det; let cost=UNIT_BROOD_POINTS[appId]||0; ups.forEach(u=>{ const name=u.name||u.description||''; const mStep=(name.match(/Increase\s+Brood\s+size\s+by\s+(\d+)/i)||[])[1]; const mMax=(name.match(/Max\s+(\d+)/i)||[])[1]; if(mStep){ const n=Number(mStep); step = step>0 ? Math.min(step,n) : n; } if(mMax){ max=Number(mMax); } if(/Increase\s+Brood\s+size/i.test(name) && u.cost!=null){ cost=Number(u.cost); } }); if(appId==='termagant'){ step=3; } UNIT_BROOD_STEP[appId]=step; UNIT_MAX_MODELS[appId]=max; UNIT_BROOD_POINTS[appId]=cost; UNIT_LOADOUTS[appId] = UNIT_LOADOUTS[appId] || { weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const hasB=(UNIT_LOADOUTS[appId].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!hasB && max>det){ UNIT_LOADOUTS[appId].upgrades=(UNIT_LOADOUTS[appId].upgrades||[]).concat([{ id:'u_bsize_'+appId, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); }catch(e){} }
       function applyUpgradeConstraintsFromMaster(ref){ try{ const roster=ref.unit_roster||{}; const norm=(k)=>k.replace(/_brood$/,'').replace(/_/g,'-'); Object.keys(roster).forEach(key=>{ const appId=norm(key); const data=roster[key]||{}; const ups=(data.upgrades||[]); const load=(UNIT_LOADOUTS[appId]||{}); const libWeps=(load.weapons||[]); const rangedNames=libWeps.filter(w=>{ const s=WEAPON_LIBRARY[w.src]||{}; const r=String(s.range||''); return !(r==='Melee' || r==='-' ); }).map(w=>w.name);
         const findUpId=(substr)=>{ const u=(load.upgrades||[]).find(x=> (x.name||'').toLowerCase().includes(substr.toLowerCase())); return u && u.id; };
         ups.forEach(u=>{ const text=String(u.name||'').toLowerCase(); if(text.includes('swarm lord') && text.includes('no ranged')){ const upId=findUpId('swarm'); if(upId && rangedNames.length){ WEAPON_CONSTRAINTS[appId] = WEAPON_CONSTRAINTS[appId] || { mutexPairs:[], disableWhenUpgrade:{} }; WEAPON_CONSTRAINTS[appId].disableWhenUpgrade[upId] = rangedNames.slice(); } } }); });
@@ -470,7 +489,7 @@
 
       // ---------- Formation & slot management ----------
 
-      function handleArmySelection(val){ selectedArmy=val; selectedFormationName='Select a Formation'; armyFormations=[]; loadConsolidatedArmyMaster(val).then(ref=>{ if(ref) buildArmyUnitsFromMaster(ref, val); renderContent(); saveState(); }); }
+      function handleArmySelection(val){ selectedArmy=val; selectedFormationName='Select a Formation'; armyFormations=[]; loadConsolidatedArmyMaster(val).then(ref=>{ if(ref){ window._lastMasterRef = ref; applyMasterBroodDefaults(ref); applyUpgradeConstraintsFromMaster(ref); buildUpgradeEffectsFromMaster(ref); buildArmyUnitsFromMaster(ref, val); } renderContent(); saveState(); }); }
 
       function handleFormationSelection(val){ selectedFormationName=val; saveState(); }
       function setBuilderName(val){ builderMeta.name = String(val||'New List'); saveState(); }
@@ -1286,9 +1305,18 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
         const baseWounds = lib.baseWounds || (UNIT_BASE[unit.id] && UNIT_BASE[unit.id].wounds) || '';
 
-        const defModels = (UNIT_DEFAULT_MODELS&&UNIT_DEFAULT_MODELS[unit.id]) || 1;
-        const maxModels = (UNIT_MAX_MODELS&&UNIT_MAX_MODELS[unit.id]) || defModels;
-        const stepModels = (UNIT_BROOD_STEP&&UNIT_BROOD_STEP[unit.id]) || 1;
+        const loadModelsMap = UNIT_DEFAULT_MODELS || {};
+        const maxModelsMap = UNIT_MAX_MODELS || {};
+        const stepMap = UNIT_BROOD_STEP || {};
+        let defModels = loadModelsMap[unit.id] || 1;
+        let maxModels = maxModelsMap[unit.id] || defModels;
+        let stepModels = stepMap[unit.id] || 1;
+        const load = UNIT_LOADOUTS[unit.id] || {};
+        const broodUp = (load.upgrades||[]).find(u=>u.type==='BROOD_SIZE');
+        if(broodUp){
+          if(broodUp.modelsDelta) stepModels = broodUp.modelsDelta;
+          if(broodUp.maxModels) maxModels = broodUp.maxModels;
+        }
         const adjustable = maxModels>defModels;
         const sizerMin = defModels;
         const sizerMax = maxModels;
@@ -1451,7 +1479,35 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
-      function renderHome(){ return `<div style="padding:12px"><div class="hero"><button class="btn btn-green hero-cta" onclick="createNewList()">Create List</button><div class="card p-4"><h3 class="section-title">Issues</h3><div class="muted small">${dataStatus.failed? 'Weapons data failed to load — fallback active' : 'No known issues'}</div></div><div class="card p-4" style="margin-top:12px"><h3 class="section-title">Updates</h3><div class="muted small">Welcome to Xenos Army Builder. Choose Create List to start.</div></div></div></div>`; }
+      function renderHome(){
+        const updatesContent = `
+          <div class="muted small" style="margin-bottom:8px">
+            <strong>New:</strong> Google Account login is now supported! Log in to enable cloud saves and sync your lists across devices.
+          </div>
+          <div class="muted small">
+            <strong>Update:</strong> Tyranid Warrior Brood size fixed (max 12 per slot).
+          </div>
+        `;
+        
+        const welcomeText = `
+          <div style="margin-bottom:16px; text-align:center">
+            <h2 style="margin:0 0 8px 0; font-size:18px">Welcome to Xenos Army Builder</h2>
+            <div class="muted small" style="max-width:400px; margin:0 auto">
+              Build and manage your army lists for Xenos Armies. Create detachments, customize units with upgrades, and export your lists for play.
+              Log in to save your lists to the cloud and access them from any device.
+            </div>
+          </div>
+        `;
+
+        return `<div style="padding:12px">
+          <div class="hero">
+            ${welcomeText}
+            <button class="btn btn-green hero-cta" onclick="createNewList()">Create List</button>
+            <div class="card p-4" style="margin-top:12px"><h3 class="section-title">Updates</h3>${updatesContent}</div>
+          </div>
+        </div>`;
+      }
+
 
       function renderReference(){ if(referenceView==='main') return renderReferenceHome(); if(referenceView==='units') return renderReferenceUnits(); if(referenceView==='unit-detail') return renderReferenceUnitDetail(); if(referenceView==='weapons') return renderReferenceWeapons(); if(referenceView==='weapon-detail') return renderReferenceWeaponDetail(); if(referenceView==='detachments') return renderReferenceDetachments(); if(referenceView==='formations') return renderReferenceFormations(); if(referenceView==='army-rules') return renderReferenceArmyRules(); return renderReferenceHome(); }
 
