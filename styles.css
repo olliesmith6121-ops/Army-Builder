@@ -71,8 +71,10 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .compact-pre { background:var(--panel); color:#e6eef8; padding:8px; border-radius:6px; max-height:50vh; overflow:auto; }
 .section-bar { background:#a36b1b; color:#fff; padding:4px 8px; border-radius:6px; margin:8px 0; text-align:center; font-weight:800; }
 .section-bar.alt { background:#b47a22; }
-.slot-row { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
+.slot-row { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:10px; }
+@media (max-width: 600px) { .slot-row { grid-template-columns: 1fr; } }
 .slot-compact { background:var(--panel); border-radius:8px; padding:4px; font-size:11px; overflow:hidden; border:1px solid #23303b }
+.builder-controls-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .slot-pill { background:var(--panel); color:#cbd5e1; font-weight:800; border-radius:8px; padding:3px 6px; display:inline-block; border:1px solid #23303b; }
 .slot-meta-row { display:flex; align-items:center; gap:6px; margin-top:4px; color:#e6eef8; }
 .slot-select { display:flex; gap:4px; align-items:center; margin-top:4px; }
