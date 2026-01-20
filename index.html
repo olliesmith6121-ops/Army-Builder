@@ -162,7 +162,7 @@
              // We can check if we *expected* a redirect?
              const expected = sessionStorage.getItem('xenos_auth_pending');
              if(expected){
-                alert('Debug: Redirect Result returned NULL, but we expected a login. Session lost?');
+                console.log('Debug: Redirect Result returned NULL, but we expected a login. Session lost?');
                 sessionStorage.removeItem('xenos_auth_pending');
              }
           }
@@ -191,20 +191,8 @@
         if(!firebaseAuth){ alert('Google login unavailable: Firebase not initialized'); return; } 
         const provider=new firebase.auth.GoogleAuthProvider(); 
         
-        // 1. Mobile strategy: Always redirect
-        if(isMobileDevice()){ 
-          try{ 
-            sessionStorage.setItem('xenos_auth_pending', '1');
-            await firebaseAuth.signInWithRedirect(provider); 
-            return; 
-          }catch(e){ 
-            handleAuthError(e);
-            sessionStorage.removeItem('xenos_auth_pending');
-            return;
-          } 
-        } 
-        
-        // 2. Desktop strategy: Popup -> Fallback to Redirect
+        // Universal strategy: Popup first, then Redirect
+        // (Popup is better for local dev/HTTP where Redirect often loses session state)
         try{ 
           const res=await firebaseAuth.signInWithPopup(provider); 
           const user=res && res.user; 
@@ -212,7 +200,7 @@
           handleLoginSuccess(user);
         }catch(e){ 
           console.log('Popup failed, trying redirect...', e);
-          if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){ 
+          if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'||e.code==='auth/operation-not-supported-in-this-environment'){ 
             try{ 
               sessionStorage.setItem('xenos_auth_pending', '1');
               await firebaseAuth.signInWithRedirect(provider); 
