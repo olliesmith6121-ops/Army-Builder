@@ -52,8 +52,11 @@ try {
                     $response.OutputStream.Write($content, 0, $content.Length)
                     $response.StatusCode = 200
                 } catch {
-                    Write-Error "Error serving file: $_"
-                    $response.StatusCode = 500
+                    # Ignore client disconnections during file write
+                    if ($_.Exception.Message -notmatch "network name is no longer available" -and $_.Exception.Message -notmatch "The pipe is being closed") {
+                        Write-Error "Error serving file: $_"
+                    }
+                    try { $response.StatusCode = 500 } catch {}
                 }
             } else {
                 $response.StatusCode = 404

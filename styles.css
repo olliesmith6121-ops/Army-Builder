@@ -12,7 +12,8 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helve
 .modal-drawer .table th:nth-child(4), .modal-drawer .table td:nth-child(4) { width: 10%; }
 .modal-drawer .table th:nth-child(5), .modal-drawer .table td:nth-child(5) { width: 8%; }
 .modal-drawer .table th:nth-child(6), .modal-drawer .table td:nth-child(6) { width: 12%; }
-.modal-drawer .table th:nth-child(7), .modal-drawer .table td:nth-child(7) { width: 6%; white-space: nowrap; }
+.modal-drawer .table th:nth-child(7), .modal-drawer .table td:nth-child(7) { min-width: 80px; width: auto; white-space: nowrap; text-align: right; }
+.text-end { text-align: right; }
 .modal-drawer .mini-input { font-size: .85rem; padding: 3px 4px; }
 .modal-drawer .effect-pill { font-size: .85rem; padding: 3px 6px; }
 .modal-drawer .small,
