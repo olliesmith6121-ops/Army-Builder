@@ -176,7 +176,8 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .slot-pill img{width:25px;height:25px;object-fit:cover}
 .slot-row img{width:25px;height:25px;object-fit:cover}
 .modal-drawer .btn-xs { font-size: .85rem; }
-@media (max-width: 480px) { .toolbar .control { flex: 0 0 150px; } .slot-grid { grid-template-columns: 1fr; } .tile-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .toolbar .control { flex: 0 0 150px; } .slot-row { grid-template-columns: 1fr; } .tile-grid { grid-template-columns: 1fr 1fr; } }
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .rb-theme { --bg:#eeeeee; --card:#f7f7f7; --panel:#efefef; --muted:#1f2937; --accent:#a36b1b; color:#1f2937; }
 .rb-theme body{ background: var(--bg); }
 .rb-theme .card, .rb-theme .roster-unit, .rb-theme .builder-bar, .rb-theme .formation-header, .rb-theme .slot-compact, .rb-theme .section-bar, .rb-theme .section-bar.alt { background: var(--card); color:#1f2937; }
