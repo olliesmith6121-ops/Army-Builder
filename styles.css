@@ -40,7 +40,13 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .btn-xs { padding: 1px 4px; font-size: 0.6rem; line-height: 1.1; }
 .item button:hover { background: #f0f0f0; }
 #clearRoster { margin-top: 8px; padding: 8px 12px; border-radius: 6px; border: 1px solid #888; background: transparent; cursor: pointer; }
-@media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+@media (max-width: 720px) {
+  .layout { grid-template-columns: 1fr; }
+  .col-saved { display: none; }
+  .col-army { display: none; }
+  .col-points .header-actions { display: flex !important; flex-direction: column; gap: 4px !important; margin-left: 0 !important; margin-top: 4px; }
+  .col-points .header-actions button { width: 100%; text-align: center; }
+}
 .p-4 { padding: 16px; }
 .crumbs { margin-bottom:4px; font-size:.8rem; }
 .builder-bar { background:var(--panel); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; border:1px solid #23303b; }

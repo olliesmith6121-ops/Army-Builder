@@ -1599,7 +1599,6 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const updatesContent = `
           <div class="muted small" style="margin-bottom:8px">
             <strong>New:</strong> Google Account login is now supported! Log in to enable cloud saves and sync your lists across devices.
-            <div style="margin-top:8px"><button class="btn btn-sm btn-blue" onclick="checkAuthStatus()">Debug: Check Auth Status</button></div>
           </div>
           <div class="muted small">
             <strong>Update:</strong> Tyranid Warrior Brood size fixed (max 12 per slot).
@@ -1678,9 +1677,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           return `<tr>
             <td style="width:28px;text-align:center"><input type="checkbox" data-action="list-select" data-id="${l.id}" ${checked}/></td>
             <td><div style="font-weight:800">${l.name||'Untitled'}</div></td>
-            <td>${l.faction||'-'}</td>
-            <td>${saved}</td>
-            <td>${pointsUsed}/${pointsCap} pts <span class="header-actions" style="display:inline-flex; gap:6px; align-items:center; margin-left:8px"><button class="btn btn-blue btn-xs" data-action="list-open" data-id="${l.id}">Build</button><button class="btn btn-blue btn-xs" data-action="list-export" data-id="${l.id}">Export</button><button class="btn btn-red btn-xs" data-action="list-del" data-id="${l.id}">Delete</button></span></td>
+            <td class="col-army">${l.faction||'-'}</td>
+            <td class="col-saved">${saved}</td>
+            <td class="col-points">${pointsUsed}/${pointsCap} pts <span class="header-actions" style="display:inline-flex; gap:6px; align-items:center; margin-left:8px"><button class="btn btn-blue btn-xs" data-action="list-open" data-id="${l.id}">Build</button><button class="btn btn-blue btn-xs" data-action="list-export" data-id="${l.id}">Export</button><button class="btn btn-red btn-xs" data-action="list-del" data-id="${l.id}">Delete</button></span></td>
           </tr>`;
         }).join('') : `<tr><td colspan="5" class="muted small">No saved lists</td></tr>`;
         const bulk = selectedListIds.length ? `<div class="small" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span>Selected: ${selectedListIds.length}</span><button class="btn btn-red btn-sm" data-action="bulk-del">Delete Selected</button></div>` : '';
@@ -1692,7 +1691,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             </div>
             ${bulk}
             <div class="table-responsive">
-              <table class="table"><thead><tr><th style="width:28px;text-align:center"><input type="checkbox" data-action="select-all" ${allSelected?'checked':''}/></th><th>List Name</th><th>Army</th><th>Saved</th><th>Points ${headerActions}</th></tr></thead><tbody>${rows}</tbody></table>
+              <table class="table"><thead><tr><th style="width:28px;text-align:center"><input type="checkbox" data-action="select-all" ${allSelected?'checked':''}/></th><th>List Name</th><th class="col-army">Army</th><th class="col-saved">Saved</th><th class="col-points">Points ${headerActions}</th></tr></thead><tbody>${rows}</tbody></table>
             </div>
           </div>`;
       }
@@ -2065,18 +2064,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
-      function checkAuthStatus(){
-        initCloudIfAvailable();
-        if(!firebaseAuth){ alert('Firebase not initialized'); return; }
-        const u = firebaseAuth.currentUser;
-        if(u){
-          alert('Currently logged in as: ' + u.email + ' (' + u.uid + ')');
-          handleLoginSuccess(u);
-        } else {
-          alert('Not logged in (currentUser is null). Checking persistence...');
-          checkRedirectResult();
-        }
-      }
+
 
       // expose for quick debugging
 
