@@ -97,8 +97,67 @@
         currentUserId=id||'user'; currentUserName=name; currentUserIsGoogle=false; closeModal(); saveUserSession(); await loadSavedLists(true); loadState(true); selectedListIds=[]; setActiveTab('home'); renderContent(); }
       function handleLogout(){ currentUserId=null; currentUserName=''; currentUserIsGoogle=false; if(firebaseAuth){ try{ firebaseAuth.signOut(); }catch(e){} } saveUserSession(); selectedListIds=[]; currentListId=null; selectedArmy='Select Army'; armyFormations=[]; builderMeta={ name:'New List', gamemode:'Standard', allegiance:'Loyalist', pointsCap:2000 }; setActiveTab('home'); renderContent(); }
       function isMobileDevice(){ return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent); }
-      function checkRedirectResult(){ if(!firebaseAuth) return; firebaseAuth.getRedirectResult().then(function(result){ if(result.user){ const user=result.user; currentUserId=user.uid; currentUserName=user.displayName||user.email||'Google User'; currentUserIsGoogle=true; saveUserSession(); loadSavedLists(true); loadState(true); selectedListIds=[]; setActiveTab('home'); renderContent(); } }).catch(function(error){ console.error(error); }); }
-      async function googleLogin(){ initCloudIfAvailable(); if(!firebaseAuth){ alert('Google login unavailable'); return; } const provider=new firebase.auth.GoogleAuthProvider(); if(isMobileDevice()){ try{ await firebaseAuth.signInWithRedirect(provider); return; }catch(e){} } try{ const res=await firebaseAuth.signInWithPopup(provider); const user=res && res.user; if(!user) return; currentUserId=user.uid; currentUserName=user.displayName||user.email||'Google User'; currentUserIsGoogle=true; closeModal(); saveUserSession(); await loadSavedLists(true); loadState(true); selectedListIds=[]; setActiveTab('home'); renderContent(); }catch(e){ if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'||isMobileDevice()){ try{ await firebaseAuth.signInWithRedirect(provider); }catch(e2){ alert('Google login failed: '+e2.message); } } else { alert('Google login failed'); } } }
+      function checkRedirectResult(){ 
+        if(!firebaseAuth) return; 
+        firebaseAuth.getRedirectResult().then(function(result){ 
+          if(result.user){ handleLoginSuccess(result.user); } 
+        }).catch(function(error){ 
+          console.error(error); 
+          // Only alert if we think this was a real login attempt? 
+          // We can't really know, but if getRedirectResult throws, it's usually meaningful.
+          if (error.code !== 'auth/popup-closed-by-user') {
+             alert('Login Redirect Error: ' + error.message);
+          }
+        }); 
+      }
+      function handleLoginSuccess(user){
+        currentUserId=user.uid; 
+        currentUserName=user.displayName||user.email||'Google User'; 
+        currentUserIsGoogle=true; 
+        closeModal(); 
+        saveUserSession(); 
+        loadSavedLists(true); 
+        loadState(true); 
+        selectedListIds=[]; 
+        setActiveTab('home'); 
+        renderContent();
+      }
+      async function googleLogin(){ 
+        initCloudIfAvailable(); 
+        if(!firebaseAuth){ alert('Google login unavailable: Firebase not initialized'); return; } 
+        const provider=new firebase.auth.GoogleAuthProvider(); 
+        
+        // 1. Mobile strategy: Always redirect
+        if(isMobileDevice()){ 
+          try{ 
+            await firebaseAuth.signInWithRedirect(provider); 
+            return; 
+          }catch(e){ 
+            alert('Google Redirect Login failed: '+e.message); 
+            console.error(e);
+            return;
+          } 
+        } 
+        
+        // 2. Desktop strategy: Popup -> Fallback to Redirect
+        try{ 
+          const res=await firebaseAuth.signInWithPopup(provider); 
+          const user=res && res.user; 
+          if(!user) return; 
+          handleLoginSuccess(user);
+        }catch(e){ 
+          console.log('Popup failed, trying redirect...', e);
+          if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){ 
+            try{ 
+              await firebaseAuth.signInWithRedirect(provider); 
+            }catch(e2){ 
+              alert('Login failed: '+e2.message); 
+            } 
+          } else { 
+            alert('Google login failed: '+e.message); 
+          } 
+        } 
+      }
 
     // ---------- State ----------
 
