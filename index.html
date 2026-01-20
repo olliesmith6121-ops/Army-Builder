@@ -75,6 +75,11 @@
 
 
   <script>
+    // Global Error Handler for Mobile Debugging
+    window.onerror = function(msg, url, line, col, error) {
+      alert('Global JS Error: ' + msg + '\nLine: ' + line);
+      return false;
+    };
 
     // ---------- Auth ----------
       let currentUserId = null;
@@ -102,16 +107,18 @@
           firebaseAuth.onAuthStateChanged(function(user) {
             if (user) {
               console.log('Auth State Restored:', user.uid);
-              // alert('Debug: Auth State Restored for ' + user.email); // Uncomment for mobile debugging
+              alert('Debug: Auth State Restored for ' + user.email);
               if (currentUserId !== user.uid) {
                 handleLoginSuccess(user);
               }
             } else {
               console.log('Auth State: No User');
+              // alert('Debug: Auth State Changed -> No User');
             }
           });
         }catch(e){ 
           firebaseApp=null; firebaseAuth=null; firebaseDb=null; 
+          alert('Debug: Firebase Init Failed: ' + e.message);
         } 
       }
       function storageKey(suffix){ const uid=currentUserId||'default'; return `xenos_${uid}_${suffix}`; }
@@ -137,15 +144,33 @@
       }
 
       function checkRedirectResult(){ 
-        if(!firebaseAuth) return; 
+        if(!firebaseAuth){
+          // alert('Debug: Redirect Check skipped - No Auth');
+          return;
+        } 
         firebaseAuth.getRedirectResult().then(function(result){ 
           if(result.user){ 
-            // alert('Debug: Redirect Success for ' + result.user.email); // Uncomment for mobile debugging
+            alert('Debug: Redirect Success for ' + result.user.email);
             handleLoginSuccess(result.user); 
-          } 
-        }).catch(handleAuthError); 
+          } else {
+             // If we just loaded the page and there is no result, this is normal for a regular visit.
+             // But if the user just tried to login, this is bad.
+             // We can check if we *expected* a redirect?
+             const expected = sessionStorage.getItem('xenos_auth_pending');
+             if(expected){
+                alert('Debug: Redirect Result returned NULL, but we expected a login. Session lost?');
+                sessionStorage.removeItem('xenos_auth_pending');
+             }
+          }
+        }).catch(function(e){
+          alert('Debug: Redirect Error: ' + e.message);
+          handleAuthError(e);
+        }); 
       }
       function handleLoginSuccess(user){
+        // ... existing code ...
+        sessionStorage.removeItem('xenos_auth_pending');
+        // ...
         currentUserId=user.uid; 
         currentUserName=user.displayName||user.email||'Google User'; 
         currentUserIsGoogle=true; 
@@ -165,10 +190,12 @@
         // 1. Mobile strategy: Always redirect
         if(isMobileDevice()){ 
           try{ 
+            sessionStorage.setItem('xenos_auth_pending', '1');
             await firebaseAuth.signInWithRedirect(provider); 
             return; 
           }catch(e){ 
             handleAuthError(e);
+            sessionStorage.removeItem('xenos_auth_pending');
             return;
           } 
         } 
@@ -183,9 +210,11 @@
           console.log('Popup failed, trying redirect...', e);
           if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){ 
             try{ 
+              sessionStorage.setItem('xenos_auth_pending', '1');
               await firebaseAuth.signInWithRedirect(provider); 
             }catch(e2){ 
               handleAuthError(e2);
+              sessionStorage.removeItem('xenos_auth_pending');
             } 
           } else { 
             handleAuthError(e);
@@ -1578,6 +1607,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const updatesContent = `
           <div class="muted small" style="margin-bottom:8px">
             <strong>New:</strong> Google Account login is now supported! Log in to enable cloud saves and sync your lists across devices.
+            <div style="margin-top:8px"><button class="btn btn-sm btn-blue" onclick="checkAuthStatus()">Debug: Check Auth Status</button></div>
           </div>
           <div class="muted small">
             <strong>Update:</strong> Tyranid Warrior Brood size fixed (max 12 per slot).
@@ -2042,6 +2072,19 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           return ingest.then(()=>{ buildUpgradeEffects(); runValidation(ref||{}); validateFormationRules(); dataStatus.validationIssues = (window._latestValidationIssues||[]).length; updateStatusBanner(); try{ if((location.hash||'').startsWith('#ref')) location.hash=''; }catch(e){} setActiveTab('home'); requestRender(); refreshAuthButton(); }); }); });
 
 
+
+      function checkAuthStatus(){
+        initCloudIfAvailable();
+        if(!firebaseAuth){ alert('Firebase not initialized'); return; }
+        const u = firebaseAuth.currentUser;
+        if(u){
+          alert('Currently logged in as: ' + u.email + ' (' + u.uid + ')');
+          handleLoginSuccess(u);
+        } else {
+          alert('Not logged in (currentUser is null). Checking persistence...');
+          checkRedirectResult();
+        }
+      }
 
       // expose for quick debugging
 
