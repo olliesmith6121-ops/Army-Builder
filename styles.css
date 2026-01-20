@@ -175,6 +175,80 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
   .roster-unit .table th, .roster-unit .table td { padding:2px 3px; font-size:0.8rem; }
 }
 
+/* Mobile Weapons Table Card View */
+@media (max-width: 600px) {
+  .weapons-table, .weapons-table tbody { display: block; width: 100%; }
+  .weapons-table thead { display: none; }
+  .weapons-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 4px 8px;
+    padding: 8px;
+    border: 1px solid #23303b;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+  
+  .weapons-table td {
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  /* Weapon Name & Cost */
+  .weapons-table td[data-label="Weapon"] {
+    grid-column: 1 / 4;
+    font-weight: 800;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 4px;
+    white-space: normal;
+  }
+  
+  .weapons-table td[data-label="Cost"] {
+    grid-column: 4 / 5;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--muted);
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 4px;
+  }
+
+  /* Stats */
+  .weapons-table td[data-label="Range"],
+  .weapons-table td[data-label="Dice"],
+  .weapons-table td[data-label="ToHit"],
+  .weapons-table td[data-label="AP"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  
+  .weapons-table td[data-label="Range"]:before { content: "Rng"; font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+  .weapons-table td[data-label="Dice"]:before { content: "Dice"; font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+  .weapons-table td[data-label="ToHit"]:before { content: "Hit"; font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+  .weapons-table td[data-label="AP"]:before { content: "AP"; font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; }
+
+  /* Traits */
+  .weapons-table td[data-label="Traits"] {
+    grid-column: 1 / -1;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.1) !important;
+    padding-top: 4px !important;
+    white-space: normal !important;
+  }
+  .weapons-table td[data-label="Traits"]:before {
+    content: "Traits: ";
+    color: var(--muted);
+    font-weight: bold;
+    font-size: 0.75rem;
+    margin-right: 4px;
+  }
+}
+
 .right-col{text-align:right;min-width:160px}
 .notes{font-size:.9rem;color:#ffd;background:rgba(255,255,255,.02);padding:6px;border-radius:6px;margin-top:6px}
 .section-sub{margin-top:8px;margin-bottom:6px;color:var(--muted);font-size:.9rem}
