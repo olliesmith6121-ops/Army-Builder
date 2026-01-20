@@ -160,6 +160,21 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .modal{width:640px;max-width:96vw;background:var(--panel);padding:12px;border-radius:8px;color:#e6eef8}
 .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index:10000 }
 .roster-unit{background:var(--panel);padding:10px;border-radius:6px;margin-bottom:10px;border:1px solid #23303b}
+.roster-header { display:flex; justify-content:space-between; align-items:center; }
+.roster-info { display:flex; gap:8px; align-items:center; }
+.roster-name { font-weight:800; }
+.roster-points { text-align:right; min-width:80px; font-size:.85rem; color:var(--muted); flex-shrink:0; }
+
+@media (max-width: 600px) {
+  .roster-header { align-items:flex-start; }
+  .roster-info { flex-direction:column; align-items:flex-start; gap:2px; }
+  .roster-name { font-size:0.9rem; line-height:1.2; }
+  .roster-points { font-size:0.8rem; min-width:auto; white-space:nowrap; }
+  .roster-pill { font-size:0.75rem; padding:1px 5px; }
+  .roster-unit { padding:8px; }
+  .roster-unit .table th, .roster-unit .table td { padding:2px 3px; font-size:0.8rem; }
+}
+
 .right-col{text-align:right;min-width:160px}
 .notes{font-size:.9rem;color:#ffd;background:rgba(255,255,255,.02);padding:6px;border-radius:6px;margin-top:6px}
 .section-sub{margin-top:8px;margin-bottom:6px;color:var(--muted);font-size:.9rem}
