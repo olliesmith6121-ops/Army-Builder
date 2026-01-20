@@ -111,7 +111,7 @@
           firebaseAuth.onAuthStateChanged(function(user) {
             if (user) {
               console.log('Auth State Restored:', user.uid);
-              alert('Debug: Auth State Restored for ' + user.email);
+              // alert('Debug: Auth State Restored for ' + user.email);
               if (currentUserId !== user.uid) {
                 handleLoginSuccess(user);
               }
@@ -154,7 +154,7 @@
         } 
         firebaseAuth.getRedirectResult().then(function(result){ 
           if(result.user){ 
-            alert('Debug: Redirect Success for ' + result.user.email);
+            // alert('Debug: Redirect Success for ' + result.user.email);
             handleLoginSuccess(result.user); 
           } else {
              // If we just loaded the page and there is no result, this is normal for a regular visit.
