@@ -92,7 +92,11 @@
       function saveUserSession(){ try{ const u={ id: currentUserId, name: currentUserName, google: currentUserIsGoogle }; localStorage.setItem('xenos_current_user', JSON.stringify(u)); refreshAuthButton(); }catch(e){} }
       function initCloudIfAvailable(){ 
         if(firebaseApp) return;
-        if(!window.XENOS_FIREBASE_CONFIG || !window.firebase || !window.firebase.initializeApp) return; 
+        if(!window.firebase || !window.firebase.initializeApp) {
+           alert('Debug: Firebase SDK not loaded! Check internet connection or ad-blocker.');
+           return;
+        }
+        if(!window.XENOS_FIREBASE_CONFIG) return; 
         try{ 
           firebaseApp = firebase.initializeApp(window.XENOS_FIREBASE_CONFIG); 
           firebaseAuth = firebase.auth(); 

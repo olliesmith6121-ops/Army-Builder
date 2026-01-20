@@ -61,7 +61,10 @@ try {
             
             $response.Close()
         } catch {
-            Write-Error "Error processing request: $_"
+            # Ignore client disconnections (common during redirects/reloads)
+            if ($_.Exception.Message -notmatch "network name is no longer available" -and $_.Exception.Message -notmatch "The pipe is being closed") {
+                Write-Error "Failed to process request: $_"
+            }
         }
     }
 } finally {
