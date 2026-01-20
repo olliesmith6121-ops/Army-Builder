@@ -2,6 +2,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: #000; }
 .modal-drawer { position: fixed; right: 0; top: 0; width: 420px; max-width: 96vw; max-height: 100vh; overflow-y: auto; overflow-x: hidden; background: #0b1a23; padding: 12px; border-radius: 8px 0 0 8px; box-shadow: -16px 0 30px rgba(0,0,0,.5); color: #cbd5e1; }
+@media (min-width: 768px) { .modal-drawer { width: 750px; } }
 .modal-drawer h3 { font-size: 16px; }
 .modal-drawer .drawer-stack { display: flex; flex-direction: column; gap: 10px; }
 .modal-drawer .table { width: 100%; table-layout: auto; }
@@ -118,7 +119,9 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
   color:#1f2937;
 }
 
-.modal-drawer .cost {
+.modal-drawer .cost,
+.rb-theme .modal-drawer .cost,
+.rb-theme .modal-drawer td.cost {
   color:#fff;
 }
 
@@ -261,7 +264,8 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .roster-panel .small,
 .roster-panel .muted,
 .roster-panel .section-sub,
-.roster-panel .slot-meta{ color:#fff; }
+.roster-panel .slot-meta,
+.roster-panel .roster-points{ color:#fff; }
 .rule-key{ text-decoration:underline; font-style:italic; cursor:pointer; color:#fff; }
 .rule-popover{ position:fixed; max-width:280px; background:#163010; color:#e6eef8; border:1px solid #245017; padding:8px; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,.6); z-index:99999 }
 .rule-dialog-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index:100000 }

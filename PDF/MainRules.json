@@ -151,7 +151,9 @@
     "skyfire": "Can target Flyers; -2 To Hit against non-Flyers.",
     "tracking": "Re-roll failed Hit rolls against Flyers.",
     "warp": "Bypasses Void Shields and Invulnerable Saves.",
-    "wrecker": "Damages Structures and Garrisoned units."
+    "wrecker": "Damages Structures and Garrisoned units.",
+    "pinning": "Infantry units hit by this weapon take an extra Blast marker.",
+    "web": "Units hit by this weapon may not move in their next activation."
   },
   "broodSizes": {
     "legion_assault_detachment": {

@@ -256,7 +256,9 @@
 
       const ARMIES = {
         "Select Army": { formations: [] },
-        "Tyranids": { formations: ["Synaptic Swarm","Assault Swarm","Bio-Titan Swarm"] }
+        "Tyranids": { formations: ["Synaptic Swarm","Assault Swarm","Bio-Titan Swarm"] },
+        "Eldar": { formations: ["Craftworld Defenders Warhost","Aspect Warhost","Strike Warhost","Engines of Vaul Warhost","Wraith Warhost"] },
+        "Orks": { formations: ["Warband","Speed Freaks","Blood Axes Warband","Snakebites Warband"] }
       };
 
       let UNIT_DEFAULT_MODELS = { 'hive-tyrant':1, 'tyranid-warrior':3, 'termagant':6, 'hormagaunt':6, 'genestealer':6, 'harpy':1, 'mycetic-spores':1, 'carnifex':1, 'exocrine':1, 'dominatrix':1 };
@@ -270,7 +272,7 @@
       function masterLSKey(key){ return 'army_master_'+String(key||''); }
       function loadMasterFromLocalStorage(key){ try{ const raw=localStorage.getItem(masterLSKey(key)); return raw? JSON.parse(raw): null; }catch(e){ return null; } }
       function saveMasterToLocalStorage(key, ref){ try{ if(!ref) return; localStorage.setItem(masterLSKey(key), JSON.stringify(ref)); }catch(e){} }
-      async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; const DEV_WL=new Set(["hive_tyrant","tyranid_warrior_brood","mycetic_spores","termagant_brood","hormagaunt_brood","genestealer_brood","lictor_brood","carnifex_brood","zoanthrope_brood","biovore_brood"]); Object.keys(roster).forEach(key=>{ if(armyArg==='Tyranids' && !DEV_WL.has(key)) { delete roster[key]; return; } const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : 'MODEL_UPGRADE'), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
+      async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; const DEV_WL=new Set(["hive_tyrant","tyranid_warrior_brood","mycetic_spores","termagant_brood","hormagaunt_brood","genestealer_brood","lictor_brood","carnifex_brood","zoanthrope_brood","biovore_brood"]); Object.keys(roster).forEach(key=>{ if(armyArg==='Tyranids' && !DEV_WL.has(key)) { delete roster[key]; return; } const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: s.scale??base.scale, type: m.unit_type??m.role??base.type }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : 'MODEL_UPGRADE'), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
 
 
 
@@ -368,7 +370,9 @@
       const ARMY_UNIT_LIST = {}; const ARMY_SLOT_FILTERS = {};
       function buildArmyUnitsFromMaster(ref, armyName){ try{ const roster=ref&&ref.unit_roster||{}; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const mapRole=(r)=>{ const s=String(r||'').toUpperCase().replace(/\s+/g,''); const lut={ SYNAPSE:'Synapse', CORE:'Core', FLYER:'Flyer', BIOTITAN:'Biotitan', TITAN:'Biotitan', SUPERHEAVY:'Biotitan', TRANSPORT:'Transport', HQ:'HQ', SUPPORT:'Support', VANGUARD:'Vanguard', BATTLETANK:'BattleTank', HEAVYARMOR:'HeavyArmor', AIRSUPPORT:'Flyer', ARTILLERY:'Artillery', BASTION:'Bastion', KNIGHT:'Knight', INFANTRY:'Core' }; return lut[s]||'Core'; }; const synapseKeys=new Set(['hive_tyrant','tyranid_warrior_brood']); const list=[]; Object.keys(roster).forEach(key=>{ const m=roster[key]||{}; let type = mapRole(m.role); if(synapseKeys.has(key)){ type = 'Synapse'; } list.push({ id: norm(key), name: m.name||slugToName(key), slotType: type }); }); const key=armyKey(armyName||selectedArmy); ARMY_UNIT_LIST[key]=list; const filt={ Synapse: list.filter(u=>u.slotType==='Synapse').map(u=>u.id), Core: list.filter(u=>u.slotType==='Core').map(u=>u.id), Flyer: list.filter(u=>u.slotType==='Flyer').map(u=>u.id), Biotitan: list.filter(u=>u.slotType==='Biotitan').map(u=>u.id), Transport: list.filter(u=>u.slotType==='Transport').map(u=>u.id), HQ: list.filter(u=>u.slotType==='HQ').map(u=>u.id), Support: list.filter(u=>u.slotType==='Support').map(u=>u.id), Vanguard: list.filter(u=>u.slotType==='Vanguard').map(u=>u.id), BattleTank: list.filter(u=>u.slotType==='BattleTank').map(u=>u.id), HeavyArmor: list.filter(u=>u.slotType==='HeavyArmor').map(u=>u.id), AirSupport: list.filter(u=>u.slotType==='AirSupport').map(u=>u.id), Artillery: list.filter(u=>u.slotType==='Artillery').map(u=>u.id), Bastion: list.filter(u=>u.slotType==='Bastion').map(u=>u.id), Knight: list.filter(u=>u.slotType==='Knight').map(u=>u.id) }; ARMY_SLOT_FILTERS[key]=filt; }catch(e){} }
 
-      async function ensureArmyMaster(armyName){ const key=armyKey(armyName); if((ARMY_UNIT_LIST[key]||[]).length) return; const ref=await loadConsolidatedArmyMaster(armyName); if(ref) buildArmyUnitsFromMaster(ref, armyName); }
+      function updateFormationsFromMaster(json){ try{ const forms = json.formations || {}; Object.values(forms).forEach(fd => { if(fd.name && FORMATIONS[fd.name]){ FORMATIONS[fd.name].rules = fd.rules || []; } }); }catch(e){} }
+
+      async function ensureArmyMaster(armyName){ const key=armyKey(armyName); if((ARMY_UNIT_LIST[key]||[]).length) return; const ref=await loadConsolidatedArmyMaster(armyName); if(ref){ buildArmyUnitsFromMaster(ref, armyName); updateFormationsFromMaster(ref); } }
       async function preloadAllArmyMasters(){ const list=Object.keys(ARMIES).filter(a=>a!=='Select Army'); await Promise.all(list.map(a=>ensureArmyMaster(a))); }
 
 
@@ -620,6 +624,42 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
+      const GREEK_LETTERS = ['Alpha','Beta','Gamma','Delta','Epsilon','Zeta','Eta','Theta','Iota','Kappa','Lambda','Mu','Nu','Xi','Omicron'];
+
+      function getBaseFormationName(name) {
+          let clean = name || 'Formation';
+          clean = clean.replace(/ \(copy\)$/, '');
+          // Check for Greek words
+          for (const g of GREEK_LETTERS) {
+              if (clean.endsWith(' ' + g)) {
+                  clean = clean.substring(0, clean.length - (g.length + 1));
+                  break; 
+              }
+          }
+          // Check for old Greek chars (legacy support)
+          const oldGreek = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ'];
+          for (const g of oldGreek) {
+              if (clean.endsWith(' ' + g)) {
+                  clean = clean.substring(0, clean.length - 2);
+                  break;
+              }
+          }
+          return clean;
+      }
+
+      function reapplyFormationNaming(baseName) {
+          const candidates = armyFormations.filter(f => getBaseFormationName(f.name) === baseName);
+          if (candidates.length > 1) {
+              candidates.forEach((f, i) => {
+                  if (i < GREEK_LETTERS.length) {
+                      f.name = baseName + ' ' + GREEK_LETTERS[i];
+                  }
+              });
+          } else if (candidates.length === 1) {
+              candidates[0].name = baseName;
+          }
+      }
+
       function addFormation(){
 
         if(!selectedArmy || selectedArmy === 'Select Army'){ alert('Choose an army'); return; }
@@ -640,7 +680,10 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
         const special    = tpl.special ? ({...tpl.special, units:[], _selectedUnitId:''}) : null;
 
-        armyFormations.push({ name:selectedFormationName, army:selectedArmy, collapsed:false, compulsory, optional, special });
+        const baseName = selectedFormationName;
+        armyFormations.push({ name:baseName, army:selectedArmy, collapsed:false, compulsory, optional, special });
+
+        reapplyFormationNaming(baseName);
 
         selectedFormationName = 'Select a Formation';
 
@@ -655,9 +698,24 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
-      function removeFormation(idx){ armyFormations.splice(idx,1); requestRender(); saveState(); }
+      function removeFormation(idx){ 
+          const f = armyFormations[idx];
+          const baseName = getBaseFormationName(f.name);
+          armyFormations.splice(idx,1); 
+          reapplyFormationNaming(baseName);
+          requestRender(); 
+          saveState(); 
+      }
       function toggleCollapse(idx){ armyFormations[idx].collapsed = !armyFormations[idx].collapsed; requestRender(); saveState(); }
-      function cloneFormation(idx){ const copy = JSON.parse(JSON.stringify(armyFormations[idx])); copy.name = (copy.name||'Formation') + ' (copy)'; armyFormations.splice(idx+1,0,copy); requestRender(); saveState(); }
+      function cloneFormation(idx){ 
+          const copy = JSON.parse(JSON.stringify(armyFormations[idx])); 
+          const baseName = getBaseFormationName(copy.name);
+          copy.name = baseName;
+          armyFormations.splice(idx+1,0,copy); 
+          reapplyFormationNaming(baseName);
+          requestRender(); 
+          saveState(); 
+      }
 
 
 
@@ -821,6 +879,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         'Hunt':'Instinct subtype. Behaviour defined in Tyranids army rules.',
         'Rampage':'Instinct subtype. Behaviour defined in Tyranids army rules.',
         'Nest':'Instinct subtype. Behaviour defined in Tyranids army rules.',
+        'Pinning':'Infantry units hit by this weapon take an extra Blast marker.',
+        'Web':'Units hit by this weapon may not move in their next activation.',
         'Feel No Pain':'Roll to ignore suffered wounds',
         'Invulnerable Save':'Save roll that ignores AP modifiers',
         'Bulky':'Counts more for transport/movement constraints',
@@ -842,6 +902,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         Object.entries(CROSS_TRAIT_INDEX).forEach(([n,e])=>add(n,e));
         try{ const sr=ref.special_rules_library||{}; Object.entries(sr).forEach(([n,e])=>add(slugToName(n), e)); }catch(e){}
         try{ const orders=ref.unique_orders||{}; Object.values(orders).forEach(o=>add(o.name||slugToName(o.id||''), o.description||o.effect||'')); }catch(e){}
+        try{ const pp=ref.psychic_powers||{}; Object.values(pp).forEach(p=>add(p.name, p.effect||'')); }catch(e){}
         try{ const fr=(ref.faction_info&&ref.faction_info.faction_rules)||[]; fr.forEach(r=>add(r.name, r.effect||r.description||'')); }catch(e){}
         try{ const mr=await fetch('PDF/MainRules.json',{cache:'no-store'}).then(r=>r.ok?r.json():null); if(mr){ Object.entries(mr.traitLibrary||{}).forEach(([slug,effect])=>add(slug,effect)); Object.values(mr.unit_roster||{}).forEach(u=>{ (u.special_rules||[]).forEach(sr=>add(sr,'')); }); } }catch(e){}
         const lib=ref.weaponLibrary||{}; Object.values(lib).forEach(def=>{ const traits = Array.isArray(def.traits)? def.traits : String(def.traits||'').split(';').map(s=>s.trim()).filter(Boolean); traits.forEach(t=>{ const k=String(t).split('(')[0].split(':')[0].trim(); add(k, dict[_normKey(k)]||''); }); });
@@ -895,6 +956,14 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const countInputs = Array.from(document.querySelectorAll('.modal-upgrade-count'));
 
         let total = 0;
+        if(window.editContext){
+             const {fIdx,section,sIdx,uIdx}=window.editContext;
+             const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx];
+             const unit=slot&&slot.units&&slot.units[uIdx];
+             if(unit){
+                 total = (UNIT_BASE[unit.id] && UNIT_BASE[unit.id].points) || 0;
+             }
+        }
 
         weBoxes.filter(b=>b.checked && b.closest('tr') && b.closest('tr').style.display !== 'none').forEach(b=>{
 
@@ -1151,7 +1220,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const scb = document.querySelector(`.modal-special-checkbox[data-id="${id}"]`);
           const cnt = Number(inp.value||0);
           const base = Number(inp.getAttribute('data-points')||0);
-          const name = row ? (row.querySelector('strong')?.textContent || '') : (scb ? (scb.getAttribute('data-name') || '') : (inp.getAttribute('data-name') || ''));
+          const name = row ? (row.getAttribute('data-name') || row.querySelector('strong')?.textContent || '') : (scb ? (scb.getAttribute('data-name') || '') : (inp.getAttribute('data-name') || ''));
           const type = row ? (row.getAttribute('data-type') || '') : (scb ? (scb.getAttribute('data-type') || '') : (inp.getAttribute('data-type') || ''));
           const replaces = row ? (row.getAttribute('data-replaces') || '') : (inp.getAttribute('data-replaces') || '');
           const grants = row ? (row.getAttribute('data-grants') || '') : (inp.getAttribute('data-grants') || '');
@@ -1310,7 +1379,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const isBroodlord = /broodlord/i.test(u.name||'');
           if(isBroodlord){ const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord'); maxCount = count>0 ? 1 : Math.max(0, 1 - others); }
           const stat = u.grants ? (WEAPON_LIBRARY[u.grants] || {}) : {};
-          const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${stat.traits||''}</td>`;
+          const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
           const control = u.type==='BROOD_SIZE'
             ? `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${(UNIT_BROOD_STEP[unit.id]||1)} models (+${UNIT_BROOD_POINTS[unit.id]??(u.points||0)} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${UNIT_BROOD_POINTS[unit.id]??(u.points||0)}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
             : `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',-1)">−</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',1)" ${count>=maxCount ? 'disabled' : ''}>+</button><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`;
@@ -1331,11 +1400,30 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             const defM2 = (UNIT_DEFAULT_MODELS[unit.id]||1);
             entries.forEach(e=>{
               const stat = WEAPON_LIBRARY[e.grants] || {};
-              const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${stat.traits||''}</td>`;
+              const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
               const maxCnt = (unit.models||defM2);
               const control = `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${e.id}',-1)">−</button><button id="upval-${e.id}" class="btn btn-xs" style="width:28px;justify-content:center">0</button><input id="upcnt-${e.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCnt}" step="1" value="0" data-points="${e.pts}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${e.id}',1)">+</button><button id="uprm-${e.id}" class="btn btn-xs btn-red" style="display:none" onclick="document.getElementById('upcnt-${e.id}').value=0; document.getElementById('upval-${e.id}').textContent='0'; updateModalTotals()">✖</button></div>`;
               const nameCell = `<td><div style="font-weight:600">${e.grants}</div>${control}</td>`;
-              upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${e.id}" data-type="WEAPON_SWAP" data-replaces="Fleshborer" data-grants="${e.grants}" data-detach="0">${nameCell}${statCols}<td class="cost">${e.pts} pts</td></tr>`;
+              upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${e.id}" data-type="WEAPON_SWAP" data-replaces="Fleshborer" data-grants="${e.grants}" data-detach="0" data-name="${e.name}">${nameCell}${statCols}<td class="cost">${e.pts} pts</td></tr>`;
+              tableUpGrants.add(String(e.grants||'').toLowerCase());
+            });
+          } else if(unit.id==='carnifex'){
+            const entries = [
+              {id:'u_carn_bs', name:'Replace Bio-Plasma with Barbed Strangler', pts:5, grants:'Barbed Strangler'},
+              {id:'u_carn_vc', name:'Replace Bio-Plasma with Venom Cannon', pts:5, grants:'Venom Cannon'}
+            ];
+            const defM2 = (UNIT_DEFAULT_MODELS[unit.id]||1);
+            const maxCnt = (unit.models||defM2);
+            entries.forEach(e=>{
+              const stat = WEAPON_LIBRARY[e.grants] || {};
+              const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
+              
+              const existing = (unit.upgrades||[]).find(x=>x.id===e.id);
+              const curCount = existing ? Number(existing.count||0) : 0;
+              
+              const control = `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${e.id}',-1)">−</button><button id="upval-${e.id}" class="btn btn-xs" style="width:28px;justify-content:center">${curCount}</button><input id="upcnt-${e.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCnt}" step="1" value="${curCount}" data-points="${e.pts}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${e.id}',1)">+</button><button id="uprm-${e.id}" class="btn btn-xs btn-red" style="display:${curCount>0?'':'none'}" onclick="document.getElementById('upcnt-${e.id}').value=0; document.getElementById('upval-${e.id}').textContent='0'; updateModalTotals()">✖</button></div>`;
+              const nameCell = `<td><div style="font-weight:600">${e.grants}</div>${control}</td>`;
+              upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${e.id}" data-type="WEAPON_SWAP" data-replaces="Bio-Plasma" data-grants="${e.grants}" data-detach="0" data-name="${e.name}">${nameCell}${statCols}<td class="cost">${curCount>0 ? curCount*e.pts : e.pts} pts</td></tr>`;
               tableUpGrants.add(String(e.grants||'').toLowerCase());
             });
           } else if(unit.id==='biovore'){
@@ -1346,7 +1434,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             const pyroPts = pyroBase ? (pyroBase.points||0) : 0;
             const pyroDet = pyroBase ? (pyroBase.detachmentSize||0) : 0;
             const stat = WEAPON_LIBRARY['Pyroacid Launcher'] || {};
-            const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${stat.traits||''}</td>`;
+            const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
             const maxCnt = baseModels;
             let curCount = 0;
             const existing = (unit.upgrades||[]).find(x=>x.id===pyroId);
@@ -1356,7 +1444,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             }
             const control = `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${pyroId}',-1)">−</button><button id="upval-${pyroId}" class="btn btn-xs" style="width:28px;justify-content:center">${curCount}</button><input id="upcnt-${pyroId}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCnt}" step="1" value="${curCount}" data-points="${pyroPts}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${pyroId}',1)">+</button><button id="uprm-${pyroId}" class="btn btn-xs btn-red" style="display:${curCount>0?'':'none'}" onclick="document.getElementById('upcnt-${pyroId}').value=0; document.getElementById('upval-${pyroId}').textContent='0'; updateModalTotals()">✖</button></div>`;
             const nameCell = `<td><div style="font-weight:600">Pyrovore (Pyroacid Launcher)</div><div class="small muted">Each Pyrovore has CAF +4 (Biovore CAF 0).</div>${control}</td>`;
-            upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${pyroId}" data-type="WEAPON_SWAP" data-replaces="Spore Launcher" data-grants="Pyroacid Launcher" data-detach="${pyroDet}">${nameCell}${statCols}<td class="cost">${pyroPts} pts</td></tr>`;
+            upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${pyroId}" data-type="WEAPON_SWAP" data-replaces="Spore Launcher" data-grants="Pyroacid Launcher" data-detach="${pyroDet}" data-name="${pyroBase?pyroBase.name:'Pyrovore'}">${nameCell}${statCols}<td class="cost">${pyroPts} pts</td></tr>`;
             tableUpGrants.add('pyroacid launcher');
           }
         }
@@ -1528,10 +1616,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
-                  <div style="margin-top:10px" class="small muted">Upgrades Cost:
-
+                  <div style="margin-top:10px" class="small muted">Total Unit Cost:
                     <div id="modal-total-points" style="margin-top:8px;font-weight:700">0 pts</div>
-
                   </div>
 
 
@@ -1598,10 +1684,16 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       function renderHome(){
         const updatesContent = `
           <div class="muted small" style="margin-bottom:8px">
-            <strong>New:</strong> Google Account login is now supported! Log in to enable cloud saves and sync your lists across devices.
+            <strong>New:</strong> Unit types & sizes (e.g., WALKER (1)) are now displayed in Builder & Roster.
+          </div>
+          <div class="muted small" style="margin-bottom:8px">
+            <strong>New:</strong> Interactive Rule Badges - click any rule (e.g., "The Hive Mind") to view its full description.
+          </div>
+          <div class="muted small" style="margin-bottom:8px">
+            <strong>Update:</strong> Roster Army Rules now match the Reference tab's polished layout.
           </div>
           <div class="muted small">
-            <strong>Update:</strong> Tyranid Warrior Brood size fixed (max 12 per slot).
+            <strong>Fix:</strong> Corrected formation rule display and prevented accidental card collapse when clicking rules.
           </div>
         `;
         
@@ -1625,23 +1717,25 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       }
 
 
-      function renderReference(){ if(referenceView==='main') return renderReferenceHome(); if(referenceView==='units') return renderReferenceUnits(); if(referenceView==='unit-detail') return renderReferenceUnitDetail(); if(referenceView==='weapons') return renderReferenceWeapons(); if(referenceView==='weapon-detail') return renderReferenceWeaponDetail(); if(referenceView==='detachments') return renderReferenceDetachments(); if(referenceView==='formations') return renderReferenceFormations(); if(referenceView==='army-rules') return renderReferenceArmyRules(); return renderReferenceHome(); }
+      function renderReference(){ if(referenceView==='main') return renderReferenceHome(); if(referenceView==='units') return renderReferenceUnits(); if(referenceView==='unit-detail') return renderReferenceUnitDetail(); if(referenceView==='weapons') return renderReferenceWeapons(); if(referenceView==='weapon-detail') return renderReferenceWeaponDetail(); if(referenceView==='detachments') return renderReferenceDetachments(); if(referenceView==='formations') return renderReferenceFormations(); if(referenceView==='army-rules') return renderReferenceArmyRules(); if(referenceView==='game-rules') return renderReferenceGameRules(); return renderReferenceHome(); }
 
       function renderCrumbs(parts){ try{ return `<div class="crumbs small muted">` + parts.map((p,i)=>`<span ${p.on?`onclick=\"${p.on}\" style=\"cursor:pointer;text-decoration:underline\"`:''}>${p.label}</span>${i<parts.length-1?' › ':''}`).join('') + `</div>`; }catch(e){ return `<div class="crumbs small muted">Reference</div>`; } }
 
-      function postRenderAdjustments(){ const crumbs=document.querySelector('.crumbs.small.muted'); if(crumbs){ const text=(crumbs.textContent||'').trim(); if(text.startsWith('Reference')){ const parts=text.split('›').map(s=>s.trim()); if(parts.length===1){ crumbs.innerHTML = `<span onclick="openReferenceHome()" style="cursor:pointer;text-decoration:underline">Reference</span>`; } if(parts.length===2){ const tail=parts[1]; crumbs.innerHTML = `<span onclick="openReferenceHome()" style="cursor:pointer;text-decoration:underline">Reference</span> › ${tail}`; } if(parts.length>=3){ const mid=parts[1]; const tail=parts.slice(2).join(' › '); const midAction=(mid==='Units')?"setReferenceView('units')":(mid==='Weapons'?"setReferenceView('weapons')":(mid==='Army Rules'?"setReferenceView('army-rules')":"")); const midSpan=midAction?`<span onclick=\"${midAction}\" style=\"cursor:pointer;text-decoration:underline\">${mid}</span>`:mid; crumbs.innerHTML = `<span onclick="openReferenceHome()" style="cursor:pointer;text-decoration:underline">Reference</span> › ${midSpan} › ${tail}`; } } } if(referenceView==='weapons'){ const table=document.querySelector('.card table.table'); if(table){ const ths=table.querySelectorAll('thead th'); if(ths.length){ ths[ths.length-1].style.display='none'; } const rows=table.querySelectorAll('tbody tr'); rows.forEach(tr=>{ const tds=tr.querySelectorAll('td'); if(tds.length){ tds[tds.length-1].style.display='none'; } }); } } }
+      function postRenderAdjustments(){ const crumbs=document.querySelector('.crumbs.small.muted'); if(crumbs){ const text=(crumbs.textContent||'').trim(); if(text.startsWith('Reference')){ const parts=text.split('›').map(s=>s.trim()); if(parts.length===1){ crumbs.innerHTML = `<span onclick="openReferenceHome()" style="cursor:pointer;text-decoration:underline">Reference</span>`; } if(parts.length===2){ const tail=parts[1]; crumbs.innerHTML = `<span onclick="openReferenceHome()" style="cursor:pointer;text-decoration:underline">Reference</span> › ${tail}`; } if(parts.length>=3){ const mid=parts[1]; const tail=parts.slice(2).join(' › '); const midAction=(mid==='Units')?"setReferenceView('units')":(mid==='Weapons'?"setReferenceView('weapons')":(mid==='Army Rules'?"setReferenceView('army-rules')":(mid==='Game Rules'?"setReferenceView('game-rules')":""))); const midSpan=midAction?`<span onclick=\"${midAction}\" style=\"cursor:pointer;text-decoration:underline\">${mid}</span>`:mid; crumbs.innerHTML = `<span onclick="openReferenceHome()" style="cursor:pointer;text-decoration:underline">Reference</span> › ${midSpan} › ${tail}`; } } } if(referenceView==='weapons'){ const table=document.querySelector('.card table.table'); if(table){ const ths=table.querySelectorAll('thead th'); if(ths.length){ ths[ths.length-1].style.display='none'; } const rows=table.querySelectorAll('tbody tr'); rows.forEach(tr=>{ const tds=tr.querySelectorAll('td'); if(tds.length){ tds[tds.length-1].style.display='none'; } }); } } }
 
       function renderReferenceHome(){
         const icons = {
           units:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2H5Z"/></svg>`,
           weapons:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21l6-6 3 3-6 6H3Zm9-9 3 3 6-6-3-3-6 6Z"/></svg>`,
           detachments:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 5h8v3h-8v-3Z"/></svg>`,
-          formations:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l4 7h-8l4-7Zm-9 20h18l-9-6-9 6Z"/></svg>`
+          formations:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l4 7h-8l4-7Zm-9 20h18l-9-6-9 6Z"/></svg>`,
+          rules:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>`
         };
         const tiles=[
           {label:'Units',svg:icons.units,action:"openReferenceUnits()"},
           {label:'Weapons',svg:icons.weapons,action:"openReferenceWeapons()"},
           {label:'Army Rules',svg:icons.units,action:"openReferenceArmyRules()"},
+          {label:'Game Rules',svg:icons.rules,action:"openReferenceGameRules()"},
           {label:'Detachments',svg:icons.detachments,action:"openReferenceDetachments()"},
           {label:'Formations',svg:icons.formations,action:"openReferenceFormations()"}
         ];
@@ -1650,10 +1744,48 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           Weapons: 'Images/rule_icons/weapons.svg',
           Detachments: 'Images/rule_icons/detachments.svg',
           Formations: 'Images/rule_icons/formations.svg',
-          'Army Rules': 'Images/rule_icons/army_rules.svg'
+          'Army Rules': 'Images/rule_icons/army_rules.svg',
+          'Game Rules': 'Images/rule_icons/game_rules.svg'
         };
         const items=tiles.map(t=>`<div class="rb-tile-card" onclick="${t.action}"><div class="rb-tile-header">${t.label}</div><div class="rb-tile-body"><img class="tile-icon-img" src="${mapSrc[t.label]}" alt="${t.label} icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/><div class="tile-icon" style="display:none">${t.svg}</div></div></div>`).join('');
         return `<div style="padding:12px">${renderCrumbs([{label:'Reference'}])}<div class="tile-grid">${items}</div></div>`;
+      }
+
+      function renderReferenceGameRules(){
+        const rules = [
+          {
+            title: 'Blast Markers',
+            content: `
+              <div class="pdf-paragraph">Blast Markers represent the confusion, suppression, and morale impact of enemy fire on a formation. They are a core mechanic of the game.</div>
+              <div class="pdf-subhead">Gaining Blast Markers</div>
+              <div class="pdf-paragraph">A formation gains Blast Markers (BMs) in the following ways:</div>
+              <ul style="list-style-type:disc;padding-left:20px;color:#1f2937">
+                <li><strong>Coming Under Fire:</strong> When a formation is targeted by a shooting attack, it receives 1 Blast Marker immediately, even if no hits are scored.</li>
+                <li><strong>Casualties:</strong> The formation receives 1 additional Blast Marker for each unit destroyed (or Void Shield lost).</li>
+                <li><strong>Special Rules:</strong> Some weapons (e.g., those with the <em>Pinning</em> trait) or effects may cause additional Blast Markers.</li>
+              </ul>
+              <div class="pdf-subhead">Effects of Blast Markers</div>
+              <ul style="list-style-type:disc;padding-left:20px;color:#1f2937">
+                <li><strong>Suppressed:</strong> If a formation has 1 or more Blast Markers, it is considered <em>Suppressed</em>. It suffers a <strong>-1 penalty to Hit</strong> when shooting.</li>
+                <li><strong>Broken:</strong> If the number of Blast Markers equals or exceeds the number of units in the formation, the formation becomes <em>Broken</em>. It cannot shoot or assault, and must withdraw (make a Withdrawal move) to cover.</li>
+                <li><strong>Initiative:</strong> Blast Markers also apply a penalty to Initiative checks (Action tests). -1 modifier per Blast Marker.</li>
+              </ul>
+              <div class="pdf-subhead">Rallying</div>
+              <div class="pdf-paragraph">In the End Phase, formations can Rally to remove Blast Markers. Broken formations must make a Rally test. If successful, they remove half their Blast Markers (rounded up) and are no longer Broken. Unbroken formations remove D6 Blast Markers.</div>
+            `
+          }
+        ];
+        
+        const items = rules.map(r => `
+          <div class="card" style="padding:0;margin-bottom:12px">
+            <div class="section-bar">${r.title}</div>
+            <div style="padding:12px">
+              ${r.content}
+            </div>
+          </div>
+        `).join('');
+
+        return `<div style="padding:12px">${renderCrumbs([{label:'Reference',on:'openReferenceHome()'},{label:'Game Rules'}])}${items}<div style="margin-top:8px"><button class="btn" onclick="openReferenceHome()">Back</button></div></div>`;
       }
 
       function renderReferenceUnits(){ const armies=Object.keys(ARMIES).filter(a=>a!=='Select Army'); const filt=String(referenceFilter||'').toLowerCase(); const search=`<div style=\"display:flex;gap:8px;margin-bottom:8px\"><input id=\"ref-unit-search\" class=\"mini-input\" placeholder=\"Search units\" value=\"${referenceQuery}\" oninput=\"setReferenceFilter(this.value)\" onkeydown=\"if(event.key==='Enter'){commitReferenceFilter(this.value)}\"/><button class=\"btn btn-sm\" onclick=\"commitReferenceFilter(document.getElementById('ref-unit-search').value)\">Search</button><button class=\"btn btn-sm\" onclick=\"setReferenceFilter('')\">Clear</button></div>`; const order=['HQ','Synapse','Core','Support','Vanguard','Transport','BattleTank','HeavyArmor','AirSupport','Artillery','Knight','Biotitan','Flyer']; const cols=armies.map(a=>{ const key=armyKey(a); const list=(ARMY_UNIT_LIST[key]||[]); const list2=filt?list.filter(u=>u.name.toLowerCase().includes(filt)):list; const groups=order.map(role=>({ role, items: list2.filter(u=>u.slotType===role) })).filter(g=>g.items.length); const items=groups.length? groups.map(g=>`<div><div class=\"section-sub\">${g.role}</div>${g.items.map(u=>`<div style=\"padding:6px 8px;border-bottom:1px solid #243e46;cursor:pointer\" onclick=\"openReferenceUnit('${a}','${u.id}')\">${u.name}</div>`).join('')}</div>`).join('') : `<div class=\"small muted\" style=\"padding:8px\">No matches</div>`; return `<div class=\"card\" style=\"padding:0\"><div class=\"section-bar\">${a}</div><div>${items}</div></div>`; }).join(''); return `<div style=\"padding:12px\">${renderCrumbs([{label:'Reference',on:'openReferenceHome()'},{label:'Units'}])}${search}<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px\">${cols}</div><div style=\"margin-top:8px\"><button class=\"btn\" onclick=\"openReferenceHome()\">Back</button></div></div>`; }
@@ -1748,10 +1880,27 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       function renderFormationCard(f, idx){
         const total = formationPoints(f);
+        const fRules = (FORMATIONS[f.name] && FORMATIONS[f.name].rules) || f.rules || [];
+        const rulesHtml = fRules.length ? 
+          `<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1);display:flex;flex-wrap:wrap;gap:8px">
+            ${fRules.map(r => {
+               if(typeof r === 'string' && r.indexOf(':') > -1){
+                 const idx = r.indexOf(':');
+                 const title = r.substring(0, idx).trim();
+                 return `<span class="badge" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${title.replace(/'/g,"\\'")}')" style="cursor:pointer;background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px;font-size:11px;color:#555;border:1px solid rgba(0,0,0,0.1)">${title}</span>`;
+               }
+               return `<span class="badge" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${r.replace(/'/g,"\\'")}')" style="cursor:pointer;background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px;font-size:11px;color:#555;border:1px solid rgba(0,0,0,0.1)">${r}</span>`;
+            }).join('')}
+          </div>` : '';
+
         const header = `
           <div class="formation-header">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <div><strong class="roster-title">${f.name}</strong><div class="small muted">${f.army}</div></div>
+              <div>
+                <strong class="roster-title">${f.name}</strong>
+                <div class="small muted">${f.army}</div>
+                ${rulesHtml}
+              </div>
               <div class="mini-icons"><button class="icon-btn icon-sm" title="Minimise" onclick="toggleCollapse(${idx})">▾</button><button class="icon-btn icon-sm" title="Clone" onclick="cloneFormation(${idx})">⎘</button><button class="icon-btn icon-sm" title="Delete" onclick="removeFormation(${idx})">🗑</button></div>
             </div>
           </div>`;
@@ -1781,6 +1930,10 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const selectedUnit = (slot.units||[])[0] || null;
         const unitSize = selectedUnit ? (selectedUnit.models || selectedUnit.baseModels || '-') : 0;
         const slotPts = selectedUnit ? unitPoints(selectedUnit) : 0;
+        const base = selectedUnit ? (UNIT_BASE[selectedUnit.id]||{}) : {};
+        const uType = base.type ? String(base.type).toUpperCase() : '';
+        const uScale = base.scale || 1;
+        const typeStr = uType ? ` | ${uType} (${uScale})` : '';
         const unitsHtml = selectedUnit ? `
           <div class="unit-item"><div class="u-actions"><button class="btn btn-xs btn-blue" onclick="window.openEditModal(${fIdx},'${section}',${sIdx},0)">Upgrades</button><button class="btn btn-xs btn-red" title="Remove" onclick="window.removeUnit(${fIdx},'${section}',${sIdx},0)">🗑</button></div></div>
         ` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
@@ -1791,7 +1944,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         ) : [];
         const upList = selectedUnit && upItems.length ? `<div class="slot-details"><span class="label">Upgrades</span> ${upItems.join(', ')}</div>` : '';
         const selectHtml = `<select class="select-compact" onchange="setSlotSelection(${fIdx},'${section}',${sIdx}, this.value)">${options}</select>`;
-        return `<div class="slot-compact"><div class="slot-pill">${slot.label}${slot._group?` #${slot._group.index}`:''}</div><div class="slot-meta-row">Unit size: ${unitSize} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
+        return `<div class="slot-compact"><div class="slot-pill">${slot.label}${slot._group?` #${slot._group.index}`:''}</div><div class="slot-meta-row">Unit size: ${unitSize}${typeStr} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
 
       }
 
@@ -1860,7 +2013,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             { name:'Attract', desc:'On a hit against a model of equal or lesser category (Infantry, Walker, Super-Heavy Vehicle, Knight, Titan designated by value) that does not have Implacable, if the attack fails to kill the target move the closest model D6" toward the attacking unit. If this enters close combat the units are now Engaged. No effect if blocked by shields such as Void Shields or Ion Shields.' },
             { name:'Hunger', desc:'Each time an enemy is slain by a weapon with this trait, the attacker regains a wound up to its maximum.' },
             { name:'Beam', desc:'The attack traces a straight line from firer to target; any formation under this line is a target and is affected as if fired upon directly.' },
-            { name:'Parry', desc:'When a model with Parry fights in Close Combat it may force the opponent to re-roll one die.' }
+            { name:'Parry', desc:'When a model with Parry fights in Close Combat it may force the opponent to re-roll one die.' },
+            { name:'Pinning', desc:'Infantry units hit by this weapon take an extra Blast marker.' },
+            { name:'Web', desc:'Units hit by this weapon may not move in their next activation.' }
           ]},
           { title: 'Gear: Spore Mines & Launcher', items: [
             { name:'Spore Mines', desc:'Tokens that follow the rules of a lone model; can be targeted; have no save or special rules; if killed, they detonate. At the start of the end phase each spore mine moves randomly: roll a scatter die and move D6" in that direction (use the arrow on Hit). If contacting a non-Tyranid unit or impassable terrain they detonate; if entering a building they enter as per building rules and may move away next turn. On detonation place a Blast (3") marker; all models covered suffer a hit with profile: Spore Mine Explosion, AP -1, Traits: Blast (3"), Light AT.' },
@@ -1934,11 +2089,35 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         ]
       };
 
-      async function openReferenceArmyRules(){ setReferenceView('army-rules'); try{ await ensureFactionRules(); }catch(e){} updateReferenceHash(); requestRender(); }
-
+      function openReferenceArmyRules(){ setReferenceView('army-rules'); try{ ensureFactionRules(); }catch(e){} updateReferenceHash(); requestRender(); }
+      function openReferenceGameRules(){ setReferenceView('game-rules'); updateReferenceHash(); requestRender(); }
       function setArmyRulesFactionTab(name){ armyRulesFaction = name; updateReferenceHash(); requestRender(); }
       function renderArmyRuleTabs(){ const armies=Object.keys(ARMIES).filter(a=>a!=='Select Army'); return `<div class="subtabs">${armies.map(a=>`<button class="pill ${a===armyRulesFaction?'active':''}" onclick="setArmyRulesFactionTab('${a}')">${a}</button>`).join('')}</div>`; }
-      function renderReferenceArmyRules(){ const rules=(FACTION_RULES[armyRulesFaction]||[]); const list = rules.length ? rules.map(entry=>{ if(typeof entry==='string'){ return `<p class="pdf-paragraph">${entry}</p>`; } else { const inner=(entry.items||[]).map(r=>{ if(typeof r==='string'){ return `<p class="pdf-paragraph">${r}</p>`; } if(r && r.lead){ return `<p class="pdf-lead">${r.lead}</p>`; } if(r && r.name){ const key=String(r.name||''); const known = (typeof RULES_INDEX === 'object') && (RULES_INDEX[_normKey(key)] !== undefined); const head = known ? `<div class="pdf-subhead rule-key" data-rule="${key}" onclick="openRuleDialog('${key}')">${key}</div>` : `<div class="pdf-subhead">${key}</div>`; return head + `<p class="pdf-paragraph">${r.desc||''}</p>`; } return ''; }).join(''); return `<div class="pdf-section"><div class="rb-section-head">${entry.title||armyRulesFaction}</div>${inner}</div>`; } }).join('') : `<div class="muted small">No rules available</div>`; const tabs=renderArmyRuleTabs(); return `<div style="padding:12px">${renderCrumbs([{label:'Reference',on:'openReferenceHome()'},{label:'Army Rules'}])}${tabs}<div class="army-rules-page"><div class="pdf-heading">${armyRulesFaction}</div><div class="pdf-divider"></div>${list}</div><div style="margin-top:8px"><button class="btn" onclick="openReferenceHome()">Back</button></div></div>`; }
+      function renderReferenceArmyRules(){ 
+        const rules=(FACTION_RULES[armyRulesFaction]||[]); 
+        const list = rules.length ? rules.map(entry=>{ 
+          const title = (typeof entry==='string') ? armyRulesFaction : (entry.title||armyRulesFaction);
+          let content = '';
+          if(typeof entry==='string'){
+             content = `<p class="pdf-paragraph">${entry}</p>`;
+          } else {
+             content = (entry.items||[]).map(r=>{ 
+               if(typeof r==='string'){ return `<p class="pdf-paragraph">${r}</p>`; } 
+               if(r && r.lead){ return `<p class="pdf-lead">${r.lead}</p>`; } 
+               if(r && r.name){ 
+                 const key=String(r.name||''); 
+                 const known = (typeof RULES_INDEX === 'object') && (RULES_INDEX[_normKey(key)] !== undefined); 
+                 const head = known ? `<div class="pdf-subhead rule-key" data-rule="${key}" onclick="openRuleDialog('${key}')">${key}</div>` : `<div class="pdf-subhead">${key}</div>`; 
+                 return head + `<p class="pdf-paragraph">${r.desc||''}</p>`; 
+               } 
+               return ''; 
+             }).join('');
+          }
+          return `<div class="card" style="padding:0;margin-bottom:12px"><div class="section-bar">${title}</div><div style="padding:12px">${content}</div></div>`;
+        }).join('') : `<div class="muted small">No rules available</div>`; 
+        const tabs=renderArmyRuleTabs(); 
+        return `<div style="padding:12px">${renderCrumbs([{label:'Reference',on:'openReferenceHome()'},{label:'Army Rules'}])}${tabs}${list}<div style="margin-top:8px"><button class="btn" onclick="openReferenceHome()">Back</button></div></div>`; 
+      }
 
       async function ensureFactionRules(){ try{ if(window._factionRulesLoaded) return; const resp1 = await fetch('data/faction_rules.json',{cache:'no-store'}); if(resp1 && resp1.ok){ const data = await resp1.json(); Object.keys(data||{}).forEach(f=>{ const sections = data[f]||[]; if(Array.isArray(sections) && sections.length){ const existing = Array.isArray(FACTION_RULES[f]) ? FACTION_RULES[f] : []; const incoming = sections.map(s=> (typeof s==='string' ? { title:'Army Special Rules', items:[s] } : s)); if(existing.length===0){ FACTION_RULES[f] = incoming; } else { incoming.forEach(sec=>{ const title = sec && sec.title ? sec.title : 'Army Special Rules'; const has = existing.some(e=> (typeof e==='object') && (e.title===title)); if(!has){ existing.push(sec); } }); FACTION_RULES[f] = existing; } } }); }
       const resp2 = await fetch('PDF/MainRules.json',{cache:'no-store'}); if(resp2 && resp2.ok){ const json = await resp2.json(); const traits = json.traitLibrary||{}; if(FACTION_RULES.Tyranids && !FACTION_RULES.Tyranids.some(e=>typeof e==='object' && e.title==='Traits (Reference)')){ FACTION_RULES.Tyranids.push({ title:'Traits (Reference)', items: Object.keys(traits).slice(0,10).map(k=>`${k}: ${traits[k]}`) }); }
@@ -1946,6 +2125,66 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       window._factionRulesLoaded=true; }catch(e){} }
 
 
+
+      function renderArmyRulesSection(faction){
+        const rules = FACTION_RULES[faction];
+        if(!rules || !rules.length) return '';
+        
+        const list = rules.map(entry=>{ 
+          const title = (typeof entry==='string') ? faction : (entry.title||faction);
+          let content = '';
+          if(typeof entry==='string'){
+             content = `<p class="pdf-paragraph">${entry}</p>`;
+          } else {
+             content = (entry.items||[]).map(r=>{ 
+               if(typeof r==='string'){ return `<p class="pdf-paragraph">${r}</p>`; } 
+               if(r && r.lead){ return `<p class="pdf-lead">${r.lead}</p>`; } 
+               if(r && r.name){ 
+                 const key=String(r.name||''); 
+                 const known = (typeof RULES_INDEX === 'object') && (RULES_INDEX[_normKey(key)] !== undefined); 
+                 const head = known ? `<div class="pdf-subhead rule-key" style="color:#1f2937" data-rule="${key}" onclick="openRuleDialog('${key}')">${key}</div>` : `<div class="pdf-subhead">${key}</div>`; 
+                 return head + `<p class="pdf-paragraph">${r.desc||''}</p>`; 
+               } 
+               return ''; 
+             }).join('');
+          }
+          return `<div class="card" style="padding:0;margin-bottom:12px;border:1px solid #ddd"><div class="section-bar">${title}</div><div style="padding:12px">${content}</div></div>`;
+        }).join('');
+
+        return `
+          <details class="roster-panel" style="padding:8px;margin-bottom:8px;background:#0d2b36;border-radius:8px;border:1px solid #243e46">
+            <summary style="cursor:pointer">
+              <div class="roster-header" style="display:inline-flex;justify-content:space-between;align-items:center;width:100%">
+                <div><strong class="roster-title" style="color:#fff">Army Rules: ${faction}</strong></div>
+                <div class="small muted">View Rules</div>
+              </div>
+            </summary>
+            <div style="margin-top:10px;padding:12px;background:#ebf1f5;border-radius:4px;color:#1f2937">
+              ${list}
+            </div>
+          </details>
+        `;
+      }
+
+      function renderRosterFormation(f, padding, margin){
+        const fRules = (FORMATIONS[f.name] && FORMATIONS[f.name].rules) || f.rules || [];
+        const rulesHtml = fRules.length ? 
+          `<div class="formation-rules" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-wrap:wrap;gap:6px">
+            ${fRules.map(r => {
+              if(typeof r === 'string' && r.indexOf(':') > -1){
+                const idx = r.indexOf(':');
+                const title = r.substring(0, idx).trim();
+                return `<span style="cursor:pointer;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:11px;color:#ddd;border:1px solid rgba(255,255,255,0.1)" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${title.replace(/'/g,"\\'")}')">${title}</span>`;
+              }
+              return `<span style="cursor:pointer;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:11px;color:#ddd;border:1px solid rgba(255,255,255,0.1)" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${r.replace(/'/g,"\\'")}')">${r}</span>`;
+            }).join('')}
+          </div>` 
+          : '';
+        const cuPairs=(f.compulsory||[]).flatMap(s=> (s.units||[]).map(u=>({u,slotInfo:{label:s.label,section:'Compulsory',type:s.type,index:(s._group&&s._group.index)||undefined}})));
+        const ouPairs=(f.optional||[]).flatMap(s=> (s.units||[]).map(u=>({u,slotInfo:{label:s.label,section:'Optional',type:s.type,index:(s._group&&s._group.index)||undefined}})));
+        const suPairs=(f.special && f.special.units)||[];
+        return `<details class="roster-panel" style="padding:${padding};margin-bottom:${margin};background:#071a21;border-radius:8px"><summary><div class="roster-header"><div><strong class="roster-title">${f.name}</strong>${ formationHasMinViolations(f) ? `<span class="form-alert"> Compulsory Unit Missing</span>` : '' }<div class="small muted">${f.army}</div>${rulesHtml}</div><div class="roster-points">Total: ${formationPoints(f)} pts</div></div></summary><div style="margin-top:${padding==='12px'?'10px':'8px'}">${cuPairs.length? `<div class="section-sub">Compulsory</div>`+cuPairs.map(p=>renderRosterUnit(p.u,p.slotInfo)).join('') : ''}${ouPairs.length? `<div class="section-sub">Optional</div>`+ouPairs.map(p=>renderRosterUnit(p.u,p.slotInfo)).join('') : ''}${suPairs.length? `<div class="section-sub">Special</div>`+suPairs.map(u=>renderRosterUnit(u,{label:(f.special&&f.special.label)||'Special',section:'Special',type:(f.special&&f.special.type)||'Special'})).join('') : ''}</div></details>`;
+      }
 
       function renderRoster(){
         const hasSaved = (savedLists||[]).length > 0;
@@ -1961,8 +2200,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const pointsUsed = formations.reduce((s,f)=>s+formationPoints(f),0);
           const pointsCap = active.pointsCap||2000;
           const header = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong class="roster-title">${active.name}</strong><div class="small muted">${active.faction||'-'}</div></div><div style="display:flex;gap:8px;align-items:center"><div class="small muted">${pointsUsed}/${pointsCap} pts</div><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="printRoster()">Print</button></div></div>`;
-          const body = formations.length ? formations.map(f=>`<details class="roster-panel" style="padding:12px;margin-bottom:12px;background:#071a21;border-radius:8px"><summary><div class="roster-header"><div><strong class="roster-title">${f.name}</strong>${ formationHasMinViolations(f) ? `<span class="form-alert"> Compulsory Unit Missing</span>` : '' }<div class="small muted">${f.army}</div></div><div class="roster-points">Total: ${formationPoints(f)} pts</div></div></summary><div style="margin-top:10px">${(()=>{ const cuPairs=(f.compulsory||[]).flatMap(s=> (s.units||[]).map(u=>({u,slotInfo:{label:s.label,section:'Compulsory',type:s.type,index:(s._group&&s._group.index)||undefined}}))); return cuPairs.length? `<div class=\\\"section-sub\\\">Compulsory</div>`+cuPairs.map(p=>renderRosterUnit(p.u,p.slotInfo)).join('') : ''; })()}${(()=>{ const ouPairs=(f.optional||[]).flatMap(s=> (s.units||[]).map(u=>({u,slotInfo:{label:s.label,section:'Optional',type:s.type,index:(s._group&&s._group.index)||undefined}}))); return ouPairs.length? `<div class=\\\"section-sub\\\">Optional</div>`+ouPairs.map(p=>renderRosterUnit(p.u,p.slotInfo)).join('') : ''; })()}${(()=>{ const suPairs=(f.special && f.special.units)||[]; return suPairs.length? `<div class=\\\"section-sub\\\">Special</div>`+suPairs.map(u=>renderRosterUnit(u,{label:(f.special&&f.special.label)||'Special',section:'Special',type:(f.special&&f.special.type)||'Special'})).join('') : ''; })()}</div></details>`).join('') : `<div class=\"muted small p-4\">No formations yet.</div>`;
-          return `<div style="padding:8px"><div class="crumbs small muted">Roster › ${active.name}</div><div class="card" style="padding:8px">${header}</div>${body.replace(/padding:12px/g,'padding:8px').replace(/margin-bottom:12px/g,'margin-bottom:8px')}</div>`;
+          const armyRulesHtml = renderArmyRulesSection(active.faction || selectedArmy);
+          const body = formations.length ? formations.map(f=>renderRosterFormation(f, '12px', '12px')).join('') : `<div class=\"muted small p-4\">No formations yet.</div>`;
+          return `<div style="padding:8px"><div class="crumbs small muted">Roster › ${active.name}</div><div class="card" style="padding:8px">${header}</div>${armyRulesHtml}${body.replace(/padding:12px/g,'padding:8px').replace(/margin-bottom:12px/g,'margin-bottom:8px')}</div>`;
         }
 
         if(!working){
@@ -1971,7 +2211,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
         if(!armyFormations.length) return `<div style="padding:12px" class="muted small">No formations added.</div>`;
 
-        return `<div style="padding:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="crumbs small muted">Roster</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="printRoster()">Print</button></div></div>${armyFormations.map((f,fi)=>`<details class="roster-panel" style="padding:8px;margin-bottom:8px;background:#071a21;border-radius:8px"><summary><div class="roster-header"><div><strong class="roster-title">${f.name}</strong>${ formationHasMinViolations(f) ? `<span class="form-alert"> Compulsory Unit Missing</span>` : '' }<div class="small muted">${f.army}</div></div><div class="roster-points">Total: ${formationPoints(f)} pts</div></div></summary><div style="margin-top:8px">${(()=>{ const cuPairs=(f.compulsory||[]).flatMap(s=> (s.units||[]).map(u=>({u,slotInfo:{label:s.label,section:'Compulsory',type:s.type,index:(s._group&&s._group.index)||undefined}}))); return cuPairs.length? `<div class=\\\"section-sub\\\">Compulsory</div>`+cuPairs.map(p=>renderRosterUnit(p.u,p.slotInfo)).join('') : ''; })()}${(()=>{ const ouPairs=(f.optional||[]).flatMap(s=> (s.units||[]).map(u=>({u,slotInfo:{label:s.label,section:'Optional',type:s.type,index:(s._group&&s._group.index)||undefined}}))); return ouPairs.length? `<div class=\\\"section-sub\\\">Optional</div>`+ouPairs.map(p=>renderRosterUnit(p.u,p.slotInfo)).join('') : ''; })()}${(()=>{ const suPairs=(f.special && f.special.units)||[]; return suPairs.length? `<div class=\\\"section-sub\\\">Special</div>`+suPairs.map(u=>renderRosterUnit(u,{label:(f.special&&f.special.label)||'Special',section:'Special',type:(f.special&&f.special.type)||'Special'})).join('') : ''; })()}</div></details>`).join('')}</div>`;
+        const armyRulesHtml = renderArmyRulesSection(selectedArmy);
+        return `<div style="padding:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="crumbs small muted">Roster</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="printRoster()">Print</button></div></div>${armyRulesHtml}${armyFormations.map((f,fi)=>renderRosterFormation(f, '8px', '8px')).join('')}</div>`;
 
       }
 
@@ -1993,8 +2234,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const baseRules = (UNIT_LOADOUTS[u.id] && UNIT_LOADOUTS[u.id].specialRules) ? UNIT_LOADOUTS[u.id].specialRules.slice() : [];
         const mergedRules = baseRules.concat(dynRules.filter(r=>!baseRules.includes(r)));
         const weaponsHtml = (u.weapons||[]).length ? `<div class="table-responsive"><table class="table weapons-table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>ToHit</th><th>AP</th><th>Traits</th><th class="text-end" style="width:80px">Cost</th></tr></thead><tbody>` + (u.weapons||[]).map(w => { const stat = WEAPON_LIBRARY[w.src] || {}; return `<tr><td data-label="Weapon">${w.name}</td><td data-label="Range">${stat.range||'-'}</td><td data-label="Dice">${stat.dice||'-'}</td><td data-label="ToHit">${stat.toHit||'-'}</td><td data-label="AP">${stat.AP===undefined?'-':stat.AP}</td><td data-label="Traits">${renderTraitsCell(stat.traits)}</td><td class="cost text-end" data-label="Cost">${w.points||0} pts</td></tr>`; }).join('') + `</tbody></table></div>` : `<div class="small muted">No weapons selected</div>`;
-        const upgradesHtml = (u.upgrades||[]).length ? (u.upgrades||[]).map(up=>`<div><strong>${up.name}</strong> <span class="muted">(+${up.points||0} pts)</span><div class="muted">${up.desc||''}</div></div>`).join('') : `<div class="small muted">No upgrades</div>`;
-        const psychicHtml = (u.psychic||[]).length ? (u.psychic||[]).map(p=>`<div><strong>${p.name}</strong> <span class="muted">(+${p.points||0} pts)</span><div class="muted">${p.desc||''}</div></div>`).join('') : '';
+        const upgradesHtml = (u.upgrades||[]).length ? (u.upgrades||[]).map(up=>`<div><strong>${up.name}</strong> <span class="muted">Cost: ${up.points||0} pts</span><div class="muted">${up.desc||''}</div></div>`).join('') : `<div class="small muted">No upgrades</div>`;
+        const psychicHtml = (u.psychic||[]).length ? (u.psychic||[]).map(p=>`<div><strong>${p.name}</strong> <span class="muted">Cost: ${p.points||0} pts</span><div class="muted">${p.desc||''}</div></div>`).join('') : '';
         const effectHtml = swarm ? `<div class="effect-pill" style="display:inline-block;margin-top:6px">Swarm Lord: CAF ${swarm.CAF}; W ${swarm.Wounds}</div>` : '';
         const specialRules = mergedRules.length ? mergedRules.map(r=>renderRuleText(r)).join('') : '';
 
@@ -2010,7 +2251,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           </div>`;
 
         const bodyHtml = `
-          <div style="margin-top:8px"><strong>Unit</strong>${(()=>{ const typeVal=(UNIT_BASE[u.id] && UNIT_BASE[u.id].type) || u.slotType; return `<table class="table"><thead><tr><th>Type</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th></tr></thead><tbody><tr><td>${typeVal||'-'}</td><td>${move}</td><td>${save}</td><td>${caf}</td><td>${morale}</td><td>${wounds}</td></tr></tbody></table>`; })()}</div>
+          <div style="margin-top:8px"><strong>Unit</strong>${(()=>{ const base=UNIT_BASE[u.id]||{}; const typeVal=base.type||u.slotType; const uType=base.type?String(base.type).toUpperCase():''; const uScale=base.scale||1; const typeLabel=uType?`<span class="small muted" style="margin-left:8px">${uType} (${uScale})</span>`:''; return `${typeLabel}<table class="table"><thead><tr><th>Type</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th></tr></thead><tbody><tr><td>${typeVal||'-'}</td><td>${move}</td><td>${save}</td><td>${caf}</td><td>${morale}</td><td>${wounds}</td></tr></tbody></table>`; })()}</div>
           ${effectHtml}
           ${specialRules ? `<div style="margin-top:8px"><strong>Special rules</strong>${specialRules}</div>` : ''}
           <div style="margin-top:8px"><strong>Weapons</strong>${weaponsHtml}</div>
@@ -2040,7 +2281,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         }
       }
 
-      function renderReferenceUnitDetail(){ const army=referenceDetail.army; const unitId=referenceDetail.unitId; const key=armyKey(army||selectedArmy); const list=(ARMY_UNIT_LIST[key]||[]); const base=list.find(u=>u.id===unitId)||{name:slugToName(unitId),slotType:'Core'}; const stats=UNIT_BASE[unitId]||{}; const load=UNIT_LOADOUTS[unitId]||{weapons:[],specialRules:[],upgrades:[]}; const weapons=(load.weapons||[]).filter(w=>w.base); const rows=weapons.length? weapons.map(w=>{ const s=WEAPON_LIBRARY[w.src]||{}; return `<tr><td>${w.name}</td><td>${s.range||'-'}</td><td>${s.dice||'-'}</td><td>${s.toHit||'-'}</td><td>${s.AP===undefined?'-':s.AP}</td><td>${renderTraitsCell(s.traits)}</td></tr>`; }).join('') : `<tr><td colspan="6" class="small muted">No base weapons</td></tr>`; const rulesHtml=(load.specialRules||[]).length?(load.specialRules||[]).map(r=>renderRuleText(r)).join(''):`<div class="muted small">No special rules listed</div>`; const ups=(load.upgrades||[]); const upsBlock=ups.length?`<div class="section-sub">Upgrades</div><div><button class="btn btn-sm" onclick="toggleReferenceUpgrades()">${referenceShowUpgrades?'Hide':'Show'} Upgrades</button>${referenceShowUpgrades?ups.map(u=>`<div style="margin-top:4px"><strong>${u.name}</strong> <span class="muted">(+${u.points||0} pts)</span><div class="muted">${u.desc||''}</div></div>`).join(''):''}</div>`:''; return `<div style="padding:12px"><div class="crumbs small muted">Reference › Units › ${base.name}</div><div class="card" style="padding:0"><div class="section-bar">${base.name}</div><div style="padding:8px"><div style="display:flex;justify-content:space-between"><div class="pill">${base.slotType}</div><div class="pill">${army||'-'}</div></div><table class="table" style="margin-top:8px"><thead><tr><th>Name</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th></tr></thead><tbody><tr><td>${base.name}</td><td>${stats.movement||'-'}</td><td>${stats.save||'-'}</td><td>${stats.CAF||'-'}</td><td>${stats.morale||'-'}</td><td>${stats.wounds||'-'}</td></tr></tbody></table><div class="section-sub">Weapons</div><table class="table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>To Hit</th><th>AP</th><th>Traits</th></tr></thead><tbody>${rows}</tbody></table><div class="section-sub">Special Rules</div><div>${rulesHtml}</div>${upsBlock}</div></div><div style="margin-top:8px"><button class="btn" onclick="setReferenceView('units')">Back to Units</button><button class="btn" style="margin-left:8px" onclick="openReferenceHome()">Reference Home</button></div></div>`; }
+      function renderReferenceUnitDetail(){ const army=referenceDetail.army; const unitId=referenceDetail.unitId; const key=armyKey(army||selectedArmy); const list=(ARMY_UNIT_LIST[key]||[]); const base=list.find(u=>u.id===unitId)||{name:slugToName(unitId),slotType:'Core'}; const stats=UNIT_BASE[unitId]||{}; const load=UNIT_LOADOUTS[unitId]||{weapons:[],specialRules:[],upgrades:[]}; const weapons=(load.weapons||[]).filter(w=>w.base); const rows=weapons.length? weapons.map(w=>{ const s=WEAPON_LIBRARY[w.src]||{}; return `<tr><td>${w.name}</td><td>${s.range||'-'}</td><td>${s.dice||'-'}</td><td>${s.toHit||'-'}</td><td>${s.AP===undefined?'-':s.AP}</td><td>${renderTraitsCell(s.traits)}</td></tr>`; }).join('') : `<tr><td colspan="6" class="small muted">No base weapons</td></tr>`; const rulesHtml=(load.specialRules||[]).length?(load.specialRules||[]).map(r=>renderRuleText(r)).join(''):`<div class="muted small">No special rules listed</div>`; const ups=(load.upgrades||[]); const upsBlock=ups.length?`<div class="section-sub">Upgrades</div><div><button class="btn btn-sm" onclick="toggleReferenceUpgrades()">${referenceShowUpgrades?'Hide':'Show'} Upgrades</button>${referenceShowUpgrades?ups.map(u=>`<div style="margin-top:4px"><strong>${u.name}</strong> <span class="muted">Cost: ${u.points||0} pts</span><div class="muted">${u.desc||''}</div></div>`).join(''):''}</div>`:''; return `<div style="padding:12px"><div class="crumbs small muted">Reference › Units › ${base.name}</div><div class="card" style="padding:0"><div class="section-bar">${base.name}</div><div style="padding:8px"><div style="display:flex;justify-content:space-between"><div class="pill">${base.slotType}</div><div class="pill">${army||'-'}</div></div><table class="table" style="margin-top:8px"><thead><tr><th>Name</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th></tr></thead><tbody><tr><td>${base.name}</td><td>${stats.movement||'-'}</td><td>${stats.save||'-'}</td><td>${stats.CAF||'-'}</td><td>${stats.morale||'-'}</td><td>${stats.wounds||'-'}</td></tr></tbody></table><div class="section-sub">Weapons</div><table class="table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>To Hit</th><th>AP</th><th>Traits</th></tr></thead><tbody>${rows}</tbody></table><div class="section-sub">Special Rules</div><div>${rulesHtml}</div>${upsBlock}</div></div><div style="margin-top:8px"><button class="btn" onclick="setReferenceView('units')">Back to Units</button><button class="btn" style="margin-left:8px" onclick="openReferenceHome()">Reference Home</button></div></div>`; }
 
 
 
@@ -2056,8 +2297,34 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         document.body.addEventListener('change',(e)=>{ const sel=e.target.closest('[data-action]'); if(!sel) return; const act=sel.getAttribute('data-action'); if(act==='army-select') handleArmySelection(sel.value); else if(act==='formation-select') handleFormationSelection(sel.value); else if(act==='add-formation') addFormation(); else if(act==='builder-name') setBuilderName(sel.value); else if(act==='points-cap') setBuilderPoints(sel.value); else if(act==='slot-select'){ const fi=Number(sel.getAttribute('data-fi')); const sec=sel.getAttribute('data-sec'); const si=Number(sel.getAttribute('data-si')); setSlotSelection(fi,sec,si,sel.value); } else if(act==='special-select'){ const fi=Number(sel.getAttribute('data-fi')); addUnitToSpecial(fi, sel.value); } else if(act==='list-select'){ const id=sel.getAttribute('data-id'); const isChecked=sel.checked; const set=new Set(selectedListIds); if(isChecked) set.add(id); else set.delete(id); selectedListIds = Array.from(set); renderContent(); } else if(act==='select-all'){ const all=(savedLists||[]).map(l=>l.id); const isChecked=sel.checked; selectedListIds = isChecked ? all : []; renderContent(); } });
         document.addEventListener('click',()=>{}, true);
         document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ closeModal(); } });
-        loadConsolidatedArmyMaster(selectedArmy).then(ref=>{ setActiveTab('home'); if(ref){ window._lastMasterRef = ref; applyMasterBroodDefaults(ref); applyUpgradeConstraintsFromMaster(ref); buildUpgradeEffectsFromMaster(ref); buildArmyUnitsFromMaster(ref, selectedArmy); }
-          initRulesIndex();
+        loadConsolidatedArmyMaster(selectedArmy).then(ref=>{ setActiveTab('home'); if(ref){ window._lastMasterRef = ref; applyMasterBroodDefaults(ref); applyUpgradeConstraintsFromMaster(ref);
+        buildUpgradeEffectsFromMaster(ref);
+        buildArmyUnitsFromMaster(ref, selectedArmy);
+        updateFormationsFromMaster(ref);
+        
+        // Populate FACTION_RULES from master
+        if(ref.faction_info && ref.faction_info.faction_rules){
+          if(!FACTION_RULES[selectedArmy]) FACTION_RULES[selectedArmy] = [];
+          // Filter out old "Army Special Rules" to avoid duplication
+          FACTION_RULES[selectedArmy] = FACTION_RULES[selectedArmy].filter(s => s.title !== 'Army Special Rules');
+          
+          const mappedRules = ref.faction_info.faction_rules.map(r => ({
+            name: r.name,
+            desc: r.effect || r.description || ''
+          }));
+          
+          if(mappedRules.length){
+            FACTION_RULES[selectedArmy].push({
+              title: 'Army Special Rules',
+              items: mappedRules
+            });
+          }
+        }
+
+        // Ensure re-render if we are already viewing roster
+        if(activeTab==='roster') renderContent();
+      }
+      initRulesIndex();
           const doPDF = (window.ENABLE_PDF_INGEST===true) || (localStorage.getItem('enable_pdf_ingest')==='1');
           const ingest = doPDF ? ingestPDFDocs() : Promise.resolve();
           return ingest.then(()=>{ buildUpgradeEffects(); runValidation(ref||{}); validateFormationRules(); dataStatus.validationIssues = (window._latestValidationIssues||[]).length; updateStatusBanner(); try{ if((location.hash||'').startsWith('#ref')) location.hash=''; }catch(e){} setActiveTab('home'); requestRender(); refreshAuthButton(); }); }); });
