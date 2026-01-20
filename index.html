@@ -85,7 +85,28 @@
       let firebaseDb = null;
       function loadUser(){ try{ const raw=localStorage.getItem('xenos_current_user'); if(raw){ const u=JSON.parse(raw); currentUserId=u.id||null; currentUserName=u.name||''; currentUserIsGoogle=!!u.google; } }catch(e){} }
       function saveUserSession(){ try{ const u={ id: currentUserId, name: currentUserName, google: currentUserIsGoogle }; localStorage.setItem('xenos_current_user', JSON.stringify(u)); refreshAuthButton(); }catch(e){} }
-      function initCloudIfAvailable(){ if(firebaseApp || !window.XENOS_FIREBASE_CONFIG || !window.firebase || !window.firebase.initializeApp) return; try{ firebaseApp = firebase.initializeApp(window.XENOS_FIREBASE_CONFIG); firebaseAuth = firebase.auth(); firebaseDb = firebase.firestore(); }catch(e){ firebaseApp=null; firebaseAuth=null; firebaseDb=null; } }
+      function initCloudIfAvailable(){ 
+        if(firebaseApp) return;
+        if(!window.XENOS_FIREBASE_CONFIG || !window.firebase || !window.firebase.initializeApp) return; 
+        try{ 
+          firebaseApp = firebase.initializeApp(window.XENOS_FIREBASE_CONFIG); 
+          firebaseAuth = firebase.auth(); 
+          firebaseDb = firebase.firestore(); 
+          
+          // Listen for auth state changes (robust session restoration)
+          firebaseAuth.onAuthStateChanged(function(user) {
+            if (user) {
+              // Only update if we aren't already logged in as this user
+              if (currentUserId !== user.uid) {
+                console.log('Auth State Restored:', user.uid);
+                handleLoginSuccess(user);
+              }
+            }
+          });
+        }catch(e){ 
+          firebaseApp=null; firebaseAuth=null; firebaseDb=null; 
+        } 
+      }
       function storageKey(suffix){ const uid=currentUserId||'default'; return `xenos_${uid}_${suffix}`; }
       function refreshAuthButton(){ const btn=document.getElementById('auth-btn'); if(!btn) return; if(currentUserId){ btn.textContent = `Logout (${currentUserName||'User'})`; btn.onclick = handleLogout; } else { btn.textContent = 'Login'; btn.onclick = openLoginModal; } }
       function openLoginModal(){ initCloudIfAvailable(); const root=document.getElementById('modal-root'); const hasGoogle=!!firebaseAuth; const googleBlock = hasGoogle ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:8px"><button class="btn btn-green" style="width:100%" onclick="googleLogin()">Sign in with Google</button></div>` : `<div class="small muted" style="margin-top:8px">Google login is not configured in this build.</div>`; root.innerHTML = `<div class="modal-backdrop" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3 style="margin:0 0 8px 0">Login</h3><div class="small muted">Sign in with Google to sync lists across devices or use a local account.</div>${googleBlock}<div class="small muted" style="margin-top:8px">Local account</div><div style="margin-top:8px"><input id="login-name" class="mini-input" placeholder="Username"/></div><div style="margin-top:8px"><input id="login-pass" type="password" class="mini-input" placeholder="Password"/></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-green" onclick="commitLogin()">Login</button></div></div></div>`; const inp=document.getElementById('login-name'); if(inp) setTimeout(()=>inp.focus(),0); }
