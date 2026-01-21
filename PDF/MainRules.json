@@ -153,7 +153,9 @@
     "warp": "Bypasses Void Shields and Invulnerable Saves.",
     "wrecker": "Damages Structures and Garrisoned units.",
     "pinning": "Infantry units hit by this weapon take an extra Blast marker.",
-    "web": "Units hit by this weapon may not move in their next activation."
+    "web": "Units hit by this weapon may not move in their next activation.",
+    "hunger": "If this weapon destroys an enemy model in the Fight phase, the user may immediately roll a D6; on a 5+, it regains 1 lost Wound.",
+    "parry": "Enemy models engaged with this model suffer -1 to Hit rolls in the Fight phase."
   },
   "broodSizes": {
     "legion_assault_detachment": {
