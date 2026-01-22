@@ -40,7 +40,7 @@
 
     <header style="text-align:center;margin-bottom:16px">
 
-      <h1 style="font-size:30px;color:#000;margin:0;">
+      <h1 style="font-size:30px;margin:0;">
 
         Xenos Army Builder
 
@@ -102,6 +102,14 @@
           firebaseApp = firebase.initializeApp(window.XENOS_FIREBASE_CONFIG); 
           firebaseAuth = firebase.auth(); 
           firebaseDb = firebase.firestore(); 
+          
+          // Force Long Polling to fix "hanging" connections in restricted networks
+          try {
+             firebaseDb.settings({ experimentalForceLongPolling: true });
+             console.log('Firestore: Long Polling Forced');
+          } catch(e) {
+             console.warn('Firestore Settings Error:', e);
+          }
           
           // Force LOCAL persistence to ensure session survives redirects/refreshes
           firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
@@ -247,53 +255,15 @@
              if(guest){ raw=guest; localStorage.setItem(key, guest); }
           }
         } 
-        let fromCloud=false; 
-        let cloudError=false;
-        initCloudIfAvailable(); 
-        if(currentUserId && currentUserIsGoogle && firebaseDb){ 
-          const banner = document.getElementById('status-banner');
-          if(banner) { banner.style.display=''; banner.textContent='Syncing lists...'; }
-          try{ 
-            const doc=await firebaseDb.collection('users').doc(currentUserId).get(); 
-            if(doc && doc.exists){ 
-              const data=doc.data()||{}; 
-              if(Array.isArray(data.savedLists)){ 
-                raw=JSON.stringify(data.savedLists); 
-                fromCloud=true; 
-                localStorage.setItem(key, raw); 
-              } 
-            } 
-          }catch(e){ 
-             console.error('Cloud load error', e); 
-             cloudError=true;
-             if(banner) banner.textContent='Sync failed';
-          } finally { 
-             if(banner && !cloudError) banner.style.display='none'; 
-             if(cloudError && banner) setTimeout(()=>{ banner.style.display='none'; }, 3000);
-          }
-        } 
+        // Cloud sync is now manual-only via "Cloud Sync" button
         savedLists = raw? JSON.parse(raw):[]; 
         savedLists = (savedLists||[]).map(x=>({ ...x, id: x.id || String(Date.now()+Math.random()), createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || x.createdAt || Date.now() })); 
-        if(currentUserId && currentUserIsGoogle && firebaseDb && !fromCloud && !cloudError){ 
-          try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){ console.error('Cloud init save error',e); } 
-        } 
         requestRender();
       }
       async function persistSavedLists(){ 
         const key=storageKey('saved_lists'); 
         try{ localStorage.setItem(key, JSON.stringify(savedLists)); }catch(e){} 
-        initCloudIfAvailable(); 
-        if(currentUserId && currentUserIsGoogle && firebaseDb){ 
-          const banner = document.getElementById('status-banner');
-          if(banner) { banner.style.display=''; banner.textContent='Saving to cloud...'; }
-          try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){
-            console.error('Cloud save error', e);
-            if(banner) banner.textContent='Save failed';
-          } finally { 
-            if(banner && banner.textContent!=='Save failed') banner.style.display='none'; 
-            else if(banner) setTimeout(()=>{ banner.style.display='none'; }, 3000);
-          }
-        } 
+        // Cloud sync is now manual-only
       }
       loadUser(); initCloudIfAvailable(); checkRedirectResult(); refreshAuthButton(); loadSavedLists(true);
 
@@ -1930,10 +1900,12 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         }).join('') : `<tr><td colspan="5" class="muted small">No saved lists</td></tr>`;
         const bulk = selectedListIds.length ? `<div class="small" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span>Selected: ${selectedListIds.length}</span><button class="btn btn-red btn-sm" data-action="bulk-del">Delete Selected</button></div>` : '';
         const headerActions = selectedListIds.length ? `<span class="header-actions" style="display:inline-flex; gap:6px; align-items:center; margin-left:8px">${selectedListIds.length===1?`<button class=\"btn btn-blue btn-xs\" data-action=\"bulk-open\">Build</button>`:''}<button class="btn btn-blue btn-xs" data-action="bulk-export">Export</button><button class="btn btn-red btn-xs" data-action="bulk-del">Delete</button></span>` : '';
+        const cloudBtn = (currentUserId && currentUserIsGoogle) ? `<button class="btn btn-blue" onclick="promptCloudSync()">Cloud Sync</button>` : '';
         return `
           <div style="padding:12px">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
               <button class="btn btn-green" onclick="createNewList()">Create List</button>
+              ${cloudBtn}
             </div>
             ${bulk}
             <div class="table-responsive">
@@ -1941,6 +1913,135 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             </div>
           </div>`;
       }
+
+      function promptCloudSync(){
+         const root=document.getElementById('modal-root');
+         root.innerHTML = `
+           <div class="modal-backdrop" onclick="if(this.dataset.blocking!=='true') closeModal()">
+             <div class="modal" onclick="event.stopPropagation()">
+               <div id="sync-content">
+                 <h3 style="margin:0 0 8px 0">Cloud Sync</h3>
+                 <p>Syncing will merge your local lists with the cloud.</p>
+                 <p class="small muted"><strong>Warning:</strong> Lists with the same ID will be overwritten by the version with the newest "Last Saved" timestamp (Last Save Wins).</p>
+                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+                   <button class="btn" onclick="closeModal()">Cancel</button>
+                   <button class="btn btn-green" onclick="performManualSync(this)">Sync Now</button>
+                 </div>
+               </div>
+             </div>
+           </div>`;
+      }
+
+      async function performManualSync(btn){
+        let debugLog = []; const log = (m) => { const t=new Date().toISOString().split('T')[1].slice(0,-1); console.log('[Sync]',m); debugLog.push(t+': '+m); };
+        const content = document.getElementById('sync-content');
+        if(!content) return;
+        
+        // 1. Lock Modal
+        const backdrop = document.querySelector('.modal-backdrop');
+        if(backdrop) backdrop.dataset.blocking = 'true';
+        
+        // 2. Show Spinner
+        content.innerHTML = `
+          <h3 style="margin:0 0 8px 0">Cloud Sync</h3>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0">
+             <div class="spinner"></div>
+             <div id="sync-status" class="small">Syncing your lists...</div>
+          </div>
+        `;
+        
+        try{
+           // Wait a tick to allow UI to render
+           await new Promise(r=>setTimeout(r, 100));
+           
+           log(`Online: ${navigator.onLine}`);
+           initCloudIfAvailable();
+           log(`Cloud Init: App=${!!firebaseApp}, Auth=${!!firebaseAuth}, DB=${!!firebaseDb}, User=${currentUserId}`);
+           log('Firestore Settings: ForceLongPolling=true');
+           
+           if(!firebaseDb || !currentUserId){ throw new Error(`Cloud unavailable (DB=${!!firebaseDb}, User=${currentUserId})`); }
+           
+           // 1. Fetch Cloud Lists with Timeout
+           if (!navigator.onLine) {
+            throw new Error('No internet connection - check your network');
+          }
+          // Try to ensure network is enabled
+           log('Enabling network...');
+           try { await firebaseDb.enableNetwork(); log('Network enabled'); } catch(e) { log('enableNetwork warning: '+e.message); }
+ 
+           let cloudLists = [];
+           // Create a promise that rejects after 30s
+           const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout (30s) - check connection')), 30000));
+           
+           log(`Fetching users/${currentUserId}...`);
+           const fetchOp = firebaseDb.collection('users').doc(currentUserId).get();
+            
+            const doc = await Promise.race([fetchOp, timeout]);
+            log(`Fetch done. Exists: ${doc ? doc.exists : 'null'}`);
+           
+           if(doc && doc.exists){
+             const data = doc.data()||{};
+             if(Array.isArray(data.savedLists)){ cloudLists = data.savedLists; }
+           }
+
+           // 2. Merge Logic (ID based, Last Save Wins)
+           const mergedMap = new Map();
+           savedLists.forEach(l => mergedMap.set(l.id, l));
+           
+           cloudLists.forEach(cl => {
+              if(mergedMap.has(cl.id)){
+                 const localL = mergedMap.get(cl.id);
+                 const localTime = localL.updatedAt || localL.createdAt || 0;
+                 const cloudTime = cl.updatedAt || cl.createdAt || 0;
+                 if(cloudTime > localTime){ mergedMap.set(cl.id, cl); }
+              } else {
+                 mergedMap.set(cl.id, cl);
+              }
+           });
+           
+           // 4. Update State
+           savedLists = Array.from(mergedMap.values());
+           
+           // 5. Save to Local
+           const key=storageKey('saved_lists');
+           localStorage.setItem(key, JSON.stringify(savedLists));
+           
+           // 6. Save to Cloud
+           log('Saving to cloud...');
+           await Promise.race([
+             firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }),
+             timeout
+           ]);
+           log('Save complete');
+           
+           // 7. Success UI
+           renderContent();
+           content.innerHTML = `
+             <h3 style="margin:0 0 8px 0">Cloud Sync</h3>
+             <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0">
+                <div style="color:#4ade80;font-size:24px">✓</div>
+                <div>Sync Complete!</div>
+             </div>
+           `;
+           setTimeout(closeModal, 1500);
+           
+        }catch(e){
+           console.error('Manual Sync Error', e);
+           if(typeof log === 'function') log('ERROR: ' + e.message);
+           const debugText = (typeof debugLog !== 'undefined') ? debugLog.join('\n') : e.message;
+           content.innerHTML = `
+             <h3 style="margin:0 0 8px 0">Sync Failed</h3>
+             <p class="small text-red">${e.message}</p>
+             <div style="background:#222;color:#ccc;padding:8px;border-radius:4px;font-family:monospace;font-size:11px;height:120px;overflow-y:auto;white-space:pre-wrap;margin:8px 0;text-align:left">${debugText}</div>
+             <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+               <button class="btn" onclick="closeModal()">Close</button>
+               <button class="btn btn-green" onclick="performManualSync()">Retry</button>
+             </div>
+           `;
+           if(backdrop) backdrop.dataset.blocking = 'false';
+        }
+      }
+
 
       function setListsSort(k){ listsSortBy = k; listsSortDir = (listsSortDir==='asc') ? 'desc' : 'asc'; renderContent(); }
 
