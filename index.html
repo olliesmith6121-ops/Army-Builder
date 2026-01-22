@@ -880,7 +880,7 @@
       function handleFormationSelection(val){ selectedFormationName=val; saveState(); }
       function setBuilderName(val){ builderMeta.name = String(val||'New List'); saveState(); }
       function setBuilderAllegiance(val){ builderMeta.allegiance = String(val||'Loyalist'); saveState(); }
-      function setBuilderPoints(val){ const n = Number(val||0); builderMeta.pointsCap = isNaN(n)?builderMeta.pointsCap:n; saveState(); }
+      function setBuilderPoints(val){ const n = Number(val||0); builderMeta.pointsCap = isNaN(n)?builderMeta.pointsCap:n; saveState(); renderContent(); }
       function listModelsCurrent(){ const total=(armyFormations||[]).flatMap(f=>[...f.compulsory,...f.optional].flatMap(s=>s.units||[])).reduce((s,u)=>s+(u.models||u.baseModels||1),0); const root=document.getElementById('modal-root'); root.innerHTML = `<div class="modal-backdrop" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3 style="margin:0 0 8px 0">${builderMeta.name} — Models</h3><div class="small">Total models: ${total}</div></div></div>`; }
       function sanitizeFormations(arr){ try{ const clean=JSON.parse(JSON.stringify(arr||[])); clean.forEach(f=>{ ([...(f.compulsory||[]), ...(f.optional||[])]).forEach(s=>{ delete s._selectedUnitId; (s.units||[]).forEach(u=>{ delete u._appliedEffects; }); }); if(f.special){ delete f.special._selectedUnitId; (f.special.units||[]).forEach(u=>{ delete u._appliedEffects; }); } }); return clean; }catch(e){ return []; } }
       function saveCurrentList(){ const now=Date.now(); const payload={ id: currentListId || String(now), name: builderMeta.name, gamemode: builderMeta.gamemode, allegiance: builderMeta.allegiance, pointsCap: builderMeta.pointsCap, faction: selectedArmy, formations: sanitizeFormations(armyFormations), createdAt: currentListId ? (savedLists.find(x=>x.id===currentListId)?.createdAt || now) : now, updatedAt: now }; const idx = savedLists.findIndex(x=>x.id===payload.id); if(idx>-1) savedLists[idx]=payload; else savedLists.push(payload); currentListId = payload.id; persistSavedLists(); requestRender(); }
@@ -1990,6 +1990,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       ];
 
       const COMING_SOON = [
+        "Auto Army Builder",
+        "Full Tyranid Unit List",
         "Offline Mode",
         "Ork Army Data",
         "Eldar Army Data"
@@ -2381,12 +2383,22 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const listModels = (armyFormations||[]).reduce((s,f)=> s + totalModelsInFormation(f), 0);
         const formsHtml = armyFormations.length ? armyFormations.map((f,i)=>renderFormationCard(f,i)).join('') : `<div class="muted small p-4">No formations yet.</div>`;
         const allegianceOptions = ['Loyalist','Traitor'].map(a=>`<option value="${a}" ${a===builderMeta.allegiance?'selected':''}>${a}</option>`).join('');
+        
+        const cap = builderMeta.pointsCap || 2000;
+        const diff = listTotal - cap;
+        let warnHtml = '';
+        if(diff > 0) {
+          warnHtml = `<span style="color:#ef4444;margin-left:8px;font-weight:bold">Game Size Exceeded: +${diff}</span>`;
+        } else {
+          warnHtml = `<span style="color:#22c55e;margin-left:8px;font-weight:bold">Points Remaining: ${Math.abs(diff)}</span>`;
+        }
+
         return `
           <div style="padding:12px">
             <div class="crumbs small muted">Lists › Builder</div>
             <div class="builder-bar">
-              <div class="builder-controls-row"><label class="small muted">Faction</label><select class="select-compact" onchange="handleArmySelection(this.value)">${armyOptions}</select><label class="small muted">Name</label><input class="mini-input" value="${builderMeta.name}" onchange="setBuilderName(this.value)"/><label class="small muted">Game size</label><input type="number" class="mini-input" value="${builderMeta.pointsCap}" onchange="setBuilderPoints(this.value)"/> pts <button class="icon-btn icon-sm" title="Delete" data-action="delete-list">🗑</button></div>
-              <div class="summary small">Formations: ${armyFormations.length} • Total: ${listTotal} pts • Total models: ${listModels}</div>
+              <div class="builder-controls-row"><label class="small muted">Faction</label><select class="select-compact" onchange="handleArmySelection(this.value)">${armyOptions}</select><label class="small muted">Name</label><input class="mini-input" value="${builderMeta.name}" onchange="setBuilderName(this.value)"/><label class="small muted">Game size</label><input type="number" class="mini-input" value="${builderMeta.pointsCap}" onchange="setBuilderPoints(this.value)"/> pts </div>
+              <div class="summary small">Formations: ${armyFormations.length} • Total: ${listTotal} pts • Total models: ${listModels}${warnHtml}</div>
             </div>
             <div class="builder-controls"><select id="formation-select" class="select-compact" onchange="handleFormationSelection(this.value)">${formationOptions}</select><button class="btn btn-green btn-sm" onclick="addFormation()">+ Add Formation</button></div>
             ${formsHtml}
@@ -2408,7 +2420,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       function renderFormationCard(f, idx){
         const total = formationPoints(f);
-        const fRules = (FORMATIONS[f.name] && FORMATIONS[f.name].rules) || f.rules || [];
+        const baseName = getBaseFormationName(f.name);
+        const fRules = (FORMATIONS[baseName] && FORMATIONS[baseName].rules) || f.rules || [];
         const rulesHtml = fRules.length ? 
           `<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.1);display:flex;flex-wrap:wrap;gap:8px">
             ${fRules.map(r => {
@@ -2422,14 +2435,14 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           </div>` : '';
 
         const header = `
-          <div class="formation-header">
+          <div class="formation-header" onclick="toggleCollapse(${idx})" style="cursor:pointer">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div>
                 <strong class="roster-title">${f.name}</strong>
                 <div class="small muted">${f.army}</div>
                 ${rulesHtml}
               </div>
-              <div class="mini-icons"><button class="icon-btn icon-sm" title="Minimise" onclick="toggleCollapse(${idx})">▾</button><button class="icon-btn icon-sm" title="Clone" onclick="cloneFormation(${idx})">⎘</button><button class="icon-btn icon-sm" title="Delete" onclick="removeFormation(${idx})">🗑</button></div>
+              <div class="mini-icons"><button class="btn btn-xs btn-blue" title="Clone" onclick="event.stopPropagation();cloneFormation(${idx})">⎘</button><button class="btn btn-xs btn-red" title="Delete" onclick="event.stopPropagation();removeFormation(${idx})">🗑</button></div>
             </div>
           </div>`;
         if(f.collapsed) return header;
