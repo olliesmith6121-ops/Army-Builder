@@ -1918,7 +1918,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
          const root=document.getElementById('modal-root');
          root.innerHTML = `
            <div class="modal-backdrop" onclick="if(this.dataset.blocking!=='true') closeModal()">
-             <div class="modal-drawer" onclick="event.stopPropagation()">
+             <div class="modal-drawer" onclick="event.stopPropagation()" style="width:90%;max-width:500px;height:auto;max-height:80vh">
                <div id="sync-content">
                  <h3 style="margin:0 0 8px 0">Cloud Sync</h3>
                  <p>Syncing will merge your local lists with the cloud.</p>
@@ -1966,20 +1966,34 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
            
            if(!firebaseDb || !currentUserId){ throw new Error(`Cloud unavailable (DB=${!!firebaseDb}, User=${currentUserId})`); }
            
+           // Connectivity Check
+           log('Checking connectivity...');
+           try {
+              await fetch('styles.css?t='+Date.now(), { method: 'HEAD', cache: 'no-store' });
+              log('Connectivity: OK');
+           } catch(e) {
+              log('Connectivity: FAILED (' + e.message + ')');
+              throw new Error('Internet connectivity check failed. You seem to be offline.');
+           }
+
            // 1. Fetch Cloud Lists with Timeout
            if (!navigator.onLine) {
             throw new Error('No internet connection - check your network');
           }
-          // Try to ensure network is enabled
-           log('Enabling network...');
+          
+           // Force connection reset to clear stuck sockets
+           log('Resetting network connection...');
+           try { await firebaseDb.disableNetwork(); } catch(e){}
            try { await firebaseDb.enableNetwork(); log('Network enabled'); } catch(e) { log('enableNetwork warning: '+e.message); }
  
            let cloudLists = [];
-           // Create a promise that rejects after 30s
-           const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout (30s) - check connection')), 30000));
+           // Create a promise that rejects after 20s
+           const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout (20s) - check connection or firewall')), 20000));
            
            log(`Fetching users/${currentUserId}...`);
-           const fetchOp = firebaseDb.collection('users').doc(currentUserId).get();
+           // Force server fetch to bypass potential cache locks
+           const fetchOp = firebaseDb.collection('users').doc(currentUserId).get({ source: 'server' })
+              .catch(e => { throw new Error('Firestore Get Error: ' + e.message); });
             
             const doc = await Promise.race([fetchOp, timeout]);
             log(`Fetch done. Exists: ${doc ? doc.exists : 'null'}`);
