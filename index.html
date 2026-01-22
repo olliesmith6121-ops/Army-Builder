@@ -1918,7 +1918,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
          const root=document.getElementById('modal-root');
          root.innerHTML = `
            <div class="modal-backdrop" onclick="if(this.dataset.blocking!=='true') closeModal()">
-             <div class="modal" onclick="event.stopPropagation()">
+             <div class="modal-drawer" onclick="event.stopPropagation()">
                <div id="sync-content">
                  <h3 style="margin:0 0 8px 0">Cloud Sync</h3>
                  <p>Syncing will merge your local lists with the cloud.</p>
@@ -1930,6 +1930,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                </div>
              </div>
            </div>`;
+         // Trap focus in modal
+         const firstInput = root.querySelector('button');
+         if(firstInput) firstInput.focus();
       }
 
       async function performManualSync(btn){
@@ -1954,6 +1957,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
            // Wait a tick to allow UI to render
            await new Promise(r=>setTimeout(r, 100));
            
+           log(`Host: ${window.location.hostname}`);
+           log(`Proto: ${window.location.protocol}`);
            log(`Online: ${navigator.onLine}`);
            initCloudIfAvailable();
            log(`Cloud Init: App=${!!firebaseApp}, Auth=${!!firebaseAuth}, DB=${!!firebaseDb}, User=${currentUserId}`);
@@ -2028,6 +2033,19 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         }catch(e){
            console.error('Manual Sync Error', e);
            if(typeof log === 'function') log('ERROR: ' + e.message);
+           
+           // Diagnosis hint
+           if(e.message.includes('client is offline') || e.message.includes('unavailable')){
+             if(typeof log === 'function') {
+               log('-----------------------------------');
+               log('POSSIBLE FIX:');
+               log('1. Go to Firebase Console -> Auth -> Settings -> Authorized Domains');
+               log('2. Add this domain: ' + window.location.hostname);
+               log('3. Check if your network blocks "firestore.googleapis.com"');
+               log('-----------------------------------');
+             }
+           }
+
            const debugText = (typeof debugLog !== 'undefined') ? debugLog.join('\n') : e.message;
            content.innerHTML = `
              <h3 style="margin:0 0 8px 0">Sync Failed</h3>
