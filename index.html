@@ -1987,6 +1987,23 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
            try { await firebaseDb.enableNetwork(); log('Network enabled'); } catch(e) { log('enableNetwork warning: '+e.message); }
  
            let cloudLists = [];
+           
+           // DIAGNOSTIC WRITE: Try to write a tiny timestamp to check DB health
+           log('Ping: Writing test document...');
+           const pingRef = firebaseDb.collection('users').doc(currentUserId).collection('sys').doc('ping');
+           const pingTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Ping timeout (5s)')), 5000));
+           
+           try {
+              await Promise.race([ pingRef.set({ t: Date.now() }), pingTimeout ]);
+              log('Ping: SUCCESS (Write allowed)');
+           } catch(e) {
+              log('Ping: FAILED (' + e.message + ')');
+              if(e.message.includes('timeout')) {
+                 throw new Error('Database handshake timed out. \n1. Is your Firestore Database created in the Console?\n2. Are you on a restricted network?');
+              }
+              // If permission denied, we might still be able to read? Unlikely but let's try.
+           }
+
            // Create a promise that rejects after 20s
            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout (20s) - check connection or firewall')), 20000));
            
