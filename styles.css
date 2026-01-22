@@ -1,8 +1,9 @@
 :root { color-scheme: light dark; --bg:#111827; --card:#1f2937; --muted:#000; --accent:#a36b1b; --danger:#7f1d1d; --panel:#232a34; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: #000; }
-.modal-drawer { position: fixed; right: 0; top: 0; width: 420px; max-width: 96vw; max-height: 100vh; overflow-y: auto; overflow-x: hidden; background: #0b1a23; padding: 12px; border-radius: 8px 0 0 8px; box-shadow: -16px 0 30px rgba(0,0,0,.5); color: #cbd5e1; }
-@media (min-width: 768px) { .modal-drawer { width: 750px; } }
+.modal-drawer { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95vw; height: 95vh; max-width: 1400px; max-height: 98vh; overflow-y: auto; overflow-x: hidden; background: #0b1a23; padding: 16px; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.7); color: #cbd5e1; animation: modalPop 0.2s ease-out; display: flex; flex-direction: column; }
+@keyframes modalPop { from { transform: translate(-50%, -50%) scale(0.95); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@media (min-width: 768px) { .modal-drawer { width: 90vw; height: 90vh; } }
 .modal-drawer h3 { font-size: 16px; }
 .modal-drawer .drawer-stack { display: flex; flex-direction: column; gap: 10px; }
 .modal-drawer .table { width: 100%; table-layout: auto; }
@@ -15,6 +16,8 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helve
 .modal-drawer .table th:nth-child(6), .modal-drawer .table td:nth-child(6) { width: 12%; }
 .modal-drawer .table th:nth-child(7), .modal-drawer .table td:nth-child(7) { min-width: 80px; width: auto; white-space: nowrap; text-align: right; }
 .text-end { text-align: right; }
+.table-scroll-wrapper { margin-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 4px; }
+@media (min-width: 768px) { .table-scroll-wrapper { padding: 0 32px; } }
 .modal-drawer .mini-input { font-size: .85rem; padding: 3px 4px; }
 .modal-drawer .effect-pill { font-size: .85rem; padding: 3px 6px; }
 .modal-drawer .small,
@@ -156,7 +159,8 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .select-compact option, .select-compact optgroup{color:#000}
 .select-compact:disabled, .select-compact[disabled]{color:#000; opacity:1}
 .mini-input{color:#000 !important}
-.select-compact{width:140px}
+.select-compact{width:180px}
+.slot-select .select-compact{width:100%}
 .table{width:100%;border-collapse:collapse;margin-top:8px}
 .table th,.table td{border:1px solid rgba(255,255,255,.06);padding:4px 6px;text-align:left;font-size:.85rem}
 .table th{background:var(--panel);color:#cbd5e1;font-weight:700}

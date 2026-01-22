@@ -10,7 +10,8 @@
 
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <title>Xenos Army Builder — updated mins from attachment</title>
+  <title>Xenos Army Builder</title>
+  <link rel="icon" type="image/png" href="Images/WebIcon.png">
   <link rel="stylesheet" href="styles.css">
 
   <!-- Inline styles migrated to styles.css -->
@@ -111,9 +112,12 @@
           firebaseAuth.onAuthStateChanged(function(user) {
             if (user) {
               console.log('Auth State Restored:', user.uid);
-              // alert('Debug: Auth State Restored for ' + user.email);
+              // Always reload lists from cloud when auth is confirmed/restored
+              // This fixes the issue where page load happens before auth is ready
               if (currentUserId !== user.uid) {
-                handleLoginSuccess(user);
+                 handleLoginSuccess(user);
+              } else {
+                 loadSavedLists(true); 
               }
             } else {
               console.log('Auth State: No User');
@@ -232,8 +236,65 @@
       let listsSortBy = 'createdAt';
       let listsSortDir = 'desc';
       let selectedListIds = [];
-      async function loadSavedLists(migrate){ const key=storageKey('saved_lists'); let raw=localStorage.getItem(key); if(!raw && migrate){ const legacy=localStorage.getItem('xenos_saved_lists'); if(legacy){ raw=legacy; localStorage.setItem(key, legacy); } } let fromCloud=false; initCloudIfAvailable(); if(currentUserId && currentUserIsGoogle && firebaseDb){ try{ const doc=await firebaseDb.collection('users').doc(currentUserId).get(); if(doc && doc.exists){ const data=doc.data()||{}; if(Array.isArray(data.savedLists)){ raw=JSON.stringify(data.savedLists); fromCloud=true; localStorage.setItem(key, raw); } } }catch(e){} } savedLists = raw? JSON.parse(raw):[]; savedLists = (savedLists||[]).map(x=>({ ...x, id: x.id || String(Date.now()+Math.random()), createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || x.createdAt || Date.now() })); if(currentUserId && currentUserIsGoogle && firebaseDb && !fromCloud){ try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){} } }
-      async function persistSavedLists(){ const key=storageKey('saved_lists'); try{ localStorage.setItem(key, JSON.stringify(savedLists)); }catch(e){} initCloudIfAvailable(); if(currentUserId && currentUserIsGoogle && firebaseDb){ try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){} } }
+      async function loadSavedLists(migrate){ 
+        const key=storageKey('saved_lists'); 
+        let raw=localStorage.getItem(key); 
+        if(!raw && migrate){ 
+          const legacy=localStorage.getItem('xenos_saved_lists'); 
+          if(legacy){ raw=legacy; localStorage.setItem(key, legacy); }
+          else if(currentUserId){ 
+             const guest=localStorage.getItem('xenos_default_saved_lists');
+             if(guest){ raw=guest; localStorage.setItem(key, guest); }
+          }
+        } 
+        let fromCloud=false; 
+        let cloudError=false;
+        initCloudIfAvailable(); 
+        if(currentUserId && currentUserIsGoogle && firebaseDb){ 
+          const banner = document.getElementById('status-banner');
+          if(banner) { banner.style.display=''; banner.textContent='Syncing lists...'; }
+          try{ 
+            const doc=await firebaseDb.collection('users').doc(currentUserId).get(); 
+            if(doc && doc.exists){ 
+              const data=doc.data()||{}; 
+              if(Array.isArray(data.savedLists)){ 
+                raw=JSON.stringify(data.savedLists); 
+                fromCloud=true; 
+                localStorage.setItem(key, raw); 
+              } 
+            } 
+          }catch(e){ 
+             console.error('Cloud load error', e); 
+             cloudError=true;
+             if(banner) banner.textContent='Sync failed';
+          } finally { 
+             if(banner && !cloudError) banner.style.display='none'; 
+             if(cloudError && banner) setTimeout(()=>{ banner.style.display='none'; }, 3000);
+          }
+        } 
+        savedLists = raw? JSON.parse(raw):[]; 
+        savedLists = (savedLists||[]).map(x=>({ ...x, id: x.id || String(Date.now()+Math.random()), createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || x.createdAt || Date.now() })); 
+        if(currentUserId && currentUserIsGoogle && firebaseDb && !fromCloud && !cloudError){ 
+          try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){ console.error('Cloud init save error',e); } 
+        } 
+        requestRender();
+      }
+      async function persistSavedLists(){ 
+        const key=storageKey('saved_lists'); 
+        try{ localStorage.setItem(key, JSON.stringify(savedLists)); }catch(e){} 
+        initCloudIfAvailable(); 
+        if(currentUserId && currentUserIsGoogle && firebaseDb){ 
+          const banner = document.getElementById('status-banner');
+          if(banner) { banner.style.display=''; banner.textContent='Saving to cloud...'; }
+          try{ await firebaseDb.collection('users').doc(currentUserId).set({ savedLists }, { merge:true }); }catch(e){
+            console.error('Cloud save error', e);
+            if(banner) banner.textContent='Save failed';
+          } finally { 
+            if(banner && banner.textContent!=='Save failed') banner.style.display='none'; 
+            else if(banner) setTimeout(()=>{ banner.style.display='none'; }, 3000);
+          }
+        } 
+      }
       loadUser(); initCloudIfAvailable(); checkRedirectResult(); refreshAuthButton(); loadSavedLists(true);
 
       let referenceView = 'main';
@@ -272,7 +333,12 @@
       function masterLSKey(key){ return 'army_master_'+String(key||''); }
       function loadMasterFromLocalStorage(key){ try{ const raw=localStorage.getItem(masterLSKey(key)); return raw? JSON.parse(raw): null; }catch(e){ return null; } }
       function saveMasterToLocalStorage(key, ref){ try{ if(!ref) return; localStorage.setItem(masterLSKey(key), JSON.stringify(ref)); }catch(e){} }
-      async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; const DEV_WL=new Set(["hive_tyrant","tyranid_warrior_brood","mycetic_spores","termagant_brood","hormagaunt_brood","genestealer_brood","lictor_brood","carnifex_brood","zoanthrope_brood","biovore_brood","gargoyle_brood","ravener_brood","malanthrope_brood","venomthrope_brood"]); Object.keys(roster).forEach(key=>{ if(armyArg==='Tyranids' && !DEV_WL.has(key)) { delete roster[key]; return; } const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: s.scale??base.scale, type: m.unit_type??m.role??base.type }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; (m.weapons||[]).forEach(w=>{ const n=WEAPON_SLUG_TO_NAME[w]||slugToName(w); if(!UNIT_LOADOUTS[id].weapons.some(x=>x.src===n)) UNIT_LOADOUTS[id].weapons.push({id:'w_'+w, name:n, src:n, base:true}); }); ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : (/Increase\s+Brood\s+size/i.test(name)?'BROOD_SIZE':'MODEL_UPGRADE')), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
+      async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; const DEV_WL=new Set(["hive_tyrant","tyranid_warrior_brood","mycetic_spores","termagant_brood","hormagaunt_brood","genestealer_brood","lictor_brood","carnifex_brood","zoanthrope_brood","biovore_brood","gargoyle_brood","ravener_brood","malanthrope_brood","venomthrope_brood","ripperswarm_brood"]); Object.keys(roster).forEach(key=>{ if(armyArg==='Tyranids' && !DEV_WL.has(key)) { delete roster[key]; return; } const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; const uType = m.unit_type??m.role??base.type;
+        const uScale = s.scale??base.scale;
+        let bSize = s.base_size??base.base_size;
+        if(!bSize && (String(uType).toUpperCase()==='INFANTRY' || (String(uType).toUpperCase()==='WALKER' && uScale==1))) bSize = '25mm';
+
+        UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: uScale, type: uType, base_size: bSize, unit_note: m.unit_note??base.unit_note }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; (m.weapons||[]).forEach(w=>{ const n=WEAPON_SLUG_TO_NAME[w]||slugToName(w); if(!UNIT_LOADOUTS[id].weapons.some(x=>x.src===n)) UNIT_LOADOUTS[id].weapons.push({id:'w_'+w, name:n, src:n, base:true}); }); ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : (/Increase\s+Brood\s+size/i.test(name)?'BROOD_SIZE':'MODEL_UPGRADE')), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
 
 
 
@@ -920,6 +986,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       async function initRulesIndex(){ try{ const dict={}; const ref=window._lastMasterRef||{}; const add=(n,e)=>{ if(!n) return; dict[_normKey(n)] = e||''; RULE_NAME_CATALOG.push(String(n||'').toLowerCase()); };
         Object.entries(CROSS_TRAIT_INDEX).forEach(([n,e])=>add(n,e));
         try{ const sr=ref.special_rules_library||{}; Object.entries(sr).forEach(([n,e])=>add(slugToName(n), e)); }catch(e){}
+        try{ const wtl=ref.weapon_traits_library||{}; Object.entries(wtl).forEach(([n,e])=>add(slugToName(n), e)); }catch(e){}
         try{ const orders=ref.unique_orders||{}; Object.values(orders).forEach(o=>add(o.name||slugToName(o.id||''), o.description||o.effect||'')); }catch(e){}
         try{ const pp=ref.psychic_powers||{}; Object.values(pp).forEach(p=>add(p.name, p.effect||'')); }catch(e){}
         try{ const fr=(ref.faction_info&&ref.faction_info.faction_rules)||[]; fr.forEach(r=>add(r.name, r.effect||r.description||'')); }catch(e){}
@@ -1565,6 +1632,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const modelCtrl = '';
         const baseM = (UNIT_DEFAULT_MODELS[unit.id]||defModels);
         const curM = unit.models||defModels;
+        const st = UNIT_BASE[unit.id] || {};
         const headerSummary = adjustable
           ? `<div id="modal-unit-summary" data-unit="${unit.id}" data-min="${sizerMin}" data-max="${sizerMax}" data-step="${sizerStep}" class="slot-meta-row small" style="margin:6px 0 10px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;gap:8px"><span>Unit size:</span><div style="display:flex;gap:6px;align-items:center"><button id="modal-unit-dec" class="btn btn-xs" data-action="unit-dec">−</button><button id="modal-unit-val" class="btn btn-xs" style="width:40px;justify-content:center">${curM}</button><button id="modal-unit-inc" class="btn btn-xs" data-action="unit-inc">+</button></div><span id="modal-unit-cost" class="cost">${unitPoints(unit)} PTS</span><span class="small muted">Max: ${sizerMax}</span></div><div id="modal-inc-label" class="small muted">Increase by: +${sizerStep}</div></div>`
           : `<div id="modal-unit-summary" data-unit="${unit.id}" data-min="${sizerMin}" data-max="${sizerMax}" data-step="${sizerStep}" class="slot-meta-row small" style="margin:6px 0 10px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;gap:8px"><span>Unit size:</span><span class="pill">${curM}</span><span id="modal-unit-cost" class="cost">${unitPoints(unit)} PTS</span><span class="small muted">Max: ${sizerMax}</span></div></div>`;
@@ -1575,7 +1643,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
           <div class="modal-backdrop" onclick="closeModal()">
 
-            <div class="modal-drawer" onclick="event.stopPropagation()" style="position:fixed;right:0;top:0" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="modal-drawer" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
               <button class="btn btn-sm btn-red" style="position:absolute;right:8px;top:8px" onclick="closeModal()">✖</button>
               <h3 id="modal-title" style="margin:0 0 8px 0">${unit.name} — Edit</h3>
               ${headerSummary}
@@ -1583,15 +1651,14 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                 <div>
 
                   ${(()=>{
-                    const st = UNIT_BASE[unit.id];
-                    if(!st) return '';
-                    return `<div style="margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch">
-                      <table class="table" style="min-width:600px"><thead><tr><th>Name</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th></tr></thead><tbody><tr><td>${unit.name}</td><td>${st.movement||'-'}</td><td>${st.save||'-'}</td><td>${st.CAF||'-'}</td><td>${st.morale||'-'}</td><td>${st.wounds||'-'}</td></tr></tbody></table>
+                    if(!st || !st.movement) return '';
+                    return `<div class="table-scroll-wrapper">
+                      <table class="table" style="min-width:600px"><thead><tr><th>Name</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th><th>Base</th></tr></thead><tbody><tr><td>${unit.name}</td><td>${st.movement||'-'}</td><td>${st.save||'-'}</td><td>${st.CAF||'-'}</td><td>${st.morale||'-'}</td><td>${st.wounds||'-'}</td><td>${st.base_size||'-'}</td></tr></tbody></table>
                     </div>`;
                   })()}
 
                   ${(weaponsHtml || upgradesRowsHtml) ? `
-                    <div style="margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+                    <div class="table-scroll-wrapper">
                       <table class="table" style="min-width:600px"><thead><tr><th>Weapon / Upgrade</th><th>Range</th><th>Dice</th><th>ToHit</th><th>AP</th><th>Traits</th><th class="text-end" style="width: 80px;">Cost</th></tr></thead><tbody>${weaponsHtml+upgradesRowsHtml}</tbody></table>
                     </div>
                   ` : ''}>
@@ -1666,6 +1733,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                   </div>
 
 
+
+                  ${st.unit_note ? `<div class="notes" style="margin-top:10px;font-style:italic">${st.unit_note}</div>` : ''}
 
                   ${unit.notes && unit.notes.length ? `<div class="notes" style="margin-top:10px">${unit.notes.join('; ')}</div>` : ''}
 
@@ -1841,7 +1910,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       function renderReferenceWeaponDetail(){ const name=referenceWeapon; const s=WEAPON_LIBRARY[name]||{}; const usage=buildWeaponUsageIndex()[name]||{units:[]}; const unitNames=(usage.units||[]).map(id=>slugToName(id)).join(', '); return `<div style=\"padding:12px\"><div class=\"crumbs small muted\">Reference › Weapons › ${name}</div><div class=\"card\" style=\"padding:0\"><div class=\"section-bar\">${name}</div><div style=\"padding:8px\"><table class=\"table\"><thead><tr><th>Range</th><th>Dice</th><th>To Hit</th><th>AP</th><th>Traits</th></tr></thead><tbody><tr><td>${s.range||'-'}</td><td>${s.dice||'-'}</td><td>${s.toHit||'-'}</td><td>${s.AP===undefined?'-':s.AP}</td><td>${renderTraitsCell(s.traits)}</td></tr></tbody></table><div class=\"section-sub\">Used By</div><div>${unitNames||'<span class=\\"small muted\\">Unknown</span>'}</div></div></div><div style=\"margin-top:8px\"><button class=\"btn\" onclick=\"setReferenceView('weapons')\">Back to Weapons</button><button class=\"btn\" style=\"margin-left:8px\" onclick=\"openReferenceHome()\">Reference Home</button></div></div>`; }
 
-      function renderReferenceUnitDetail(){ const army=referenceDetail.army; const unitId=referenceDetail.unitId; const key=armyKey(army||selectedArmy); const list=(ARMY_UNIT_LIST[key]||[]); const base=list.find(u=>u.id===unitId)||{name:slugToName(unitId),slotType:'Core'}; const stats=UNIT_BASE[unitId]||{}; const load=UNIT_LOADOUTS[unitId]||{weapons:[],specialRules:[],upgrades:[]}; const weapons=(load.weapons||[]).filter(w=>w.base); const rows=weapons.length? weapons.map(w=>{ const s=WEAPON_LIBRARY[w.src]||{}; return `<tr><td>${w.name}</td><td>${s.range||'-'}</td><td>${s.dice||'-'}</td><td>${s.toHit||'-'}</td><td>${s.AP===undefined?'-':s.AP}</td><td>${renderTraitsCell(s.traits)}</td></tr>`; }).join('') : `<tr><td colspan="6" class="small muted">No base weapons</td></tr>`; const rules=(load.specialRules||[]).join(', '); const ups=(load.upgrades||[]); const upsBlock=ups.length?`<div class=\"section-sub\">Upgrades</div><div><button class=\"btn btn-sm\" onclick=\"toggleReferenceUpgrades()\">${referenceShowUpgrades?'Hide':'Show'} Upgrades</button>${referenceShowUpgrades?ups.map(u=>`<div style=\"margin-top:4px\"><strong>${u.name}</strong> <span class=\"muted\">(+${u.points||0} pts)</span><div class=\"muted\">${u.desc||''}</div></div>`).join(''):''}</div>`:''; return `<div style="padding:12px"><div class="crumbs small muted">Reference › Units › ${base.name}</div><div class="card" style="padding:0"><div class="section-bar">${base.name}</div><div style="padding:8px"><div style="display:flex;justify-content:space-between"><div class="pill">${base.slotType}</div><div class="pill">${army||'-'}</div></div><table class="table" style="margin-top:8px"><thead><tr><th>Name</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th></tr></thead><tbody><tr><td>${base.name}</td><td>${stats.movement||'-'}</td><td>${stats.save||'-'}</td><td>${stats.CAF||'-'}</td><td>${stats.morale||'-'}</td><td>${stats.wounds||'-'}</td></tr></tbody></table><div class="section-sub">Weapons</div><table class="table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>To Hit</th><th>AP</th><th>Traits</th></tr></thead><tbody>${rows}</tbody></table><div class="section-sub">Special Rules</div><div>${rules||'<span class=\"small muted\">None</span>'}</div>${upsBlock}</div></div><div style="margin-top:8px"><button class="btn" onclick="setReferenceView('units')">Back to Units</button><button class="btn" style="margin-left:8px" onclick="openReferenceHome()">Reference Home</button></div></div>`; }
+      function renderReferenceUnitDetail(){ const army=referenceDetail.army; const unitId=referenceDetail.unitId; const key=armyKey(army||selectedArmy); const list=(ARMY_UNIT_LIST[key]||[]); const base=list.find(u=>u.id===unitId)||{name:slugToName(unitId),slotType:'Core'}; const stats=UNIT_BASE[unitId]||{}; const load=UNIT_LOADOUTS[unitId]||{weapons:[],specialRules:[],upgrades:[]}; const weapons=(load.weapons||[]).filter(w=>w.base); const rows=weapons.length? weapons.map(w=>{ const s=WEAPON_LIBRARY[w.src]||{}; return `<tr><td>${w.name}</td><td>${s.range||'-'}</td><td>${s.dice||'-'}</td><td>${s.toHit||'-'}</td><td>${s.AP===undefined?'-':s.AP}</td><td>${renderTraitsCell(s.traits)}</td></tr>`; }).join('') : `<tr><td colspan="6" class="small muted">No base weapons</td></tr>`; const rules=(load.specialRules||[]).join(', '); const ups=(load.upgrades||[]); const upsBlock=ups.length?`<div class=\"section-sub\">Upgrades</div><div><button class=\"btn btn-sm\" onclick=\"toggleReferenceUpgrades()\">${referenceShowUpgrades?'Hide':'Show'} Upgrades</button>${referenceShowUpgrades?ups.map(u=>`<div style=\"margin-top:4px\"><strong>${u.name}</strong> <span class=\"muted\">(+${u.points||0} pts)</span><div class=\"muted\">${u.desc||''}</div></div>`).join(''):''}</div>`:''; return `<div style="padding:12px"><div class="crumbs small muted">Reference › Units › ${base.name}</div><div class="card" style="padding:0"><div class="section-bar">${base.name}</div><div style="padding:8px"><div style="display:flex;justify-content:space-between"><div class="pill">${base.slotType}</div><div class="pill">${army||'-'}</div></div><table class="table" style="margin-top:8px"><thead><tr><th>Name</th><th>Move</th><th>Save</th><th>CAF</th><th>Morale</th><th>W</th><th>Base</th></tr></thead><tbody><tr><td>${base.name}</td><td>${stats.movement||'-'}</td><td>${stats.save||'-'}</td><td>${stats.CAF||'-'}</td><td>${stats.morale||'-'}</td><td>${stats.wounds||'-'}</td><td>${stats.base_size||'-'}</td></tr></tbody></table><div class="section-sub">Weapons</div><table class="table"><thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>To Hit</th><th>AP</th><th>Traits</th></tr></thead><tbody>${rows}</tbody></table><div class="section-sub">Special Rules</div><div>${rules||'<span class=\"small muted\">None</span>'}</div>${upsBlock}${stats.unit_note ? `<div class="notes" style="margin-top:10px;font-style:italic;padding:8px;background:#071a21;border-radius:4px">${stats.unit_note}</div>` : ''}</div></div><div style="margin-top:8px"><button class="btn" onclick="setReferenceView('units')">Back to Units</button><button class="btn" style="margin-left:8px" onclick="openReferenceHome()">Reference Home</button></div></div>`; }
 
       function renderLists(){
         const lists = (savedLists||[]);
@@ -1978,7 +2047,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const base = selectedUnit ? (UNIT_BASE[selectedUnit.id]||{}) : {};
         const uType = base.type ? String(base.type).toUpperCase() : '';
         const uScale = base.scale || 1;
-        const typeStr = uType ? ` | ${uType} (${uScale})` : '';
+        const baseSize = base.base_size ? ` | ${base.base_size}` : '';
+        const typeStr = (uType ? ` | ${uType} (${uScale})` : '') + baseSize;
         const unitsHtml = selectedUnit ? `
           <div class="unit-item"><div class="u-actions"><button class="btn btn-xs btn-blue" onclick="window.openEditModal(${fIdx},'${section}',${sIdx},0)">Upgrades</button><button class="btn btn-xs btn-red" title="Remove" onclick="window.removeUnit(${fIdx},'${section}',${sIdx},0)">🗑</button></div></div>
         ` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
@@ -2004,6 +2074,11 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const selectedUnit = (special.units||[])[0] || null;
         const unitSize = selectedUnit ? (selectedUnit.models || selectedUnit.baseModels || '-') : 0;
         const slotPts = selectedUnit ? unitPoints(selectedUnit) : 0;
+        const base = selectedUnit ? (UNIT_BASE[selectedUnit.id]||{}) : {};
+        const uType = base.type ? String(base.type).toUpperCase() : '';
+        const uScale = base.scale || 1;
+        const baseSize = base.base_size ? ` | ${base.base_size}` : '';
+        const typeStr = (uType ? ` | ${uType} (${uScale})` : '') + baseSize;
         const unitsHtml = selectedUnit ? `
           <div class="unit-item"><div class="u-actions"><button class="btn btn-xs btn-blue" onclick="window.openEditModal(${fIdx},'special',0,0)">Upgrades</button><button class="btn btn-xs btn-red" title="Remove" onclick="window.removeSpecialUnit(${fIdx},0)">🗑</button></div></div>
         ` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
@@ -2014,7 +2089,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         ) : [];
         const upList = selectedUnit && upItems.length ? `<div class="slot-details"><span class="label">Upgrades</span> ${upItems.join(', ')}</div>` : '';
         const selectHtml = `<select class="select-compact" onchange="addUnitToSpecial(${fIdx}, this.value)">${options}</select>`;
-        return `<div class="slot-compact"><div class="slot-pill">${special.label}</div><div class="slot-meta-row">Unit size: ${unitSize} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
+        return `<div class="slot-compact"><div class="slot-pill">${special.label}</div><div class="slot-meta-row">Unit size: ${unitSize}${typeStr} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
       }
 
 
