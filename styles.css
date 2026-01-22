@@ -114,6 +114,19 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* Buttons & Common */
+input, select, textarea {
+  background: var(--panel);
+  color: #e6eef8;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
 .btn { display: inline-block; padding: 6px 12px; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; border-radius: 6px; border: 1px solid transparent; cursor: pointer; background: #e2e8f0; color: #1f2937; transition: all 0.2s; }
 .btn:hover { background: #cbd5e1; }
 .btn-green { background: #22c55e; color: #fff; }
@@ -131,7 +144,27 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .table th, .table td { padding: 8px; text-align: left; border-bottom: 1px solid #374151; color: #cbd5e1; }
 .table th { font-weight: 600; color: #e6eef8; background: rgba(0,0,0,0.2); }
 
-/* Reference Tiles */
+/* Roster Specifics */
+.roster-unit .table {
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 4px;
+  overflow: hidden; /* For border radius */
+}
+.roster-unit .table th {
+  background: #e2e8f0;
+  color: #1f2937;
+  border-bottom: 1px solid #cbd5e1;
+  font-weight: 700;
+}
+.roster-unit .table td {
+  border-bottom: 1px solid #e2e8f0;
+  color: #1f2937;
+}
+.roster-unit .table tr:last-child td {
+  border-bottom: none;
+}
+
 .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; margin-top: 16px; }
 .rb-tile-card { background: var(--card); border: 1px solid #374151; border-radius: 8px; padding: 16px; cursor: pointer; transition: transform 0.2s, background 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .rb-tile-card:hover { transform: translateY(-2px); background: #2d3748; border-color: var(--accent); }

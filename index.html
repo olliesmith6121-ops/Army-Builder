@@ -138,7 +138,110 @@
         } 
       }
       function storageKey(suffix){ const uid=currentUserId||'default'; return `xenos_${uid}_${suffix}`; }
-      function refreshAuthButton(){ const btn=document.getElementById('auth-btn'); if(!btn) return; if(currentUserId){ btn.textContent = `Logout (${currentUserName||'User'})`; btn.onclick = handleLogout; } else { btn.textContent = 'Login'; btn.onclick = openLoginModal; } }
+      function refreshAuthButton(){ const btn=document.getElementById('auth-btn'); if(!btn) return; if(currentUserId){ btn.textContent = `User: ${currentUserName||'User'}`; btn.onclick = openProfileMenu; } else { btn.textContent = 'Login'; btn.onclick = openLoginModal; } }
+      
+      function openProfileMenu(){
+        initCloudIfAvailable();
+        const root=document.getElementById('modal-root');
+        
+        // Check for local lists
+        let hasLocal = false;
+        try {
+          const localRaw = localStorage.getItem('xenos_default_saved_lists');
+          const local = localRaw ? JSON.parse(localRaw) : [];
+          if(Array.isArray(local) && local.length > 0) hasLocal = true;
+        } catch(e){}
+
+        const transferBtn = hasLocal 
+          ? `<button class="btn btn-blue" style="width:100%;margin-bottom:8px" onclick="confirmTransferLocal()">Transfer Local Lists to Account</button>` 
+          : '';
+
+        root.innerHTML = `
+          <div class="modal-backdrop" onclick="closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <h3 style="margin:0 0 8px 0">Account</h3>
+              <div class="small muted" style="margin-bottom:12px">Logged in as <strong>${currentUserName}</strong></div>
+              
+              ${transferBtn}
+              
+              <button class="btn btn-red" style="width:100%" onclick="handleLogout()">Logout</button>
+              
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+                <button class="btn" onclick="closeModal()">Close</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function confirmTransferLocal(){
+        const root=document.getElementById('modal-root');
+        root.innerHTML = `
+          <div class="modal-backdrop" onclick="closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <h3 style="margin:0 0 8px 0">Transfer Local Lists?</h3>
+              <div class="warn" style="padding:12px;margin-bottom:12px;border:1px solid var(--danger);background:rgba(127,29,29,0.2);border-radius:4px;color:#fca5a5">
+                 <strong>Warning:</strong> This will copy your local (guest) lists to your logged-in account.
+                 <br/><br/>
+                 The local lists will be appended to your account's existing lists.
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+                <button class="btn" onclick="openProfileMenu()">Back</button>
+                <button class="btn btn-green" onclick="performTransfer()">Transfer Now</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function performTransfer(){
+        try {
+            const localRaw = localStorage.getItem('xenos_default_saved_lists');
+            if(!localRaw) return;
+            const localLists = JSON.parse(localRaw);
+            if(!Array.isArray(localLists) || !localLists.length) {
+              alert('No local lists found to transfer.');
+              return;
+            }
+            
+            // Regenerate IDs to avoid collision and treat as new imports
+            const imported = localLists.map(l => ({
+                ...l,
+                id: String(Date.now() + Math.random()).replace('.',''),
+                name: (l.name || 'Untitled') + ' (Imported)',
+                importedAt: Date.now(),
+                updatedAt: Date.now()
+            }));
+            
+            // Add to current user's lists
+            savedLists = [...savedLists, ...imported];
+            persistSavedLists(); // Saves to current user's storage
+            
+            // Trigger UI update
+            renderContent();
+            
+            // Transition to Sync Modal to push to Cloud
+            const root=document.getElementById('modal-root');
+            root.innerHTML = `
+               <div class="modal-backdrop" onclick="if(this.dataset.blocking!=='true') closeModal()">
+                 <div class="modal-drawer" onclick="event.stopPropagation()" style="width:90%;max-width:500px;height:auto;max-height:80vh">
+                   <div id="sync-content">
+                     <h3 style="margin:0 0 8px 0">Transferring...</h3>
+                     <p>Local lists prepared.</p>
+                     <p><strong>Starting Cloud Sync...</strong></p>
+                     <div class="spinner"></div>
+                   </div>
+                 </div>
+               </div>`;
+            
+            // Wait for DOM then trigger sync
+            setTimeout(() => {
+                performManualSync();
+            }, 500);
+            
+        } catch(e){
+            alert('Transfer failed: ' + e.message);
+        }
+      }
+
       function openLoginModal(){ initCloudIfAvailable(); const root=document.getElementById('modal-root'); const hasGoogle=!!firebaseAuth; const googleBlock = hasGoogle ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:8px"><button class="btn btn-green" style="width:100%" onclick="googleLogin()">Sign in with Google</button></div>` : `<div class="small muted" style="margin-top:8px">Google login is not configured in this build.</div>`; root.innerHTML = `<div class="modal-backdrop" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3 style="margin:0 0 8px 0">Login</h3><div class="small muted">Sign in with Google to sync lists across devices or use a local account.</div>${googleBlock}<div class="small muted" style="margin-top:8px">Local account</div><div style="margin-top:8px"><input id="login-name" class="mini-input" placeholder="Username"/></div><div style="margin-top:8px"><input id="login-pass" type="password" class="mini-input" placeholder="Password"/></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-green" onclick="commitLogin()">Login</button></div></div></div>`; const inp=document.getElementById('login-name'); if(inp) setTimeout(()=>inp.focus(),0); }
       async function ensureArgon2(){ if(window.argon2) return true; const urls=['https://unpkg.com/argon2-browser/dist/argon2-bundled.min.js','https://cdn.jsdelivr.net/npm/argon2-browser/dist/argon2-bundled.min.js']; for(const u of urls){ try{ const s=document.createElement('script'); s.src=u; document.head.appendChild(s); await new Promise(r=>{ s.onload=r; s.onerror=r; }); if(window.argon2) return true; }catch(e){} } return !!window.argon2; }
       function genSalt(len){ const n=Math.max(8, Number(len||16)); const bytes=new Uint8Array(n); try{ crypto.getRandomValues(bytes); }catch(e){ for(let i=0;i<n;i++) bytes[i]=Math.floor(Math.random()*256); } return bytes; }
@@ -1999,7 +2102,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
            } catch(e) {
               log('Ping: FAILED (' + e.message + ')');
               if(e.message.includes('timeout')) {
-                 throw new Error('Database handshake timed out. \n1. Is your Firestore Database created in the Console?\n2. Are you on a restricted network?');
+                 const err = new Error('Database connection failed (Timeout).');
+                 err.helpAction = 'create_db';
+                 throw err;
               }
               // If permission denied, we might still be able to read? Unlikely but let's try.
            }
@@ -2078,11 +2183,19 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
            }
 
            const debugText = (typeof debugLog !== 'undefined') ? debugLog.join('\n') : e.message;
+           
+           let helpBtn = '';
+           if(e.helpAction === 'create_db'){
+              helpBtn = `<a href="https://console.firebase.google.com/project/${window.XENOS_FIREBASE_CONFIG.projectId}/firestore" target="_blank" class="btn btn-blue" style="text-decoration:none">Create Database in Console</a>`;
+           }
+
            content.innerHTML = `
              <h3 style="margin:0 0 8px 0">Sync Failed</h3>
              <p class="small text-red">${e.message}</p>
+             ${e.helpAction === 'create_db' ? '<p class="small muted">The database may not exist yet. Click below to create it in "Production Mode".</p>' : ''}
              <div style="background:#222;color:#ccc;padding:8px;border-radius:4px;font-family:monospace;font-size:11px;height:120px;overflow-y:auto;white-space:pre-wrap;margin:8px 0;text-align:left">${debugText}</div>
              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+               ${helpBtn}
                <button class="btn" onclick="closeModal()">Close</button>
                <button class="btn btn-green" onclick="performManualSync()">Retry</button>
              </div>
@@ -2151,9 +2264,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                if(typeof r === 'string' && r.indexOf(':') > -1){
                  const idx = r.indexOf(':');
                  const title = r.substring(0, idx).trim();
-                 return `<span class="badge" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${title.replace(/'/g,"\\'")}')" style="cursor:pointer;background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px;font-size:11px;color:#555;border:1px solid rgba(0,0,0,0.1)">${title}</span>`;
+                 return `<span class="badge" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${title.replace(/'/g,"\\'")}')" style="cursor:pointer;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:11px;color:#e6eef8;border:1px solid rgba(255,255,255,0.2)">${title}</span>`;
                }
-               return `<span class="badge" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${r.replace(/'/g,"\\'")}')" style="cursor:pointer;background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px;font-size:11px;color:#555;border:1px solid rgba(0,0,0,0.1)">${r}</span>`;
+               return `<span class="badge" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${r.replace(/'/g,"\\'")}')" style="cursor:pointer;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:11px;color:#e6eef8;border:1px solid rgba(255,255,255,0.2)">${r}</span>`;
             }).join('')}
           </div>` : '';
 
@@ -2412,13 +2525,13 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                if(r && r.name){ 
                  const key=String(r.name||''); 
                  const known = (typeof RULES_INDEX === 'object') && (RULES_INDEX[_normKey(key)] !== undefined); 
-                 const head = known ? `<div class="pdf-subhead rule-key" style="color:#1f2937" data-rule="${key}" onclick="openRuleDialog('${key}')">${key}</div>` : `<div class="pdf-subhead">${key}</div>`; 
+                 const head = known ? `<div class="pdf-subhead rule-key" style="color:var(--accent);cursor:pointer" data-rule="${key}" onclick="openRuleDialog('${key}')">${key}</div>` : `<div class="pdf-subhead" style="color:var(--accent)">${key}</div>`; 
                  return head + `<p class="pdf-paragraph">${r.desc||''}</p>`; 
                } 
                return ''; 
              }).join('');
           }
-          return `<div class="card" style="padding:0;margin-bottom:12px;border:1px solid #ddd"><div class="section-bar">${title}</div><div style="padding:12px">${content}</div></div>`;
+          return `<div class="card" style="padding:0;margin-bottom:12px;border:1px solid #374151"><div class="section-bar">${title}</div><div style="padding:12px">${content}</div></div>`;
         }).join('');
 
         return `
@@ -2429,7 +2542,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                 <div class="small muted">View Rules</div>
               </div>
             </summary>
-            <div style="margin-top:10px;padding:12px;background:#ebf1f5;border-radius:4px;color:#1f2937">
+            <div style="margin-top:10px;padding:12px;background:var(--panel);border-radius:4px;color:#cbd5e1">
               ${list}
             </div>
           </details>
@@ -2444,9 +2557,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
               if(typeof r === 'string' && r.indexOf(':') > -1){
                 const idx = r.indexOf(':');
                 const title = r.substring(0, idx).trim();
-                return `<span style="cursor:pointer;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:11px;color:#ddd;border:1px solid rgba(255,255,255,0.1)" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${title.replace(/'/g,"\\'")}')">${title}</span>`;
+                return `<span style="cursor:pointer;background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;font-size:11px;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.3)" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${title.replace(/'/g,"\\'")}')">${title}</span>`;
               }
-              return `<span style="cursor:pointer;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:11px;color:#ddd;border:1px solid rgba(255,255,255,0.1)" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${r.replace(/'/g,"\\'")}')">${r}</span>`;
+              return `<span style="cursor:pointer;background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:4px;font-size:11px;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.3)" onclick="event.preventDefault();event.stopPropagation();openRuleDialog('${r.replace(/'/g,"\\'")}')">${r}</span>`;
             }).join('')}
           </div>` 
           : '';
