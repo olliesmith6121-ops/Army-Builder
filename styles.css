@@ -97,7 +97,30 @@ ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .topbar a:hover { color:#fff; }
 .topbar a.active { background:#163010; color:#9ae6b4; padding:4px 8px; border-radius:6px; }
 .account-wrap { margin-left:auto; position:relative; }
-.account-menu { position:absolute; right:0; top:calc(100% + 4px); background:#163010; border-radius:6px; padding:6px; display:none; box-shadow:0 8px 20px rgba(0,0,0,.5); }
+.modal-drawer .account-menu { position:absolute; right:0; top:calc(100% + 4px); background:#163010; border-radius:6px; padding:6px; display:none; box-shadow:0 8px 20px rgba(0,0,0,.5); }
+
+.app-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 32px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #e2e8f0;
+  text-shadow: 0 0 10px rgba(163, 107, 27, 0.5);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.title-icon {
+  height: 40px;
+  width: auto;
+  filter: drop-shadow(0 0 5px rgba(163, 107, 27, 0.5));
+}
+@media (max-width: 600px) {
+  .app-title { font-size: 24px; }
+  .title-icon { height: 30px; }
+}
 .dropdown-item { display:block; width:160px; text-align:left; padding:6px 8px; margin:2px 0; background:#1c3a14; color:#9ae6b4; border:0; border-radius:4px; font-weight:700; cursor:pointer; }
 .dropdown-item:hover { background:#245017; }
 .hero { display:flex; flex-direction:column; gap:10px; }

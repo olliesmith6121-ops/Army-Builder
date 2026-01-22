@@ -13,6 +13,7 @@
   <title>Xenos Army Builder</title>
   <link rel="icon" type="image/png" href="Images/WebIcon.png">
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 
   <!-- Inline styles migrated to styles.css -->
   <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
@@ -40,11 +41,13 @@
 
     <header style="text-align:center;margin-bottom:16px">
 
-      <h1 style="font-size:30px;margin:0;">
-
-        Xenos Army Builder
-
-      </h1>
+      <div style="display:flex; justify-content:center; align-items:center; margin-bottom:12px">
+        <h1 class="app-title">
+          <img src="Images/WebIcon.png" class="title-icon" alt=""/>
+          Xenos Army Builder
+          <img src="Images/WebIcon.png" class="title-icon" alt=""/>
+        </h1>
+      </div>
 
       
 
@@ -89,12 +92,32 @@
       let firebaseApp = null;
       let firebaseAuth = null;
       let firebaseDb = null;
-      function loadUser(){ try{ const raw=localStorage.getItem('xenos_current_user'); if(raw){ const u=JSON.parse(raw); currentUserId=u.id||null; currentUserName=u.name||''; currentUserIsGoogle=!!u.google; } }catch(e){} }
+      function loadUser(){ 
+        try{ 
+          const raw=localStorage.getItem('xenos_current_user'); 
+          if(raw){ 
+            const u=JSON.parse(raw); 
+            currentUserId=u.id||'guest'; 
+            currentUserName=u.name||'Guest'; 
+            currentUserIsGoogle=!!u.google; 
+          } else {
+             // Default to Guest if no user
+             currentUserId = 'guest';
+             currentUserName = 'Guest';
+             currentUserIsGoogle = false;
+             saveUserSession();
+          }
+        }catch(e){
+           // Fallback
+           currentUserId = 'guest';
+           currentUserName = 'Guest';
+        } 
+      }
       function saveUserSession(){ try{ const u={ id: currentUserId, name: currentUserName, google: currentUserIsGoogle }; localStorage.setItem('xenos_current_user', JSON.stringify(u)); refreshAuthButton(); }catch(e){} }
       function initCloudIfAvailable(){ 
         if(firebaseApp) return;
         if(!window.firebase || !window.firebase.initializeApp) {
-           alert('Debug: Firebase SDK not loaded! Check internet connection or ad-blocker.');
+           // Silent fail if offline or blocked
            return;
         }
         if(!window.XENOS_FIREBASE_CONFIG) return; 
@@ -129,17 +152,70 @@
               }
             } else {
               console.log('Auth State: No User');
-              // alert('Debug: Auth State Changed -> No User');
+              // If we thought we were google but now aren't, revert to guest
+              if(currentUserIsGoogle) {
+                  currentUserId = 'guest';
+                  currentUserName = 'Guest';
+                  currentUserIsGoogle = false;
+                  saveUserSession();
+                  refreshAuthButton();
+              }
             }
           });
         }catch(e){ 
           firebaseApp=null; firebaseAuth=null; firebaseDb=null; 
-          alert('Debug: Firebase Init Failed: ' + e.message);
+          console.warn('Firebase Init Failed: ' + e.message);
         } 
       }
-      function storageKey(suffix){ const uid=currentUserId||'default'; return `xenos_${uid}_${suffix}`; }
-      function refreshAuthButton(){ const btn=document.getElementById('auth-btn'); if(!btn) return; if(currentUserId){ btn.textContent = `User: ${currentUserName||'User'}`; btn.onclick = openProfileMenu; } else { btn.textContent = 'Login'; btn.onclick = openLoginModal; } }
+      function storageKey(suffix){ 
+          const uid = currentUserId || 'default'; 
+          // Map guest to default to preserve legacy/guest data access
+          const effectiveId = (uid === 'guest') ? 'default' : uid;
+          return `xenos_${effectiveId}_${suffix}`; 
+      }
+      function refreshAuthButton(){ 
+          const btn=document.getElementById('auth-btn'); 
+          if(!btn) return; 
+          
+          if(currentUserId && currentUserId !== 'guest'){ 
+              btn.textContent = `User: ${currentUserName||'User'}`; 
+              btn.onclick = openProfileMenu; 
+          } else { 
+              // Guest Mode
+              btn.textContent = 'Guest Login'; 
+              btn.onclick = openGuestMenu; 
+          } 
+      }
       
+      function openGuestMenu(){
+         initCloudIfAvailable();
+         const root=document.getElementById('modal-root');
+         root.innerHTML = `
+           <div class="modal-backdrop" onclick="closeModal()">
+             <div class="modal" onclick="event.stopPropagation()">
+               <h3 style="margin:0 0 8px 0">Guest Account</h3>
+               <div class="small muted" style="margin-bottom:12px">You are using a local Guest account. Lists are saved to this browser.</div>
+               
+               <div style="border:1px solid #374151; padding:12px; border-radius:6px; background:#111827">
+                  <div style="font-weight:600; margin-bottom:4px">Upgrade to Cloud Account</div>
+                  <div class="small muted" style="margin-bottom:8px">Log in with Google to backup your lists and access them on other devices.</div>
+                  <button class="btn btn-green" style="width:100%" onclick="loginAndTransfer()">Login & Transfer Guest Data</button>
+                  <div style="text-align:center; margin-top:8px; font-size:11px" class="muted">or</div>
+                  <button class="btn btn-sm" style="width:100%; margin-top:4px" onclick="googleLogin()">Login (Start Fresh)</button>
+               </div>
+
+               <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+                 <button class="btn" onclick="closeModal()">Close</button>
+               </div>
+             </div>
+           </div>`;
+      }
+
+      function loginAndTransfer(){
+          sessionStorage.setItem('xenos_pending_transfer', 'true');
+          googleLogin();
+      }
+
       function openProfileMenu(){
         initCloudIfAvailable();
         const root=document.getElementById('modal-root');
@@ -198,22 +274,43 @@
             if(!localRaw) return;
             const localLists = JSON.parse(localRaw);
             if(!Array.isArray(localLists) || !localLists.length) {
-              alert('No local lists found to transfer.');
+              // Just cleanup if empty
+              localStorage.removeItem('xenos_default_saved_lists');
               return;
             }
             
-            // Regenerate IDs to avoid collision and treat as new imports
-            const imported = localLists.map(l => ({
-                ...l,
-                id: String(Date.now() + Math.random()).replace('.',''),
-                name: (l.name || 'Untitled') + ' (Imported)',
-                importedAt: Date.now(),
-                updatedAt: Date.now()
-            }));
+            const currentMap = new Map(savedLists.map(l => [l.id, l]));
+            const imported = [];
+
+            localLists.forEach(l => {
+                // Check if this exact list is already in savedLists (e.g. via auto-migration)
+                const existing = currentMap.get(l.id);
+                
+                // If it exists and has same/newer timestamp, we skip it to avoid duplication
+                // (Auto-migration copies exact timestamp, so this catches that)
+                if (existing && (existing.updatedAt || 0) >= (l.updatedAt || 0)) {
+                    console.log('Skipping already migrated list:', l.name);
+                    return;
+                }
+                
+                // Otherwise, import it as a copy
+                imported.push({
+                    ...l,
+                    id: String(Date.now() + Math.random()).replace('.',''),
+                    name: (l.name || 'Untitled') + ' (Imported)',
+                    importedAt: Date.now(),
+                    updatedAt: Date.now()
+                });
+            });
             
-            // Add to current user's lists
-            savedLists = [...savedLists, ...imported];
-            persistSavedLists(); // Saves to current user's storage
+            if(imported.length > 0) {
+                // Add to current user's lists
+                savedLists = [...savedLists, ...imported];
+                persistSavedLists(); // Saves to current user's storage
+            }
+            
+            // Clear the local guest lists as they are now transferred/merged
+            localStorage.removeItem('xenos_default_saved_lists');
             
             // Trigger UI update
             renderContent();
@@ -296,6 +393,13 @@
         closeModal(); 
         saveUserSession(); 
         await loadSavedLists(true); 
+        
+        // Check pending transfer
+        if(sessionStorage.getItem('xenos_pending_transfer') === 'true'){
+            sessionStorage.removeItem('xenos_pending_transfer');
+            performTransfer(); // This will merge guest lists, save, and trigger sync
+        }
+
         loadState(true); 
         selectedListIds=[]; 
         setActiveTab('home'); 
@@ -1868,37 +1972,80 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
+      const RECENT_UPDATES = [
+        { date: '2026-01-22', text: 'Added Guest Mode with local storage support.' },
+        { date: '2026-01-22', text: 'Implemented seamless Local-to-Cloud list transfer.' },
+        { date: '2026-01-22', text: 'Improved UI readability for Detachment and Army rules.' },
+        { date: '2026-01-22', text: 'Added white background to Roster tables for better contrast.' },
+        { date: '2026-01-21', text: 'Added unit types & sizes (e.g., WALKER (1)) to Builder & Roster.' },
+        { date: '2026-01-21', text: 'Introduced Interactive Rule Badges for full description popups.' },
+        { date: '2026-01-21', text: 'Polished Roster Army Rules layout to match Reference tab.' },
+        { date: '2026-01-20', text: 'Fixed formation rule display issues in Roster view.' },
+        { date: '2026-01-20', text: 'Prevented accidental card collapse when clicking rule badges.' },
+        { date: '2026-01-19', text: 'Initial release of Tyranid Army Data and Reference tools.' }
+      ];
+
+      const COMING_SOON = [
+        "Offline Mode",
+        "Ork Army Data",
+        "Eldar Army Data"
+      ];
+
       function renderHome(){
-        const updatesContent = `
+        const updatesContent = RECENT_UPDATES.map(u => `
           <div class="muted small" style="margin-bottom:8px">
-            <strong>New:</strong> Unit types & sizes (e.g., WALKER (1)) are now displayed in Builder & Roster.
+            <strong style="color:var(--accent)">${u.date}:</strong> ${u.text}
           </div>
-          <div class="muted small" style="margin-bottom:8px">
-            <strong>New:</strong> Interactive Rule Badges - click any rule (e.g., "The Hive Mind") to view its full description.
-          </div>
-          <div class="muted small" style="margin-bottom:8px">
-            <strong>Update:</strong> Roster Army Rules now match the Reference tab's polished layout.
-          </div>
-          <div class="muted small">
-            <strong>Fix:</strong> Corrected formation rule display and prevented accidental card collapse when clicking rules.
-          </div>
-        `;
+        `).join('');
         
+        const comingSoonContent = COMING_SOON.map(item => `
+          <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:6px 12px; font-size:12px; color:var(--text-muted)">
+            ${item}
+          </div>
+        `).join('');
+
         const welcomeText = `
-          <div style="margin-bottom:16px; text-align:center">
-            <h2 style="margin:0 0 8px 0; font-size:18px">Welcome to Xenos Army Builder</h2>
-            <div class="muted small" style="max-width:400px; margin:0 auto">
-              Build and manage your army lists for Xenos Armies. Create detachments, customize units with upgrades, and export your lists for play.
-              Log in to save your lists to the cloud and access them from any device.
+          <div style="margin-bottom:24px; text-align:center">
+            <div style="margin-bottom:16px">
+               <img src="Images/WebIcon.png" style="max-width:120px; border-radius:50%; border:2px solid var(--accent); box-shadow:0 0 15px var(--accent-dim)" alt="Xenos Icon" onerror="this.src='Images/WebIcon.png'"/>
+            </div>
+            <h2 style="margin:0 0 8px 0; font-size:24px; letter-spacing:1px; text-transform:uppercase; color:var(--text-main); font-family:'Orbitron',sans-serif">The Galaxy Burns</h2>
+            <div class="muted small" style="max-width:500px; margin:0 auto; line-height:1.6">
+              Command your forces and conquer the stars. Whether you lead the endless swarms of the Tyranids, the ancient craftworlds of the Eldar, or the brutal waagh of the Orks, the galaxy is yours for the taking.
+              <br/><br/>
+              Build your army lists, manage your detachments, and prepare for war.
             </div>
           </div>
         `;
 
+        // Check if user is Guest to show Link Account button
+        const isGuest = (!currentUserId || currentUserId === 'guest');
+        const linkAccountBtn = isGuest ? `<button class="btn" style="border:1px solid var(--accent); color:var(--accent); background:transparent" onclick="openGuestMenu()">Link Google Account</button>` : '';
+
         return `<div style="padding:12px">
-          <div class="hero">
+          <div class="hero" style="background:linear-gradient(180deg, rgba(16,24,39,0) 0%, rgba(16,24,39,1) 100%)">
             ${welcomeText}
-            <button class="btn btn-green hero-cta" onclick="createNewList()">Create List</button>
-            <div class="card p-4" style="margin-top:12px"><h3 class="section-title">Updates</h3>${updatesContent}</div>
+            
+            <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:32px">
+               <button class="btn btn-green hero-cta" onclick="createNewList()">Create List</button>
+               <button class="btn btn-blue" onclick="setActiveTab('lists'); renderContent()">My Lists</button>
+               ${linkAccountBtn}
+            </div>
+
+            <div style="max-width:600px; margin:0 auto">
+               <div class="card p-4" style="margin-bottom:16px">
+                 <h3 class="section-title" style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px">Recent Updates</h3>
+                 ${updatesContent}
+               </div>
+
+               <div class="card p-4">
+                 <h3 class="section-title" style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:12px">Coming Soon</h3>
+                 <div style="display:flex; flex-wrap:wrap; gap:8px">
+                   ${comingSoonContent}
+                 </div>
+               </div>
+            </div>
+
           </div>
         </div>`;
       }
