@@ -201,7 +201,7 @@
                   <div class="small muted" style="margin-bottom:8px">Log in with Google to backup your lists and access them on other devices.</div>
                   <button class="btn btn-green" style="width:100%" onclick="loginAndTransfer()">Login & Transfer Guest Data</button>
                   <div style="text-align:center; margin-top:8px; font-size:11px" class="muted">or</div>
-                  <button class="btn btn-sm" style="width:100%; margin-top:4px" onclick="googleLogin()">Login (Start Fresh)</button>
+                  <button class="btn btn-sm" style="width:100%; margin-top:4px" onclick="googleLogin()">Login Only</button>
                </div>
 
                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
@@ -390,7 +390,7 @@
         currentUserId=user.uid; 
         currentUserName=user.displayName||user.email||'Google User'; 
         currentUserIsGoogle=true; 
-        closeModal(); 
+        // closeModal(); // Kept open for transition to Sync
         saveUserSession(); 
         await loadSavedLists(true); 
         
@@ -398,6 +398,10 @@
         if(sessionStorage.getItem('xenos_pending_transfer') === 'true'){
             sessionStorage.removeItem('xenos_pending_transfer');
             performTransfer(); // This will merge guest lists, save, and trigger sync
+        } else {
+            // Auto-sync on fresh login
+            promptCloudSync();
+            setTimeout(() => performManualSync(), 500);
         }
 
         loadState(true); 
