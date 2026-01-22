@@ -514,10 +514,10 @@
       function masterLSKey(key){ return 'army_master_'+String(key||''); }
       function loadMasterFromLocalStorage(key){ try{ const raw=localStorage.getItem(masterLSKey(key)); return raw? JSON.parse(raw): null; }catch(e){ return null; } }
       function saveMasterToLocalStorage(key, ref){ try{ if(!ref) return; localStorage.setItem(masterLSKey(key), JSON.stringify(ref)); }catch(e){} }
-      async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; const DEV_WL=new Set(["hive_tyrant","tyranid_warrior_brood","mycetic_spores","termagant_brood","hormagaunt_brood","genestealer_brood","lictor_brood","carnifex_brood","zoanthrope_brood","biovore_brood","gargoyle_brood","ravener_brood","malanthrope_brood","venomthrope_brood","ripperswarm_brood"]); Object.keys(roster).forEach(key=>{ if(armyArg==='Tyranids' && !DEV_WL.has(key)) { delete roster[key]; return; } const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; const uType = m.unit_type??m.role??base.type;
+      async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; Object.keys(roster).forEach(key=>{ const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; const uType = m.unit_type??m.role??base.type;
         const uScale = s.scale??base.scale;
         let bSize = s.base_size??base.base_size;
-        if(!bSize && (String(uType).toUpperCase()==='INFANTRY' || (String(uType).toUpperCase()==='WALKER' && uScale==1))) bSize = '25mm';
+        if(!bSize && (String(uType).toUpperCase()==='INFANTRY' || (String(uType).toUpperCase()==='WALKER' && uScale==1) || (String(uType).toUpperCase()==='VEHICLE' && uScale==2))) bSize = '25mm';
 
         UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: uScale, type: uType, base_size: bSize, unit_note: m.unit_note??base.unit_note }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; (m.weapons||[]).forEach(w=>{ const n=WEAPON_SLUG_TO_NAME[w]||slugToName(w); if(!UNIT_LOADOUTS[id].weapons.some(x=>x.src===n)) UNIT_LOADOUTS[id].weapons.push({id:'w_'+w, name:n, src:n, base:true}); }); ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : (/Increase\s+Brood\s+size/i.test(name)?'BROOD_SIZE':'MODEL_UPGRADE')), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
 
@@ -648,7 +648,9 @@
         'zoanthrope':{points:65,movement:'5"',save:'6+',CAF:'0',morale:'3+',wounds:1},
         'biovore':{points:45,movement:'5"',save:'6+',CAF:'+1',morale:'4+',wounds:1},
         'gargoyle':{points:35,movement:'12"',save:'6+',CAF:'+1',morale:'4+',wounds:1},
-        'venomthrope':{points:65,movement:'6"',save:'4+',CAF:'+5',morale:'4+',wounds:1}
+        'venomthrope':{points:65,movement:'6"',save:'4+',CAF:'+5',morale:'4+',wounds:1},
+        'haruspex':{points:100,movement:'6"',save:'3+',CAF:'+8',morale:'3+',wounds:2},
+        'tervigon':{points:100,movement:'5"',save:'3+',CAF:'+3',morale:'3+',wounds:2}
       };
 
 
@@ -680,9 +682,11 @@
         "Warp Blast (Focused)":{range:'24"',dice:1,toHit:'4+',AP:-3,traits:'Anti-Tank',points:0},
         "Warp Blast (Diffused)":{range:'18"',dice:1,toHit:'4+',AP:-1,traits:'Blast (3")',points:0},
         "Flamespurt":{range:'Template',dice:1,toHit:'Auto',AP:-1,traits:'Ignore Cover',points:1},
-        "Toxic Lashes":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'Parry',points:0}
+        "Toxic Lashes":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'Parry',points:0},
+        "Ravenous maw":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Hunger; Wrecker; Armorbane',points:0},
+        "Grasping Tongue":{range:'6"',dice:1,toHit:'4+',AP:-1,traits:'Anti-Tank; Attract; Arc(Forward)',points:0}
       };
-      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0 };
+      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0 };
 
 
 
@@ -814,7 +818,7 @@
 
 
 
-      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes' };
+      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue' };
 
       async function loadWeaponsData(){ return; }
 
@@ -1110,28 +1114,29 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       async function loadTyranidRules(){ return; }
       let RULES_INDEX = {};
       const CROSS_TRAIT_INDEX = {
-        'Light':'General-purpose small arms; effective versus infantry',
-        'Light AT':'Anti-vehicle light munitions; reduced effectiveness vs heavy armor',
-        'Anti-Tank':'Designed to penetrate armored targets',
+        'Light':'Cannot damage Light Armoured vehicles or better',
+        'Light AT':'AP counts as 0 against Vehicles/Knights/Titans',
+        'Anti-Tank':'AP counts as 0 against Infantry/Cavalry',
         'Anti-Infantry':'Optimized to defeat infantry formations',
-        'Beam':'Line attack; affects all formations under the line',
-        'Armorbane':'Enhanced armor penetration; improves effectiveness vs saves',
+        'Beam':'Hits all models under a 1mm wide line',
+        'Armorbane':'Successful Saves by Vehicles/Knights/Titans must be re-rolled',
         'Ignore Cover':'Targets do not receive cover benefits',
         'Ignores Cover':'Targets do not receive cover benefits',
-        'Blast':'Area effect; uses a template size',
+        'Blast':'Uses 3" or 5" template; hits based on models under template',
         'Torrent':'Short-range stream; continuous effect along a path',
-        'Rapid Fire':'Double dice if stationary',
-        'Rapid-Fire':'Double dice if stationary',
-        'Rend':'Improved damage or penetration on high rolls',
-        'Parry':'Force opponent to re-roll one die in close combat',
+        'Rapid Fire':'Any natural rolls of a 6 score 2 Hits instead of 1',
+        'Rapid-Fire':'Any natural rolls of a 6 score 2 Hits instead of 1',
+        'Rend':'Add D6 to Fight rolls',
+        'Parry':'In Close Combat, force opponent to re-roll one die',
         'Brutal':'Increases lethality in melee',
         'Unreliable':'May suffer malfunctions or reduced consistency',
-        'Arc':'Firing arc restriction; only targets within specified arc',
+        'Arc':'Can only target Detachments in specified Arc',
         'SkyFire':'Can target Flyers; -2 To Hit against non-Flyers',
-        'Shieldbane':'',
-        'Heavy Barrage':'',
-        'Hunger':'',
-        'Attract':'',
+        'Shieldbane':'Bypasses Void Shields even if AP is 0',
+         'Heavy Barrage':'Acts as Barrage; can damage Structures',
+        'Hunger':'When enemy slain, attacker regains 1 wound (up to max)',
+        'Bunker Buster':'AP counts as double against Structures',
+        'Attract':'If target not killed, move closest model D6" towards attacker',
         'Psychic Power':'',
         'Jink':'Reactive save against shooting attacks',
         'Interceptor':'Can target units arriving from reserves',
@@ -1156,7 +1161,27 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         'Commander':'Provides command aura or special order access to nearby units',
         'Void Shields':'Energy shield layers that absorb hits before Wounds; some traits bypass or reduce shields',
         'God-engine':'Titanic construct with unique resilience and rules interactions',
-        'Jump Packs':'Enhanced movement; treats as aerial leap with special restrictions'
+        'Jump Packs':'Enhanced movement; treats as aerial leap with special restrictions',
+        'Accurate': 'Re-roll failed Hit rolls',
+        'Assault': 'Double dice if within half range',
+        'Barrage': 'Can target without LoS (suffers -1 to Hit)',
+        'Burrowing': 'Counts as hitting Rear Arc; bypasses Void Shields',
+        'Bypass': 'Bypasses specified saves (e.g., Void Shields)',
+        'Co-axial': 'Must target same unit as primary weapon',
+        'Collapsing Singularity': 'Roll D6; on 1 firing model takes Wound, on 6 hits bypass Void Shields',
+        'Deflagrate': 'Unsaved Wounds generate additional Hits',
+        'Demolisher': 'Can damage Structures',
+        'Engine Killer': 'Super-heavies/Knights/Titans suffer X additional Wounds',
+        'Firestorm': 'Uses Flame template; bypasses Cover Saves',
+        'Point Defence': 'Can be fired in Engagement phase against Infantry',
+        'Reach': 'Can fight models within 2 inches',
+        'Ripple Fire': 'Re-roll failed Hit rolls if stationary',
+        'Saturation Fire': 'Target suffers -1 to Save rolls',
+        'Shock Pulse': 'Vehicles/Knights/Titans hit reduce Movement and Shield level',
+        'Shred': 'Re-roll failed Wound rolls against Infantry/Cavalry',
+        'Tracking': 'Re-roll failed Hit rolls against Flyers',
+        'Warp': 'Bypasses Void Shields and Invulnerable Saves',
+        'Wrecker': 'Damages Structures and Garrisoned units'
       };
       function _normKey(s){ return String(s||'').trim().toLowerCase().replace(/_/g,' ').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim(); }
       function renderTraitsCell(val){ const arr = Array.isArray(val) ? val : String(val||'').split(';').map(s=>s.trim()).filter(Boolean); if(!arr.length) return '-'; return arr.map(t=>{ const k=t.split('(')[0].split(':')[0].trim(); const rest=t.slice(k.length); return '<span class="rule-key" data-rule="'+k+'" style="text-decoration:underline;font-style:italic;cursor:pointer" onclick="openRuleDialog(\''+k+'\')">'+k+'</span>'+rest; }).join(', '); }

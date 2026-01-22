@@ -86,7 +86,7 @@
     "chameleon_skin": "Cannot be targeted by enemy units engaged outside of X inches.",
     "winged": "Can partake in close combat even if they have Flyer rule.",
     "burrow": "Instead of moving, return to reserves to Deep Strike in later turns.",
-    "spawn": "Spawn Y units of type X. Added to brood if same type, else form new brood. Placed close to spawner.",
+    "spawn": "End Phase. Spawn Y units of type X. Added to brood if same type, else form new brood. Placed close to spawner.",
     "miasma": "Shooting attacks against this unit suffer -1 To Hit. Enemies engaged with this unit suffer -1 CAF."
   },
   "weapon_traits_library": {
@@ -112,9 +112,12 @@
     "mycetic_spores": { "name": "Mycetic Spores", "role": "TRANSPORT", "detachment_size": 1, "points": 10, "stats": { "move": "-", "save": "6+", "caf": "+0", "morale": "4+", "wounds": 1, "scale": 1, "base_size": "40mm" }, "upgrades": [], "weapons": [], "special_rules": ["Transport", "Deep Strike", "Immobile"] },
     "malanthrope_brood": { "name": "Malanthrope Brood", "role": "INFANTRY", "detachment_size": 3, "points": 25, "stats": { "move": "5\"", "save": "5+", "caf": "+1", "morale": "3+", "wounds": 1, "scale": 1, "base_size": "25mm" }, "upgrades": [], "weapons": ["stunning_tendrils"], "special_rules": ["Synapse (12\")"] },
     "venomthrope_brood": { "name": "Venomthrope Brood", "role": "INFANTRY", "detachment_size": 3, "points": 65, "stats": { "move": "6\"", "save": "4+", "caf": "+5", "morale": "4+", "wounds": 1, "scale": 1, "base_size": "25mm" }, "upgrades": [ { "name": "Increase Brood size by 1 (Max 6)", "cost": 20 } ], "weapons": ["toxic_lashes"], "special_rules": ["Instinct: Rampage", "Miasma"] },
-    "ripperswarm_brood": { "name": "Ripperswarm Brood", "role": "INFANTRY", "detachment_size": 2, "points": 35, "stats": { "move": "5\"", "save": "-", "caf": "+0", "morale": "-", "wounds": 3, "scale": 1, "base_size": "40mm" }, "upgrades": [ { "name": "Increase the Brood size by 1", "cost": 15 } ], "weapons": ["nasty_teeth"], "special_rules": ["Implacable"], "unit_note": "Thousands of rippers gather for a feast and even the most devastating weapons won’t be able to eliminate them easily, like cockroaches they will reemerge from burrows in the ground." }
-  },
+    "ripperswarm_brood": { "name": "Ripperswarm Brood", "role": "INFANTRY", "detachment_size": 2, "points": 35, "stats": { "move": "5\"", "save": "-", "caf": "+0", "morale": "-", "wounds": 3, "scale": 1, "base_size": "40mm" }, "upgrades": [ { "name": "Increase Brood size by 1", "cost": 15 } ], "weapons": ["nasty_teeth"], "special_rules": ["Implacable"], "unit_note": "Thousands of rippers gather for a feast and even the most devastating weapons won’t be able to eliminate them easily, like cockroaches they will reemerge from burrows in the ground." },
+    "tervigon_brood": { "name": "Tervigon Brood", "role": "VEHICLE", "unit_type": "VEHICLE", "detachment_size": 2, "points": 100, "stats": { "move": "5\"", "save": "3+", "caf": "+3", "morale": "3+", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 2 (Max 6)", "cost": 90 } ], "weapons": ["claws"], "special_rules": ["Instinct: Nest", "Spawn (Termagant, D3)"] },
+      "haruspex_brood": { "name": "Haruspex Brood", "role": "VEHICLE", "unit_type": "VEHICLE", "detachment_size": 2, "points": 100, "stats": { "move": "6\"", "save": "3+", "caf": "+8", "morale": "3+", "wounds": 2, "scale": 2 }, "upgrades": [ { "name": "Increase Brood size by 2 (Max 6)", "cost": 90 } ], "weapons": ["ravenous_maw", "grasping_tongue"], "special_rules": ["Instinct: Rampage"], "unit_note": "Possessed of a rapacious appetite, driven by the need to sate an infinite hunger." }
+    },
   "weapons": {
+    "claws": { "range": "-", "dice": "-", "toHit": "-", "ap": "-", "traits": [], "points": 0 },
     "nasty_teeth": { "range": "-", "dice": "-", "toHit": "-", "ap": "-", "traits": [], "points": 0 },
     "toxic_lashes": { "range": "-", "dice": "-", "toHit": "-", "ap": "-", "traits": ["Parry"], "points": 0 },
     "stunning_tendrils": { "range": "-", "dice": "-", "toHit": "-", "ap": "-", "traits": ["Hunger", "Parry"], "points": 0 }

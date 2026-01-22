@@ -126,6 +126,7 @@
     "anti_tank": "AP counts as 0 against Infantry/Cavalry.",
     "arc": "Can only target Detachments in specified Arc.",
     "armourbane": "Successful Saves by Vehicles/Knights/Titans must be re-rolled.",
+    "armorbane": "Successful Saves by Vehicles/Knights/Titans must be re-rolled.",
     "assault": "Double dice if within half range.",
     "barrage": "Can target without LoS (suffers -1 to Hit).",
     "beam": "Hits all models under a 1mm wide line.",
@@ -143,7 +144,9 @@
     "light": "Cannot damage Light Armoured vehicles or better.",
     "point_defence": "Can be fired in Engagement phase against Infantry.",
     "reach": "Can fight models within 2 inches.",
-    "rend": "Add D6 to Fight rolls against Vehicles/Knights/Titans.",
+    "rend": "Add D6 to Fight rolls.",
+    "rapid_fire": "Any natural rolls of a 6 score 2 Hits instead of 1.",
+    "light_at": "AP counts as 0 against Vehicles/Knights/Titans.",
     "ripple_fire": "Re-roll failed Hit rolls if stationary.",
     "saturation_fire": "Target suffers -1 to Save rolls.",
     "shock_pulse": "Vehicles/Knights/Titans hit reduce Movement and Shield level.",
@@ -154,8 +157,11 @@
     "wrecker": "Damages Structures and Garrisoned units.",
     "pinning": "Infantry units hit by this weapon take an extra Blast marker.",
     "web": "Units hit by this weapon may not move in their next activation.",
-    "hunger": "If this weapon destroys an enemy model in the Fight phase, the user may immediately roll a D6; on a 5+, it regains 1 lost Wound.",
-    "parry": "Enemy models engaged with this model suffer -1 to Hit rolls in the Fight phase."
+    "hunger": "When enemy slain, attacker regains 1 wound (up to max).",
+    "attract": "If target not killed, move closest model D6\" towards attacker.",
+    "parry": "In Close Combat, force opponent to re-roll one die.",
+    "shieldbane": "Bypasses Void Shields even if AP is 0.",
+    "heavy_barrage": "Acts as Barrage; can damage Structures."
   },
   "broodSizes": {
     "legion_assault_detachment": {
