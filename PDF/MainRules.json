@@ -125,6 +125,8 @@
     "accurate": "Re-roll failed Hit rolls.",
     "anti_tank": "AP counts as 0 against Infantry/Cavalry.",
     "arc": "Can only target Detachments in specified Arc.",
+    "armored": "Roll a D6 each time a model with this special rule suffers a Wound. On a roll of 6, the Wound is ignored.",
+    "armoured": "Roll a D6 each time a model with this special rule suffers a Wound. On a roll of 6, the Wound is ignored.",
     "armourbane": "Successful Saves by Vehicles/Knights/Titans must be re-rolled.",
     "armorbane": "Successful Saves by Vehicles/Knights/Titans must be re-rolled.",
     "assault": "Double dice if within half range.",
@@ -161,7 +163,8 @@
     "attract": "If target not killed, move closest model D6\" towards attacker.",
     "parry": "In Close Combat, force opponent to re-roll one die.",
     "shieldbane": "Bypasses Void Shields even if AP is 0.",
-    "heavy_barrage": "Acts as Barrage; can damage Structures."
+    "heavy_barrage": "Acts as Barrage; can damage Structures.",
+    "large_assault_transport": "Can transport Infantry and Walkers (capacity in brackets; Walkers take 2 slots). Units disembarking from this model may Charge in the same activation."
   },
   "broodSizes": {
     "legion_assault_detachment": {

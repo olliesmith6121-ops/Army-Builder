@@ -519,7 +519,11 @@
       async function loadConsolidatedArmyMaster(armyArg){ try{ const key=armyKey(armyArg||selectedArmy); try{ const old=localStorage.getItem('oraks'); if(old && !localStorage.getItem('orks')){ localStorage.setItem('orks', old); } }catch(e){} const urls=[`data/armies/${key}/master.json`,`data/${String(key).charAt(0).toUpperCase()+String(key).slice(1)}Master.json`]; let json=loadMasterFromLocalStorage(key); if(armyArg==='Tyranids') json=null; if(!json){ for(const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r&&r.ok){ json=await r.json(); saveMasterToLocalStorage(key,json); break; } }catch(e){} } } if(!json) return null; const norm=(k)=>String(k||'').replace(/_brood$/,'').replace(/_/g,'-'); const normUpgrade=(n)=>String(n||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/^upgrade to\s+/,'').trim(); const roster=json.unit_roster||{}; Object.keys(roster).forEach(key=>{ const id=norm(key); const m=roster[key]||{}; const det=Number(m.detachment_size||1); if(det>1) UNIT_DEFAULT_MODELS[id]=det; const s=m.stats||{}; const base=UNIT_BASE[id]||{}; const uType = m.unit_type??m.role??base.type;
         const uScale = s.scale??base.scale;
         let bSize = s.base_size??base.base_size;
-        if(!bSize && (String(uType).toUpperCase()==='INFANTRY' || (String(uType).toUpperCase()==='WALKER' && uScale==1) || (String(uType).toUpperCase()==='VEHICLE' && uScale==2))) bSize = '25mm';
+        const typeStr = String(uType).toUpperCase();
+        if(!bSize){
+           if(typeStr==='INFANTRY' || (typeStr==='WALKER' && uScale==1) || (typeStr==='VEHICLE' && uScale==2)) bSize = '25mm';
+           else if(typeStr==='VEHICLE' && uScale==3) bSize = '80mm';
+        }
 
         UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: uScale, type: uType, base_size: bSize, unit_note: m.unit_note??base.unit_note }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; (m.weapons||[]).forEach(w=>{ const n=WEAPON_SLUG_TO_NAME[w]||slugToName(w); if(!UNIT_LOADOUTS[id].weapons.some(x=>x.src===n)) UNIT_LOADOUTS[id].weapons.push({id:'w_'+w, name:n, src:n, base:true}); }); ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : (/Increase\s+Brood\s+size/i.test(name)?'BROOD_SIZE':'MODEL_UPGRADE')), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
 
@@ -635,6 +639,18 @@
 
         'hive-tyrant':{points:100,movement:'5"',save:'4+',CAF:'+10',morale:'2+',wounds:2},
 
+        'malefactor':{
+          baseCAF:'+7', baseWounds:2,
+          weapons:[
+            {id:'w_maul',name:'Mauling Limbs',src:'Mauling Limbs',base:true},
+            {id:'w_frag',name:'Frag Spines',src:'Frag Spines',base:true},
+            {id:'w_cysts_m',name:'Spore Cysts',src:'Spore Cysts (Malefactor)',base:true}
+          ],
+          upgrades:[
+            {id:'u_bsize_malefactor',name:'Increase Brood size by 1',points:100,type:'BROOD_SIZE',modelsDelta:1,maxModels:3}
+          ],
+          specialRules:['Instinct: Rampage','Armored','Large Assault Transport (8)']
+        },
         'harridan':{points:110,movement:'16"',save:'4+',CAF:'+4',morale:'3+',wounds:2},
         'tyranid-warrior':{points:60,movement:'5"',save:'5+',CAF:'+5',morale:'3+',wounds:1},
 
@@ -696,9 +712,12 @@
         "Drool Cannon (Harpy)":{range:'T',dice:'-',toHit:'4+',AP:-1,traits:'Arc (Front); Anti-Tank',points:0},
         "Bio-Cannon (Harridan)":{range:'10"',dice:4,toHit:'5+',AP:-3,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
         "Spore Launcher (Harridan)":{range:'-',dice:1,toHit:'Special',AP:'-',traits:'Spore Launcher; Bombing Run',points:0},
-        "Horrible Claws":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'-',points:0}
+        "Horrible Claws":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'-',points:0},
+        "Mauling Limbs":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Wrecker (1)',points:0},
+        "Frag Spines":{range:'8"',dice:1,toHit:'5+',AP:0,traits:'Blast (3")',points:0},
+        "Spore Cysts (Malefactor)":{range:'3"',dice:2,toHit:'2+',AP:0,traits:'Light; Point Defense; Ignores Cover',points:0}
       };
-      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0, 'Toxic Fumes':0, 'Stranglethorn Cannon (Harpy)':0, 'Spore Launcher (Harpy)':0, 'Drool Cannon (Harpy)':0, 'Bio-Cannon (Harridan)':0, 'Spore Launcher (Harridan)':0 };
+      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0, 'Toxic Fumes':0, 'Stranglethorn Cannon (Harpy)':0, 'Spore Launcher (Harpy)':0, 'Drool Cannon (Harpy)':0, 'Bio-Cannon (Harridan)':0, 'Spore Launcher (Harridan)':0, 'Mauling Limbs':0, 'Frag Spines':0, 'Spore Cysts (Malefactor)':0 };
 
 
 
@@ -814,6 +833,18 @@
           ],
           upgrades:[], psychicPowers:[], specialRules:['Flyer','Winged','Hover','Jink (5+)','Spawn (Gargoyle, 4)','Synapse (12")']
         },
+        'malefactor':{
+          baseCAF:'+7', baseWounds:2,
+          weapons:[
+            {id:'w_maul',name:'Mauling Limbs',src:'Mauling Limbs',base:true},
+            {id:'w_frag',name:'Frag Spines',src:'Frag Spines',base:true},
+            {id:'w_cysts_m',name:'Spore Cysts',src:'Spore Cysts (Malefactor)',base:true}
+          ],
+          upgrades:[
+            {id:'u_bsize_malefactor',name:'Increase Brood size by 1',points:100,type:'BROOD_SIZE',modelsDelta:1,maxModels:3}
+          ],
+          specialRules:['Instinct: Rampage','Armored','Large Assault Transport (8)']
+        },
         'biovore':{
           baseCAF:'+0', baseWounds:1,
           weapons:[
@@ -848,7 +879,7 @@
 
 
 
-      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue', stranglethorn_cannon_harpy:'Stranglethorn Cannon (Harpy)', spore_launcher_harpy:'Spore Launcher (Harpy)', drool_cannon_harpy:'Drool Cannon (Harpy)', bio_cannon_harridan:'Bio-Cannon (Harridan)', spore_launcher_harridan:'Spore Launcher (Harridan)' };
+      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue', stranglethorn_cannon_harpy:'Stranglethorn Cannon (Harpy)', spore_launcher_harpy:'Spore Launcher (Harpy)', drool_cannon_harpy:'Drool Cannon (Harpy)', bio_cannon_harridan:'Bio-Cannon (Harridan)', spore_launcher_harridan:'Spore Launcher (Harridan)', spore_cysts_malefactor:'Spore Cysts (Malefactor)', mauling_limbs:'Mauling Limbs', frag_spines:'Frag Spines' };
 
       async function loadWeaponsData(){ return; }
 
@@ -1353,7 +1384,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         });
 
         if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot = (section==='special') ? armyFormations[fIdx].special : armyFormations[fIdx][section][sIdx]; const unit = slot && slot.units && slot.units[uIdx]; if(unit){ const models = Number(unit.models || (UNIT_DEFAULT_MODELS[unit.id]||1)); const totalPts = unitPoints(unit); const root=document.getElementById('modal-root'); const lbl = root && root.querySelector('.modal-drawer #bsize-label'); if(lbl){ lbl.innerHTML = 'Unit size: ' + models + ' <span class="cost">' + totalPts + ' PTS</span>'; lbl.setAttribute('data-models', String(models)); }
-          const sumEl = document.getElementById('modal-unit-summary'); if(sumEl){ const costEl=document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = totalPts + ' PTS'; const valBtn=document.getElementById('modal-unit-val'); if(valBtn) valBtn.textContent = String(models); const incLbl=document.getElementById('modal-inc-label'); const baseM=(UNIT_DEFAULT_MODELS[unit.id]||1); if(incLbl) incLbl.textContent = 'Increase by: +' + Math.max(0, models - baseM); } const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base); baseWeps.forEach(bw=>{ const replacingRows = Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r => (r.getAttribute('data-replaces')||'').split(',').map(s=>s.trim()).includes(bw.name)); replacingRows.forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); const sum = replacingRows.reduce((s,r)=>{ const id=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+id); if(inp) return s + Number(inp.value||0); const cb = r.querySelector('.modal-upgrade-checkbox'); return s + (cb && cb.checked ? 1 : 0); },0); const remain = Math.max(0, models - sum); const cb = Array.from(document.querySelectorAll('.modal-weapon-checkbox')).find(b=>b.getAttribute('data-name')===bw.name); if(cb){ cb.checked = remain>0; } const span = document.getElementById('base-rem-'+bw.id); if(span){ span.textContent = remain>0 ? `(x${remain})` : ''; } }); Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r=>{ const t=r.getAttribute('data-type')||''; return t.startsWith('WEAPON_SWAP'); }).forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); } }
+          const sumEl = document.getElementById('modal-unit-summary'); if(sumEl){ const costEl=document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = totalPts + ' PTS'; const valBtn=document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT') valBtn.value=String(models); else valBtn.textContent = String(models); } const incLbl=document.getElementById('modal-inc-label'); const baseM=(UNIT_DEFAULT_MODELS[unit.id]||1); if(incLbl) incLbl.textContent = 'Increase by: +' + Math.max(0, models - baseM); } const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base); baseWeps.forEach(bw=>{ const replacingRows = Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r => (r.getAttribute('data-replaces')||'').split(',').map(s=>s.trim()).includes(bw.name)); replacingRows.forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); const sum = replacingRows.reduce((s,r)=>{ const id=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+id); if(inp) return s + Number(inp.value||0); const cb = r.querySelector('.modal-upgrade-checkbox'); return s + (cb && cb.checked ? 1 : 0); },0); const remain = Math.max(0, models - sum); const cb = Array.from(document.querySelectorAll('.modal-weapon-checkbox')).find(b=>b.getAttribute('data-name')===bw.name); if(cb){ cb.checked = remain>0; } const span = document.getElementById('base-rem-'+bw.id); if(span){ span.textContent = remain>0 ? `(x${remain})` : ''; } }); Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r=>{ const t=r.getAttribute('data-type')||''; return t.startsWith('WEAPON_SWAP'); }).forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); } }
 
         if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(unit){ const bsize = (unit.upgrades||[]).find(u=> (u.type==='BROOD_SIZE' && String(u.id||'').startsWith('u_bsize_apply_')) ); if(bsize){ total += Number(bsize.points||0); } } }
         ptsEl.textContent = total + ' pts';
@@ -1465,7 +1496,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       function updateBroodSizeUpgrade(unit){ const min=(UNIT_DEFAULT_MODELS[unit.id]||1); const max=(UNIT_MAX_MODELS[unit.id]||min); const step=(UNIT_BROOD_STEP[unit.id]||1); const inc=Math.max(0, Math.floor((Number(unit.models||min)-min)/step)); const cost=(UNIT_BROOD_POINTS[unit.id]||0); const upId='u_bsize_apply_'+unit.id; unit.upgrades=(unit.upgrades||[]).filter(u=>u.id!==upId); if(inc>0){ unit.upgrades.push({ id: upId, name:'Brood size', points: inc*cost, type:'BROOD_SIZE', count: inc, modelsDeltaTotal: inc*step, maxModels: max }); } }
       function headerModelBump(delta){ bumpHeaderUnit(delta, document.getElementById('modal-unit-summary')); }
       window.headerModelBump = headerModelBump;
-      function bumpHeaderUnit(delta, el){ const cont = (el && (el.closest && el.closest('#modal-unit-summary'))) || document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); const step = Number(cont.getAttribute('data-step')||1); const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; let cur = Number(unit.models || min); cur += delta * step; if(cur < min) cur = min; if(cur > max) cur = max; unit.models = cur; updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn) valBtn.textContent = String(cur); const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
+      function bumpHeaderUnit(delta, el){ const cont = (el && (el.closest && el.closest('#modal-unit-summary'))) || document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); const step = Number(cont.getAttribute('data-step')||1); const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; let cur = Number(unit.models || min); cur += delta * step; if(cur < min) cur = min; if(cur > max) cur = max; unit.models = cur; updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT'){ let opt = valBtn.querySelector('option[value="'+cur+'"]'); if(!opt){ opt=document.createElement('option'); opt.value=cur; opt.textContent=cur; valBtn.appendChild(opt); } valBtn.value=cur; } else valBtn.textContent = String(cur); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
+      function setUnitSize(val){ const cont = document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); if(val < min) val = min; if(val > max) val = max; const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; unit.models = val; updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT') valBtn.value=val; else valBtn.textContent = String(val); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
+      window.setUnitSize = setUnitSize;
       window.bumpHeaderUnit = bumpHeaderUnit;
       function onSpecialUpgradeToggle(id, checked){
         const inp = document.getElementById('upcnt-'+id);
@@ -1900,10 +1933,31 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const sizerStep = stepModels;
         const modelCtrl = '';
         const baseM = (UNIT_DEFAULT_MODELS[unit.id]||defModels);
-        const curM = unit.models||defModels;
+        let curM = Number(unit.models||defModels);
         const st = UNIT_BASE[unit.id] || {};
-        const headerSummary = adjustable
-          ? `<div id="modal-unit-summary" data-unit="${unit.id}" data-min="${sizerMin}" data-max="${sizerMax}" data-step="${sizerStep}" class="slot-meta-row small" style="margin:6px 0 10px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;gap:8px"><span>Unit size:</span><div style="display:flex;gap:6px;align-items:center"><button id="modal-unit-dec" class="btn btn-xs" data-action="unit-dec">−</button><button id="modal-unit-val" class="btn btn-xs" style="width:40px;justify-content:center">${curM}</button><button id="modal-unit-inc" class="btn btn-xs" data-action="unit-inc">+</button></div><span id="modal-unit-cost" class="cost">${unitPoints(unit)} PTS</span><span class="small muted">Max: ${sizerMax}</span></div><div id="modal-inc-label" class="small muted">Increase by: +${sizerStep}</div></div>`
+        
+        let sizeOpts = '';
+        const safeStep = Number(sizerStep) || 1;
+        const safeMin = Number(sizerMin) || 1;
+        const safeMax = Number(sizerMax) || safeMin;
+        
+        let modelList = [];
+        for(let m=safeMin; m<=safeMax; m+=safeStep){
+            modelList.push(m);
+        }
+        
+        // Ensure current value is in the list so it displays correctly
+        if(!modelList.includes(curM)){
+            modelList.push(curM);
+            modelList.sort((a,b)=>a-b);
+        }
+
+        sizeOpts = modelList.map(m => `<option value="${m}" ${m===curM?'selected':''}>${m}</option>`).join('');
+
+        // Removed appearance:none so standard dropdown UI is visible. Removed btn classes to avoid conflicts.
+         const selectHtml = `<select id="modal-unit-val" style="display:inline-block;width:auto;min-width:60px;height:40px;padding:0 24px 0 12px;font-weight:bold;background-color:#1e3a45;color:#fff;border:1px solid #374151;cursor:pointer;border-radius:6px;font-size:1.2em" onchange="window.setUnitSize(Number(this.value))">${sizeOpts}</select>`;
+         const headerSummary = adjustable
+          ? `<div id="modal-unit-summary" data-unit="${unit.id}" data-min="${sizerMin}" data-max="${sizerMax}" data-step="${sizerStep}" class="slot-meta-row small" style="margin:6px 0 10px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;gap:8px"><span>Unit size:</span><div style="display:flex;gap:6px;align-items:center"><button id="modal-unit-dec" class="btn btn-xs" style="width:40px;height:40px;font-size:1.5em;display:inline-flex;align-items:center;justify-content:center" data-action="unit-dec">−</button>${selectHtml}<button id="modal-unit-inc" class="btn btn-xs" style="width:40px;height:40px;font-size:1.5em;display:inline-flex;align-items:center;justify-content:center" data-action="unit-inc">+</button></div><span id="modal-unit-cost" class="cost">${unitPoints(unit)} PTS</span><span class="small muted">Max: ${sizerMax}</span></div><div id="modal-inc-label" class="small muted">Increase by: +${sizerStep}</div></div>`
           : `<div id="modal-unit-summary" data-unit="${unit.id}" data-min="${sizerMin}" data-max="${sizerMax}" data-step="${sizerStep}" class="slot-meta-row small" style="margin:6px 0 10px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;gap:8px"><span>Unit size:</span><span class="pill">${curM}</span><span id="modal-unit-cost" class="cost">${unitPoints(unit)} PTS</span><span class="small muted">Max: ${sizerMax}</span></div></div>`;
 
 
@@ -2242,7 +2296,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             <td><div style="font-weight:800">${l.name||'Untitled'}</div></td>
             <td class="col-army">${l.faction||'-'}</td>
             <td class="col-saved">${saved}</td>
-            <td class="col-points">${pointsUsed}/${pointsCap} pts <span class="header-actions" style="display:inline-flex; gap:6px; align-items:center; margin-left:8px"><button class="btn btn-blue btn-xs" data-action="list-open" data-id="${l.id}">Build</button><button class="btn btn-blue btn-xs" data-action="list-export" data-id="${l.id}">Export</button><button class="btn btn-red btn-xs" data-action="list-del" data-id="${l.id}">Delete</button></span></td>
+            <td class="col-points">${pointsUsed}/${pointsCap} pts <span class="header-actions" style="display:inline-flex; gap:6px; align-items:center; margin-left:8px"><button class="btn btn-blue btn-xs" data-action="list-open" data-id="${l.id}">Build</button><button class="btn btn-green btn-xs" data-action="list-export" data-id="${l.id}">Export</button><button class="btn btn-red btn-xs" data-action="list-del" data-id="${l.id}">Delete</button></span></td>
           </tr>`;
         }).join('') : `<tr><td colspan="5" class="muted small">No saved lists</td></tr>`;
         const bulk = selectedListIds.length ? `<div class="small" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span>Selected: ${selectedListIds.length}</span><button class="btn btn-red btn-sm" data-action="bulk-del">Delete Selected</button></div>` : '';
