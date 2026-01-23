@@ -508,7 +508,9 @@
       let UNIT_BROOD_STEP = { 'termagant':3, 'hormagaunt':3, 'genestealer':3 };
       let UNIT_BROOD_POINTS = {};
 
-      let WEAPON_CONSTRAINTS = {};
+      let WEAPON_CONSTRAINTS = {
+        'harpy': { disableWhenUpgrade: { 'u_harpy_swap_drool': ['Stranglethorn Cannon (Harpy)', 'Spore Launcher (Harpy)'] } }
+      };
       function slugToName(s){ return String(s||'').split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
       async function loadWeaponConstraints(){ return; }
       function masterLSKey(key){ return 'army_master_'+String(key||''); }
@@ -633,6 +635,7 @@
 
         'hive-tyrant':{points:100,movement:'5"',save:'4+',CAF:'+10',morale:'2+',wounds:2},
 
+        'harridan':{points:110,movement:'16"',save:'4+',CAF:'+4',morale:'3+',wounds:2},
         'tyranid-warrior':{points:60,movement:'5"',save:'5+',CAF:'+5',morale:'3+',wounds:1},
 
         'hormagaunt':{points:0,movement:'6"',save:'-',CAF:'+0',morale:'4+',wounds:1},
@@ -650,7 +653,9 @@
         'gargoyle':{points:35,movement:'12"',save:'6+',CAF:'+1',morale:'4+',wounds:1},
         'venomthrope':{points:65,movement:'6"',save:'4+',CAF:'+5',morale:'4+',wounds:1},
         'haruspex':{points:100,movement:'6"',save:'3+',CAF:'+8',morale:'3+',wounds:2},
-        'tervigon':{points:100,movement:'5"',save:'3+',CAF:'+3',morale:'3+',wounds:2}
+        'tervigon':{points:100,movement:'5"',save:'3+',CAF:'+3',morale:'3+',wounds:2},
+        'toxicrene':{points:120,movement:'6"',save:'4+',CAF:'+8',morale:'3+',wounds:2},
+        'harpy':{points:120,movement:'18"',save:'5+',CAF:'+2',morale:'4+',wounds:1,type:'VEHICLE',scale:2}
       };
 
 
@@ -684,9 +689,16 @@
         "Flamespurt":{range:'Template',dice:1,toHit:'Auto',AP:-1,traits:'Ignore Cover',points:1},
         "Toxic Lashes":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'Parry',points:0},
         "Ravenous maw":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Hunger; Wrecker; Armorbane',points:0},
-        "Grasping Tongue":{range:'6"',dice:1,toHit:'4+',AP:-1,traits:'Anti-Tank; Attract; Arc(Forward)',points:0}
+        "Grasping Tongue":{range:'6"',dice:1,toHit:'4+',AP:-1,traits:'Anti-Tank; Attract; Arc(Forward)',points:0},
+        "Toxic Fumes":{range:'3"',dice:6,toHit:'3+',AP:0,traits:'Point Defense; Light',points:0},
+        "Stranglethorn Cannon (Harpy)":{range:'12"',dice:1,toHit:'5+',AP:-2,traits:'Arc (Front); Light AT; Skyfire',points:0},
+        "Spore Launcher (Harpy)":{range:'-',dice:1,toHit:'Special',AP:'-',traits:'Arc (Rear); Spore Launcher; Bombing Run',points:0},
+        "Drool Cannon (Harpy)":{range:'T',dice:'-',toHit:'4+',AP:-1,traits:'Arc (Front); Anti-Tank',points:0},
+        "Bio-Cannon (Harridan)":{range:'10"',dice:4,toHit:'5+',AP:-3,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
+        "Spore Launcher (Harridan)":{range:'-',dice:1,toHit:'Special',AP:'-',traits:'Spore Launcher; Bombing Run',points:0},
+        "Horrible Claws":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'-',points:0}
       };
-      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0 };
+      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0, 'Toxic Fumes':0, 'Stranglethorn Cannon (Harpy)':0, 'Spore Launcher (Harpy)':0, 'Drool Cannon (Harpy)':0, 'Bio-Cannon (Harridan)':0, 'Spore Launcher (Harridan)':0 };
 
 
 
@@ -784,11 +796,23 @@
         'harpy':{
           baseCAF:'+2', baseWounds:1,
           weapons:[
-            {id:'w_stc',name:'Stranglethorn Cannon',src:'Stranglethorn Cannon',base:true},
-            {id:'w_spore',name:'Spore Launcher',src:'Spore Launcher',base:true}
+            {id:'w_stc',name:'Stranglethorn Cannon',src:'Stranglethorn Cannon (Harpy)',base:true},
+            {id:'w_spore',name:'Spore Launcher',src:'Spore Launcher (Harpy)',base:true}
           ],
-          upgrades:[{id:'u_drool',name:'Replace Stranglethorn Cannon with Drool Cannon',points:0,type:'WEAPON_SWAP',replaces:'Stranglethorn Cannon',grants:'Drool Cannon'}],
+          upgrades:[
+            {id:'u_harpy_swap_drool',name:'Swap Stranglethorn Cannon & Spore Launcher for Drool Cannon',points:0,type:'WEAPON_SWAP',replaces:'Stranglethorn Cannon',grants:'Drool Cannon (Harpy)'},
+            {id:'u_bsize_harpy',name:'Increase Brood size by 1',points:120,type:'BROOD_SIZE',modelsDelta:1,maxModels:3}
+          ],
           psychicPowers:[], specialRules:['Flyer','Winged','Hover','Interceptor','Jink (5+)']
+        },
+        'harridan':{
+          baseCAF:'+4', baseWounds:2,
+          weapons:[
+            {id:'w_bio_harridan_1',name:'Bio-Cannon',src:'Bio-Cannon (Harridan)',base:true},
+            {id:'w_spore_harridan',name:'Spore Launcher',src:'Spore Launcher (Harridan)',base:true},
+            {id:'w_horrible_claws',name:'Horrible Claws',src:'Horrible Claws',base:true}
+          ],
+          upgrades:[], psychicPowers:[], specialRules:['Flyer','Winged','Hover','Jink (5+)','Spawn (Gargoyle, 4)','Synapse (12")']
         },
         'biovore':{
           baseCAF:'+0', baseWounds:1,
@@ -812,13 +836,19 @@
           baseCAF:'+12', baseWounds:4,
           weapons:[{id:'w_bio_can',name:'Bio Cannon',src:'Bio Cannon',base:true},{id:'w_warp',name:'Warp Pulse',src:'Warp Pulse',base:true},{id:'w_scysts_dom',name:'Spore Cysts',src:'Spore Cysts',base:true}],
           upgrades:[], psychicPowers:[], specialRules:['Invulnerable Save (2+)','Synapse (24”)','Psychic Scream','Catalyst','Regenerate','The Horror']
+        },
+        'toxicrene':{
+          baseCAF:'+8', baseWounds:2,
+          weapons:[{id:'w_toxic_lashes',name:'Toxic Lashes',src:'Toxic Lashes',base:true},{id:'w_toxic_fumes',name:'Toxic Fumes',src:'Toxic Fumes',base:true}],
+          upgrades:[{id:'u_bsize_toxicrene',name:'Increase Brood size by 2',points:80,type:'BROOD_SIZE',modelsDelta:2,maxModels:7}],
+          psychicPowers:[], specialRules:['Instinct: Rampage','Miasma']
         }
 
       };
 
 
 
-      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue' };
+      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue', stranglethorn_cannon_harpy:'Stranglethorn Cannon (Harpy)', spore_launcher_harpy:'Spore Launcher (Harpy)', drool_cannon_harpy:'Drool Cannon (Harpy)', bio_cannon_harridan:'Bio-Cannon (Harridan)', spore_launcher_harridan:'Spore Launcher (Harridan)' };
 
       async function loadWeaponsData(){ return; }
 
@@ -843,7 +873,7 @@
         if(!hasPair){ ht.mutexPairs.push(pair); }
       }catch(e){} }
       function countCoreUpgradeTotal(fIdx, excludeSection, excludeIndex, namePattern){ try{ const f=armyFormations[fIdx]; if(!f) return 0; const re=new RegExp(namePattern,'i'); let total=0; [['compulsory','Core'],['optional','Core']].forEach(([sec,type])=>{ const arr=f[sec]||[]; arr.forEach((slot,si)=>{ if(slot.type!==type) return; if(sec===excludeSection && si===excludeIndex) return; const u=(slot.units||[])[0]; if(!u) return; (u.upgrades||[]).forEach(up=>{ if(re.test(up.name||'')) total += Number(up.count||1); }); }); }); return total; }catch(e){ return 0; } }
-      function runValidation(ref){ const issues=[]; window._latestValidationIssues = issues; const unitsMap={ 'hive-tyrant':'hive_tyrant','tyranid-warrior':'tyranid_warrior_brood','termagant':'termagant_brood','hormagaunt':'hormagaunt_brood','genestealer':'genestealer_brood','carnifex':'carnifex_brood','exocrine':'exocrine_brood','harpy':'harpy_brood','mycetic-spores':'mycetic_spores','dominatrix':'dominatrix' }; const roster=ref.unit_roster||{}; Object.entries(unitsMap).forEach(([appId,refKey])=>{ const m=roster[refKey]; if(!m) return; const base=UNIT_BASE[appId]||{}; if(m.points!=null && base.points!=null && Number(base.points)!==Number(m.points)){ issues.push(appId+': points '+base.points+' ≠ '+m.points); } const det = Number(m.detachment_size||0); const def = Number(UNIT_DEFAULT_MODELS[appId]||0); if(det && def && det!==def){ issues.push(appId+': detachment/default size '+def+' ≠ '+det); } const s=m.stats||{}; const norm=(v)=>String(v||'').trim(); const cmp=(kApp,kRef,label)=>{ const a=norm(base[kApp]); const b=norm(s[kRef]); if(a&&b&&a!==b) issues.push(appId+': '+label+' '+a+' ≠ '+b); }; cmp('movement','move','move'); cmp('save','save','save'); cmp('CAF','caf','CAF'); cmp('morale','morale','morale'); cmp('wounds','wounds','wounds'); });  const wRef = { 'Barbed Strangler':{range:'10"'}, 'Venom Cannon':{range:'14"'}, 'Fleshborer':{range:'6"'}, 'Devourer':{range:'8"'}, 'Stranglewebs':{range:'6"'} }; Object.entries(wRef).forEach(([name,expect])=>{ const cur=WEAPON_LIBRARY[name]||{}; if(!cur.range) issues.push('Weapon '+name+' missing in library'); else if(expect.range && String(cur.range) !== String(expect.range)) issues.push('Weapon '+name+' range '+cur.range+' ≠ '+expect.range); }); const warriorUps=(UNIT_LOADOUTS['tyranid-warrior']&&UNIT_LOADOUTS['tyranid-warrior'].upgrades)||[]; const findUp=(n)=>warriorUps.find(u=>(u.name||'').toLowerCase().includes(n.toLowerCase())); const bsw=findUp('Bone Swords'); const bstr=findUp('Barbed Strangler'); const vc=findUp('Venom Cannon'); if(bsw && (bsw.points||0)!==3) issues.push('Warrior Boneswords cost '+(bsw.points||0)+' ≠ 3'); if(bstr && (bstr.points||0)!==15) issues.push('Warrior Barbed Strangler cost '+(bstr.points||0)+' ≠ 15'); if(vc && (vc.points||0)!==15) issues.push('Warrior Venom Cannon cost '+(vc.points||0)+' ≠ 15'); const tUps=(UNIT_LOADOUTS['termagant']&&UNIT_LOADOUTS['termagant'].upgrades)||[]; const tFind=(gr)=>tUps.find(u=>(u.grants||'')===gr); const tStr=tFind('Stranglewebs'); const tDev=tFind('Devourer'); if(!tStr) issues.push('Termagant Stranglewebs upgrade missing'); else if((tStr.points||0)!==3) issues.push('Termagant Stranglewebs cost '+(tStr.points||0)+' ≠ 3'); if(!tDev) issues.push('Termagant Devourer upgrade missing'); else if((tDev.points||0)!==1) issues.push('Termagant Devourer cost '+(tDev.points||0)+' ≠ 1'); if(issues.length){ console.warn('[Validator]',issues); } else { console.info('[Validator] No mismatches'); } }
+      function runValidation(ref){ const issues=[]; window._latestValidationIssues = issues; const unitsMap={ 'hive-tyrant':'hive_tyrant','tyranid-warrior':'tyranid_warrior_brood','termagant':'termagant_brood','hormagaunt':'hormagaunt_brood','genestealer':'genestealer_brood','carnifex':'carnifex_brood','exocrine':'exocrine_brood','harpy':'harpy_brood','harridan':'harridan_brood','mycetic-spores':'mycetic_spores','dominatrix':'dominatrix' }; const roster=ref.unit_roster||{}; Object.entries(unitsMap).forEach(([appId,refKey])=>{ const m=roster[refKey]; if(!m) return; const base=UNIT_BASE[appId]||{}; if(m.points!=null && base.points!=null && Number(base.points)!==Number(m.points)){ issues.push(appId+': points '+base.points+' ≠ '+m.points); } const det = Number(m.detachment_size||0); const def = Number(UNIT_DEFAULT_MODELS[appId]||0); if(det && def && det!==def){ issues.push(appId+': detachment/default size '+def+' ≠ '+det); } const s=m.stats||{}; const norm=(v)=>String(v||'').trim(); const cmp=(kApp,kRef,label)=>{ const a=norm(base[kApp]); const b=norm(s[kRef]); if(a&&b&&a!==b) issues.push(appId+': '+label+' '+a+' ≠ '+b); }; cmp('movement','move','move'); cmp('save','save','save'); cmp('CAF','caf','CAF'); cmp('morale','morale','morale'); cmp('wounds','wounds','wounds'); });  const wRef = { 'Barbed Strangler':{range:'10"'}, 'Venom Cannon':{range:'14"'}, 'Fleshborer':{range:'6"'}, 'Devourer':{range:'8"'}, 'Stranglewebs':{range:'6"'} }; Object.entries(wRef).forEach(([name,expect])=>{ const cur=WEAPON_LIBRARY[name]||{}; if(!cur.range) issues.push('Weapon '+name+' missing in library'); else if(expect.range && String(cur.range) !== String(expect.range)) issues.push('Weapon '+name+' range '+cur.range+' ≠ '+expect.range); }); const warriorUps=(UNIT_LOADOUTS['tyranid-warrior']&&UNIT_LOADOUTS['tyranid-warrior'].upgrades)||[]; const findUp=(n)=>warriorUps.find(u=>(u.name||'').toLowerCase().includes(n.toLowerCase())); const bsw=findUp('Bone Swords'); const bstr=findUp('Barbed Strangler'); const vc=findUp('Venom Cannon'); if(bsw && (bsw.points||0)!==3) issues.push('Warrior Boneswords cost '+(bsw.points||0)+' ≠ 3'); if(bstr && (bstr.points||0)!==15) issues.push('Warrior Barbed Strangler cost '+(bstr.points||0)+' ≠ 15'); if(vc && (vc.points||0)!==15) issues.push('Warrior Venom Cannon cost '+(vc.points||0)+' ≠ 15'); const tUps=(UNIT_LOADOUTS['termagant']&&UNIT_LOADOUTS['termagant'].upgrades)||[]; const tFind=(gr)=>tUps.find(u=>(u.grants||'')===gr); const tStr=tFind('Stranglewebs'); const tDev=tFind('Devourer'); if(!tStr) issues.push('Termagant Stranglewebs upgrade missing'); else if((tStr.points||0)!==3) issues.push('Termagant Stranglewebs cost '+(tStr.points||0)+' ≠ 3'); if(!tDev) issues.push('Termagant Devourer upgrade missing'); else if((tDev.points||0)!==1) issues.push('Termagant Devourer cost '+(tDev.points||0)+' ≠ 1'); if(issues.length){ console.warn('[Validator]',issues); } else { console.info('[Validator] No mismatches'); } }
 
       function formationUnits(f){ let arr=[]; ['compulsory','optional'].forEach(k=> (f[k]||[]).forEach(s=> arr=arr.concat(s.units||[]))); if(f.special) arr=arr.concat(f.special.units||[]); return arr; }
       function totalModelsInFormation(f){ return formationUnits(f).reduce((s,u)=> s + Number(u.models||u.baseModels||1), 0); }
@@ -1106,8 +1136,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       function unitHasUpgrade(unit,upgradeId){ return (unit.upgrades||[]).some(u=>u.id === upgradeId); }
 
       function weaponConstraintsFor(id){ const r = WEAPON_CONSTRAINTS[id]; return r || { mutexPairs:[], disableWhenUpgrade:{} }; }
-      function computeDisabledWeapons(unit, checked, activeUpgrades){ const rules=weaponConstraintsFor(unit.id); const disable=new Set(), hide=new Set(); (rules.mutexPairs||[]).forEach(([a,b])=>{ if(checked.includes(a)) disable.add(b); if(checked.includes(b)) disable.add(a); }); const upsActive = new Set(activeUpgrades||[]); Object.entries(rules.disableWhenUpgrade||{}).forEach(([upId,list])=>{ if(upsActive.has(upId)) list.forEach(n=>{ disable.add(n); hide.add(n); }); }); return { disable, hide }; }
-      function enforceWeaponConstraints(){ if(!editContext) return; const {fIdx,section,sIdx,uIdx}=editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(!unit) return; const checked=Array.from(document.querySelectorAll('.modal-weapon-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-name')); const activeUps = Array.from(document.querySelectorAll('.modal-upgrade-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id')).concat(Array.from(document.querySelectorAll('.modal-special-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id'))); const {disable, hide} = computeDisabledWeapons(unit, checked, activeUps); document.querySelectorAll('.modal-weapon-checkbox').forEach(cb=>{ const n=cb.getAttribute('data-name'); const row=cb.closest('tr'); const dis=disable.has(n); cb.disabled = dis; if(row){ row.style.opacity = dis ? 0.5 : ''; row.style.display = hide.has(n) ? 'none' : 'table-row'; } }); }
+      function computeDisabledWeapons(unit, checked, activeUpgrades){ const rules=weaponConstraintsFor(unit.id); const disable=new Set(), hide=new Set(); (rules.mutexPairs||[]).forEach(([a,b])=>{ if(checked.includes(a)) disable.add(b); if(checked.includes(b)) disable.add(a); }); const upsActive = new Set(activeUpgrades||[]); Object.entries(rules.disableWhenUpgrade||{}).forEach(([upId,list])=>{ if(upsActive.has(upId)) list.forEach(n=>{ disable.add(n); hide.add(n); }); }); const load=UNIT_LOADOUTS[unit.id]||{}; (load.upgrades||[]).forEach(u=>{ if(upsActive.has(u.id) && u.replaces){ const rList=u.replaces.split(',').map(s=>s.trim()); rList.forEach(n=>disable.add(n)); } }); return { disable, hide }; }
+      function enforceWeaponConstraints(){ if(!editContext) return; const {fIdx,section,sIdx,uIdx}=editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(!unit) return; const checked=Array.from(document.querySelectorAll('.modal-weapon-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-name')); const activeUps = Array.from(document.querySelectorAll('.modal-upgrade-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id')).concat(Array.from(document.querySelectorAll('.modal-special-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id'))); const {disable, hide} = computeDisabledWeapons(unit, checked, activeUps); document.querySelectorAll('.modal-weapon-checkbox').forEach(cb=>{ const n=cb.getAttribute('data-name'); const row=cb.closest('tr'); const dis=disable.has(n); cb.disabled = dis; if(dis && cb.checked){ cb.checked=false; } else if(!dis && !cb.checked && cb.getAttribute('data-base')==='true'){ cb.checked=true; } if(row){ row.style.opacity = dis ? 0.5 : ''; row.style.display = hide.has(n) ? 'none' : 'table-row'; } }); }
       function filterWepsByConstraints(unitId, weps, ups){ const rules=weaponConstraintsFor(unitId); let out=weps.slice(); (rules.mutexPairs||[]).forEach(([a,b])=>{ const hasA=out.find(w=>w.name===a); const hasB=out.find(w=>w.name===b); if(hasA&&hasB){ out = out.filter(w=>w.name!==b); } }); Object.entries(rules.disableWhenUpgrade||{}).forEach(([upId,list])=>{ if((ups||[]).some(u=>u.id===upId)) out = out.filter(w=>!list.includes(w.name)); }); return out; }
       const UPGRADE_EFFECTS = {};
       let RULE_NAME_CATALOG = [];
@@ -1134,6 +1164,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         'SkyFire':'Can target Flyers; -2 To Hit against non-Flyers',
         'Shieldbane':'Bypasses Void Shields even if AP is 0',
          'Heavy Barrage':'Acts as Barrage; can damage Structures',
+        'Bombing Run':'Attacks during movement; targets within 3"',
+        'Spore Launcher':'Target closest model in detachment. Roll 2D6 + scatter. If hit, detonates as Spore Mine.',
         'Hunger':'When enemy slain, attacker regains 1 wound (up to max)',
         'Bunker Buster':'AP counts as double against Structures',
         'Attract':'If target not killed, move closest model D6" towards attacker',
@@ -1236,6 +1268,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       function setModalUnitSizeLabel(models){ const root=document.getElementById('modal-root'); const lbl = root && root.querySelector('.modal-drawer #bsize-label'); if(!lbl) return; const {fIdx,section,sIdx,uIdx}=window.editContext||{}; const slot=(section==='special')?(armyFormations[fIdx]&&armyFormations[fIdx].special):(armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); const unit=slot&&slot.units&&slot.units[uIdx]; const pts=unit? unitPoints(unit) : ''; lbl.innerHTML = pts!=='' ? ('Unit size: ' + models + ' <span class="cost">' + pts + ' PTS</span>') : ('Unit size: ' + models); lbl.setAttribute('data-models', String(models)); }
       function scheduleUpdateTotals(){ try{ requestAnimationFrame(()=>updateModalTotals()); }catch(e){ setTimeout(updateModalTotals,0); } }
+      window.onModalUpgradeToggle = function(){ updateModalTotals(); enforceWeaponConstraints(); }
       function updateModalTotals(){
 
         const ptsEl = document.getElementById('modal-total-points');
@@ -1320,7 +1353,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         });
 
         if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot = (section==='special') ? armyFormations[fIdx].special : armyFormations[fIdx][section][sIdx]; const unit = slot && slot.units && slot.units[uIdx]; if(unit){ const models = Number(unit.models || (UNIT_DEFAULT_MODELS[unit.id]||1)); const totalPts = unitPoints(unit); const root=document.getElementById('modal-root'); const lbl = root && root.querySelector('.modal-drawer #bsize-label'); if(lbl){ lbl.innerHTML = 'Unit size: ' + models + ' <span class="cost">' + totalPts + ' PTS</span>'; lbl.setAttribute('data-models', String(models)); }
-          const sumEl = document.getElementById('modal-unit-summary'); if(sumEl){ const costEl=document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = totalPts + ' PTS'; const valBtn=document.getElementById('modal-unit-val'); if(valBtn) valBtn.textContent = String(models); const incLbl=document.getElementById('modal-inc-label'); const baseM=(UNIT_DEFAULT_MODELS[unit.id]||1); if(incLbl) incLbl.textContent = 'Increase by: +' + Math.max(0, models - baseM); } const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base); baseWeps.forEach(bw=>{ const rows = Array.from(document.querySelectorAll(`.modal-upgrade-row[data-replaces="${bw.name}"]`)); rows.forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); const sum = rows.reduce((s,r)=>{ const id=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+id); const v=Number(inp && inp.value || 0); return s+v; },0); const remain = Math.max(0, models - sum); const cb = Array.from(document.querySelectorAll('.modal-weapon-checkbox')).find(b=>b.getAttribute('data-name')===bw.name); if(cb){ cb.checked = remain>0; } const span = document.getElementById('base-rem-'+bw.id); if(span){ span.textContent = remain>0 ? `(x${remain})` : ''; } }); Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r=>{ const t=r.getAttribute('data-type')||''; return t.startsWith('WEAPON_SWAP'); }).forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); } }
+          const sumEl = document.getElementById('modal-unit-summary'); if(sumEl){ const costEl=document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = totalPts + ' PTS'; const valBtn=document.getElementById('modal-unit-val'); if(valBtn) valBtn.textContent = String(models); const incLbl=document.getElementById('modal-inc-label'); const baseM=(UNIT_DEFAULT_MODELS[unit.id]||1); if(incLbl) incLbl.textContent = 'Increase by: +' + Math.max(0, models - baseM); } const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base); baseWeps.forEach(bw=>{ const replacingRows = Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r => (r.getAttribute('data-replaces')||'').split(',').map(s=>s.trim()).includes(bw.name)); replacingRows.forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); const sum = replacingRows.reduce((s,r)=>{ const id=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+id); if(inp) return s + Number(inp.value||0); const cb = r.querySelector('.modal-upgrade-checkbox'); return s + (cb && cb.checked ? 1 : 0); },0); const remain = Math.max(0, models - sum); const cb = Array.from(document.querySelectorAll('.modal-weapon-checkbox')).find(b=>b.getAttribute('data-name')===bw.name); if(cb){ cb.checked = remain>0; } const span = document.getElementById('base-rem-'+bw.id); if(span){ span.textContent = remain>0 ? `(x${remain})` : ''; } }); Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r=>{ const t=r.getAttribute('data-type')||''; return t.startsWith('WEAPON_SWAP'); }).forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); } }
 
         if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(unit){ const bsize = (unit.upgrades||[]).find(u=> (u.type==='BROOD_SIZE' && String(u.id||'').startsWith('u_bsize_apply_')) ); if(bsize){ total += Number(bsize.points||0); } } }
         ptsEl.textContent = total + ' pts';
@@ -1552,12 +1585,15 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         if(isBrood){
           const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base);
           const grouped = {};
-          chosenUps.filter(u=> (u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED') && u.replaces).forEach(u=>{ const k=u.replaces; grouped[k]=grouped[k]||[]; grouped[k].push(u); });
+          chosenUps.filter(u=> (u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED') && u.replaces).forEach(u=>{ 
+            const keys = u.replaces.split(',').map(s=>s.trim());
+            keys.forEach(k=>{ grouped[k]=grouped[k]||[]; grouped[k].push(u); });
+          });
           weapons = [];
-          baseWeps.forEach(bw=>{ const ups = grouped[bw.name]||[]; let remaining = unit.models||1; ups.forEach(u=>{ const c = Math.max(0, Math.min(remaining, Number(u.count||0))); u.count = c; remaining -= c; if(u.grants && c>0){ const label = c>1 ? `${u.grants} (x${c})` : u.grants; weapons.push({ id:'auto_'+u.id, name: label, src:u.grants, points: 0 }); } }); const baseCount = Math.max(0, remaining); if(baseCount>0){ const baseLabel = baseCount>1 ? `${bw.name} (x${baseCount})` : bw.name; weapons.push({ id: bw.id, name: baseLabel, src: bw.src, points: 0 }); } });
+          baseWeps.forEach(bw=>{ const ups = grouped[bw.name]||[]; let remaining = unit.models||1; ups.forEach(u=>{ const c = Math.max(0, Math.min(remaining, Number(u.count||0))); u.count = c; remaining -= c; if(u.grants && c>0 && !u._grantAdded){ u._grantAdded=true; const label = c>1 ? `${u.grants} (x${c})` : u.grants; weapons.push({ id:'auto_'+u.id, name: label, src:u.grants, points: 0 }); } }); const baseCount = Math.max(0, remaining); if(baseCount>0){ const baseLabel = baseCount>1 ? `${bw.name} (x${baseCount})` : bw.name; weapons.push({ id: bw.id, name: baseLabel, src: bw.src, points: 0 }); } });
         } else {
           weapons = chosenWeps.slice();
-          chosenUps.forEach(u=>{ if(u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED'){ if(u.replaces){ weapons = weapons.filter(w=>w.name !== u.replaces); } if(u.grants){ const label = u.count && u.count>1 ? `${u.grants} (x${u.count})` : u.grants; const exists = weapons.some(w=>w.name === label); if(!exists){ weapons.push({ id:'auto_'+u.id, name: label, src:u.grants, points: 0 }); } } } });
+          chosenUps.forEach(u=>{ if(u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED'){ if(u.replaces){ const rList=u.replaces.split(',').map(s=>s.trim()); weapons = weapons.filter(w=>!rList.includes(w.name)); } if(u.grants){ const label = u.count && u.count>1 ? `${u.grants} (x${u.count})` : u.grants; const exists = weapons.some(w=>w.name === label); if(!exists){ weapons.push({ id:'auto_'+u.id, name: label, src:u.grants, points: 0 }); } } } });
         }
         weapons = filterWepsByConstraints(unit.id, weapons, chosenUps);
 
@@ -1597,7 +1633,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
       function renderModal(){
-
+        window._modalUnitRef = null;
         const root = document.getElementById('modal-root'); window._lastFocused = document.activeElement; root.innerHTML = ''; if(!editContext) return;
 
         const {fIdx,section,sIdx,uIdx} = editContext;
@@ -1634,7 +1670,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
           const display = initialHasSwarm && (w.name === 'Venom Cannon' || w.name === 'Barbed Strangler') ? 'style="display:none"' : '';
 
-          return `<tr class="modal-weapon-row" data-weapon="${w.name}" ${display}><td style="width:auto"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="modal-weapon-checkbox" data-id="${w.id}" data-name="${w.name}" data-src="${w.src}" data-points="${pts}" ${checked ? 'checked' : ''}/> ${w.name}${w.base && (unit.models||1)>1 ? ' <span id="base-rem-'+w.id+'" class="muted small"></span>' : ''}</label></td>${statCols}</tr>`;
+          return `<tr class="modal-weapon-row" data-weapon="${w.name}" ${display}><td style="width:auto"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="modal-weapon-checkbox" data-id="${w.id}" data-name="${w.name}" data-src="${w.src}" data-points="${pts}" data-base="${w.base}" ${checked ? 'checked' : ''}/> ${w.name}${w.base && (unit.models||1)>1 ? ' <span id="base-rem-'+w.id+'" class="muted small"></span>' : ''}</label></td>${statCols}</tr>`;
 
         }).join('');
 
@@ -1671,13 +1707,40 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const isBroodlord = /broodlord/i.test(u.name||'');
           if(isBroodlord){ const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord'); maxCount = count>0 ? 1 : Math.max(0, 1 - others); }
           const stat = u.grants ? (WEAPON_LIBRARY[u.grants] || {}) : {};
+          if(tableUpGrants.has(String(stat.name||'').toLowerCase())) return '';
+          tableUpGrants.add(String(stat.name||'').toLowerCase());
           const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
           const control = u.type==='BROOD_SIZE'
             ? `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${(UNIT_BROOD_STEP[unit.id]||1)} models (+${UNIT_BROOD_POINTS[unit.id]??(u.points||0)} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${UNIT_BROOD_POINTS[unit.id]??(u.points||0)}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
-            : `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',-1)">−</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',1)" ${count>=maxCount ? 'disabled' : ''}>+</button><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`;
+            : (u.replaces ? 
+                `<div style="display:none"><input id="upcnt-${u.id}" class="modal-upgrade-count" type="number" value="${count}" data-points="${u.points||0}"/></div>` 
+                : `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',-1)">−</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',1)" ${count>=maxCount ? 'disabled' : ''}>+</button><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
+              );
           const displayName = (u.grants||'') || (u.name||'').replace(/^Replace\s+.*\s+with\s+/,'');
           const displayModelName = (u.type==='MODEL_UPGRADE') ? (String(u.name||'').replace(/^Replace\s+.*\s+with\s+/,'').replace(/\(Model Upgrade\)/i,'').trim() || 'Upgrade') : displayName;
-          const nameCell = `<td><div style="font-weight:600">${displayModelName}</div><div class="small muted">${u.limit||''}</div>${control}</td>`;
+          
+          let nameCell;
+          if(u.replaces){
+             // Render as Checkbox for swaps
+             const checked = count > 0;
+             // We need to render a checkbox that acts as the upgrade toggle.
+             // But the 'control' variable above is used for 'count' based upgrades?
+             // Wait, if I use checkbox, I don't need the 'control' buttons.
+             // But I DO need the 'modal-upgrade-checkbox' class for save logic.
+             // And I need to handle the 'count' logic? 
+             // If I use 'modal-upgrade-checkbox', saveEditFromModal treats it as count=1 (or based on logic).
+             // Actually saveEditFromModal logic:
+             // checked.forEach(cb => { ... u.count = ... })
+             // It sets count to models? No.
+             // Line 1533: const existing = unit.upgrades.find...
+             // It adds it to chosenUps.
+             // Then line 1572 logic uses chosenUps.
+             // If I use checkbox, I don't need 'modal-upgrade-count' input.
+             
+             nameCell = `<td><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" ${checked ? 'checked' : ''} onchange="onModalUpgradeToggle()"/> ${displayModelName}</label><div class="small muted">${u.limit||''}</div></td>`;
+          } else {
+             nameCell = `<td><div style="font-weight:600">${displayModelName}</div><div class="small muted">${u.limit||''}</div>${control}</td>`;
+          }
           const basePts = u.type==='BROOD_SIZE' ? (UNIT_BROOD_POINTS[unit.id]??(u.points||0)) : (u.points||0);
           return `<tr class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" data-name="${u.name}">${nameCell}${statCols}<td class="cost">${(count>0? (count*basePts) : basePts)} pts</td></tr>`;
         }).join('');
@@ -1957,6 +2020,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             </div>
           </div>
         `;
+        enforceWeaponConstraints();
         window.bumpUpgradeCount = bumpUpgradeCount;
         try{ const drawer=document.querySelector('.modal-drawer'); if(drawer){ trapFocus(drawer); setTimeout(()=>{ const first=drawer.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'); if(first && first.focus) first.focus(); },0); } }catch(e){}
         (function bindHeaderControls(){ try{ const dec=document.getElementById('modal-unit-dec'); const inc=document.getElementById('modal-unit-inc'); if(dec) dec.addEventListener('click', ()=>window.headerModelBump(-1)); if(inc) inc.addEventListener('click', ()=>window.headerModelBump(1)); }catch(e){} })();
@@ -2002,6 +2066,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
       const RECENT_UPDATES = [
+        { date: '2026-01-22', text: 'Update: All units with Flyer rule now default to 32mm base size.' },
+        { date: '2026-01-22', text: 'Added Harpy Brood to Tyranid army list (Flyer Support).' },
         { date: '2026-01-22', text: 'Added Guest Mode with local storage support.' },
         { date: '2026-01-22', text: 'Implemented seamless Local-to-Cloud list transfer.' },
         { date: '2026-01-22', text: 'Improved UI readability for Detachment and Army rules.' },
