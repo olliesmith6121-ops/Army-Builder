@@ -444,6 +444,8 @@
       let activeTab = 'home';
 
       let selectedArmy = 'Select Army';
+      let selectedAutoStyle = 'All Round';
+      let styleComposition = {}; // Stores weights per role
 
       let selectedFormationName = 'Select a Formation';
 
@@ -504,6 +506,98 @@
         // "Eldar": { formations: ["Craftworld Defenders Warhost","Aspect Warhost","Strike Warhost","Engines of Vaul Warhost","Wraith Warhost"] },
         // "Orks": { formations: ["Warband","Speed Freaks","Blood Axes Warband","Snakebites Warband"] }
       };
+
+      const ARMY_STYLES = {
+        "All Round": { HQ: 1, Synapse: 1, Core: 3, Support: 2, Vanguard: 1, BattleTank: 2, Artillery: 1, AirSupport: 1, Flyer: 1, Titan: 0, Biotitan: 0, SuperHeavy: 0, HeavyArmor: 0, Transport: 1, Knight: 0 },
+        "Skirmish": { HQ: 1, Synapse: 1, Core: 2, Support: 2, Vanguard: 3, BattleTank: 0, Artillery: 0, AirSupport: 1, Flyer: 1, Titan: 0, Biotitan: 0, SuperHeavy: 0, HeavyArmor: 0, Transport: 3, Knight: 0 },
+        "Hit & Run": { HQ: 1, Synapse: 1, Core: 1, Support: 2, Vanguard: 4, BattleTank: 0, Artillery: 0, AirSupport: 2, Flyer: 2, Titan: 0, Biotitan: 0, SuperHeavy: 0, HeavyArmor: 0, Transport: 3, Knight: 0 },
+        "Air Support": { HQ: 1, Synapse: 1, Core: 1, Support: 1, Vanguard: 0, BattleTank: 0, Artillery: 0, AirSupport: 5, Flyer: 5, Titan: 0, Biotitan: 0, SuperHeavy: 0, HeavyArmor: 0, Transport: 2, Knight: 0 },
+        "Super Heavy": { HQ: 1, Synapse: 1, Core: 1, Support: 0, Vanguard: 0, BattleTank: 2, Artillery: 0, AirSupport: 0, Flyer: 0, Titan: 1, Biotitan: 1, SuperHeavy: 4, HeavyArmor: 4, Transport: 0, Knight: 2 },
+        "Titans": { HQ: 1, Synapse: 1, Core: 0, Support: 0, Vanguard: 0, BattleTank: 0, Artillery: 0, AirSupport: 0, Flyer: 0, Titan: 5, Biotitan: 5, SuperHeavy: 0, HeavyArmor: 0, Transport: 0, Knight: 3 },
+        "Troops": { HQ: 1, Synapse: 1, Core: 5, Support: 2, Vanguard: 1, BattleTank: 1, Artillery: 1, AirSupport: 0, Flyer: 0, Titan: 0, Biotitan: 0, SuperHeavy: 0, HeavyArmor: 0, Transport: 1, Knight: 0 },
+        "Elite": { HQ: 2, Synapse: 2, Core: 1, Support: 1, Vanguard: 5, BattleTank: 1, Artillery: 0, AirSupport: 0, Flyer: 0, Titan: 0, Biotitan: 0, SuperHeavy: 0, HeavyArmor: 0, Transport: 1, Knight: 0 }
+      };
+
+      // TACTICAL DEFINITIONS
+      const UNIT_TACTICS = {}; // Cache for unit scores
+      
+      function analyzeUnitTactics(unitId) {
+          if(UNIT_TACTICS[unitId]) return UNIT_TACTICS[unitId];
+          
+          const u = UNIT_BASE[unitId];
+          if(!u) return {};
+          
+          const scores = {
+              "Hit & Run": 0,
+              "Defensive Anchor": 0,
+              "Fire Support": 0,
+              "Assault Shock": 0
+          };
+          
+          // Helper: Parse stat
+          const getMove = () => {
+              const m = String(u.movement||"0").match(/(\d+)/);
+              return m ? Number(m[1]) : 0;
+          };
+          const getSave = () => {
+              const s = String(u.save||"7+").match(/(\d+)/);
+              return s ? Number(s[1]) : 7;
+          };
+          const getCAF = () => {
+             const c = String(u.CAF||"+0").match(/([+-]?\d+)/);
+             return c ? Number(c[1]) : 0;
+          };
+          
+          const move = getMove();
+          const save = getSave(); // Lower is better
+          const caf = getCAF();
+          const rules = (UNIT_LOADOUTS[unitId]?.specialRules || []).join(' ').toLowerCase();
+          
+          // 1. Hit & Run (Speed, Flyer, Transport)
+          if(move >= 10) scores["Hit & Run"] += 30;
+          else if(move >= 8) scores["Hit & Run"] += 15;
+          if(rules.includes('flyer')) scores["Hit & Run"] += 40;
+          if(rules.includes('skimmer') || rules.includes('hover')) scores["Hit & Run"] += 20;
+          if(rules.includes('transport')) scores["Hit & Run"] += 25;
+          if(rules.includes('infiltrate') || rules.includes('scout')) scores["Hit & Run"] += 20;
+          if(rules.includes('deep strike')) scores["Hit & Run"] += 15;
+          
+          // 2. Defensive Anchor (Save, Wounds, Shields)
+          if(save <= 3) scores["Defensive Anchor"] += 40;
+          else if(save <= 4) scores["Defensive Anchor"] += 20;
+          if(u.wounds >= 3) scores["Defensive Anchor"] += 30;
+          if(rules.includes('invulnerable') || rules.includes('shield')) scores["Defensive Anchor"] += 25;
+          if(rules.includes('regenerate')) scores["Defensive Anchor"] += 20;
+          if(rules.includes('armored')) scores["Defensive Anchor"] += 15;
+
+          // 3. Fire Support (Range? - Harder without weapon stats easily access, assume Role/Keywords)
+          // We can check if unit has long range weapons in default loadout
+          const weapons = UNIT_LOADOUTS[unitId]?.weapons || [];
+          let maxRange = 0;
+          weapons.forEach(w => {
+              const lib = WEAPON_LIBRARY[w.src];
+              if(lib) {
+                  const r = String(lib.range||"0");
+                  if(r !== '-' && r !== 'Melee') {
+                      const dist = Number(r.match(/(\d+)/)?.[1] || 0);
+                      if(dist > maxRange) maxRange = dist;
+                  }
+              }
+          });
+          if(maxRange >= 48) scores["Fire Support"] += 50;
+          else if(maxRange >= 24) scores["Fire Support"] += 25;
+          if(u.type === 'ARTILLERY') scores["Fire Support"] += 40;
+          
+          // 4. Assault Shock (CAF, Melee Rules)
+          if(caf >= 6) scores["Assault Shock"] += 40;
+          else if(caf >= 3) scores["Assault Shock"] += 20;
+          if(rules.includes('furious charge')) scores["Assault Shock"] += 25;
+          if(rules.includes('rampage')) scores["Assault Shock"] += 20;
+          if(rules.includes('assault')) scores["Assault Shock"] += 15;
+          
+          UNIT_TACTICS[unitId] = scores;
+          return scores;
+      }
 
       let UNIT_DEFAULT_MODELS = { 'hive-tyrant':1, 'tyranid-warrior':3, 'termagant':6, 'hormagaunt':6, 'genestealer':6, 'harpy':1, 'mycetic-spores':1, 'carnifex':1, 'exocrine':1, 'tyrannofex':1, 'dominatrix':1 };
       let UNIT_MAX_MODELS = { 'termagant':12, 'hormagaunt':12, 'genestealer':12 };
@@ -3491,6 +3585,421 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
+      function openAutoGenerateModal(){
+        const root = document.getElementById('modal-root');
+        const armyOptions = Object.keys(ARMIES).map(a => `<option value="${a}" ${a === selectedArmy ? 'selected' : ''}>${a}</option>`).join('');
+        const styleOptions = Object.keys(ARMY_STYLES).map(s => `<option value="${s}" ${s === selectedAutoStyle ? 'selected' : ''}>${s}</option>`).join('');
+
+        if(!styleComposition || Object.keys(styleComposition).length === 0) {
+           styleComposition = JSON.parse(JSON.stringify(ARMY_STYLES[selectedAutoStyle] || ARMY_STYLES['All Round']));
+        }
+        
+        root.innerHTML = `
+          <div class="modal-backdrop" onclick="closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+              <h3>Auto Generate Army</h3>
+              <div style="margin-bottom:16px; color:#cbd5e1">
+                Configure your army settings below. This will generate a random valid list based on your criteria.
+              </div>
+              
+              <div class="form-group">
+                <label>Faction</label>
+                <select id="auto-gen-faction" class="form-control" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:8px; width:100%; border-radius:4px">
+                  ${armyOptions}
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-top:12px">
+                <label>Army Tactic</label>
+                <select id="auto-gen-style" class="form-control" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:8px; width:100%; border-radius:4px" onchange="updateAutoGenerateStyle(this.value)">
+                  ${styleOptions}
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-top:12px">
+                <label>Unit Composition Weights</label>
+                <div id="auto-gen-composition" style="max-height: 200px; overflow-y: auto; border: 1px solid #374151; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2);">
+                  <!-- Composition inputs go here -->
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top:12px">
+                <label>List Name</label>
+                <input id="auto-gen-name" type="text" class="form-control" value="${builderMeta.name || 'Auto Army'}" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:8px; width:100%; border-radius:4px"/>
+              </div>
+
+              <div class="form-group" style="margin-top:12px">
+                <label>Points Limit</label>
+                <input id="auto-gen-points" type="number" class="form-control" value="${builderMeta.pointsCap || 2000}" min="500" max="5000" step="500" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:8px; width:100%; border-radius:4px" onchange="const v=Number(this.value); if(v<500)this.value=500; if(v>5000)this.value=5000;"/>
+              </div>
+
+              <div class="modal-actions" style="margin-top:24px; display:flex; justify-content:flex-end; gap:12px">
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-green" onclick="handleAutoGenerateConfirm()">Generate</button>
+              </div>
+            </div>
+          </div>
+        `;
+        updateAutoGenerateCompositionView();
+      }
+
+      function updateAutoGenerateStyle(val) {
+        selectedAutoStyle = val;
+        styleComposition = JSON.parse(JSON.stringify(ARMY_STYLES[val] || ARMY_STYLES['All Round']));
+        updateAutoGenerateCompositionView();
+        
+        // Auto-update name
+        const nameInput = document.getElementById('auto-gen-name');
+        if(nameInput) {
+            const current = nameInput.value;
+            // Only update if it's the default or matches a previous style name
+            if(current === 'Auto Army' || Object.keys(ARMY_STYLES).includes(current)) {
+                nameInput.value = val;
+            }
+        }
+      }
+
+      function updateAutoGenerateCompositionView() {
+        const container = document.getElementById('auto-gen-composition');
+        if(!container) return;
+        
+        const html = Object.entries(styleComposition).map(([role, weight]) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+                <label style="font-size:12px; color:#cbd5e1; width: 100px;">${role}</label>
+                <input type="range" min="0" max="10" value="${weight}" 
+                    oninput="this.nextElementSibling.value = this.value; styleComposition['${role}'] = Number(this.value)"
+                    style="flex-grow: 1; margin: 0 8px;" />
+                <input type="number" min="0" max="10" value="${weight}" 
+                    onchange="this.previousElementSibling.value = this.value; styleComposition['${role}'] = Number(this.value)"
+                    style="width:40px; background:#1f2937; color:#fff; border:1px solid #374151; padding:4px; border-radius:4px; text-align:center" />
+            </div>
+        `).join('');
+        
+        container.innerHTML = html;
+      }
+
+      function generateRandomArmy(faction, pointsCap, styleWeights) {
+          // 1. Initialize
+          armyFormations = [];
+          const MAX_RETRIES = 10;
+          const TOLERANCE = 50;
+          let currentPoints = 0;
+          
+          // Helper to get formation definitions for faction
+          const availForms = ARMIES[faction]?.formations || [];
+          if (!availForms.length) {
+              alert('No formations available for this faction.');
+              return;
+          }
+
+          // 2. Add Primary Formation
+          // Pick based on style? For now random from available
+          const primaryName = availForms[Math.floor(Math.random() * availForms.length)];
+          // addFormationByName(primaryName); // REMOVED: Caused ReferenceError, using manual creation below
+          
+          // We will manipulate armyFormations directly.
+          
+          // Reset formations for clean generation
+          armyFormations = [];
+          
+          function createFormation(name) {
+              const rules = FORMATIONS[name];
+              if (!rules) return null;
+              
+              // Deep copy structure
+              return {
+                  name: name,
+                  army: faction,
+                  compulsory: JSON.parse(JSON.stringify(rules.compulsory || [])),
+                  optional: JSON.parse(JSON.stringify(rules.optional || [])),
+                  special: rules.special ? JSON.parse(JSON.stringify(rules.special)) : null,
+                  rules: rules.rules || [],
+                  collapsed: false
+              };
+          }
+
+          const f1 = createFormation(primaryName);
+          if(f1) armyFormations.push(f1);
+          
+          // 3. Fill Compulsory Slots
+          armyFormations.forEach(f => {
+              (f.compulsory || []).forEach(slot => {
+                  const valid = unitsFor(slot.type); // unitsFor uses selectedArmy global
+                  if (valid.length) {
+                      // Strategy: Balance cheapness with tactical fit
+                      // 1. Calculate tactical score for each unit
+                      const scored = valid.map(u => {
+                          const tac = analyzeUnitTactics(u.id);
+                          const styleScore = tac[selectedAutoStyle] || 0;
+                          return { u, score: styleScore, points: Number(UNIT_BASE[u.id]?.points)||0 };
+                      });
+
+                      // 2. Filter out overly expensive units (e.g. > 25% of points cap for a single compulsory slot)
+                      // unless it's the only option.
+                      const threshold = pointsCap * 0.25;
+                      let candidates = scored.filter(x => x.points < threshold);
+                      if (candidates.length === 0) candidates = scored; // Fallback
+
+                      // 3. Sort by Score descending, then Points ascending
+                      candidates.sort((a,b) => {
+                          if (Math.abs(b.score - a.score) > 20) return b.score - a.score; // Significant tactical advantage wins
+                          return a.points - b.points; // Otherwise save points
+                      });
+                      
+                      const pick = candidates[0].u;
+                      // Create unit instance
+                      const uInstance = createUnitInstance(pick.id);
+                      slot.units = [uInstance];
+                  }
+              });
+          });
+
+          // Recalculate points
+          currentPoints = armyFormations.reduce((s,f) => s + formationPoints(f), 0);
+
+          // 4. Fill Loop
+          let loopCount = 0;
+          while (currentPoints < pointsCap - TOLERANCE && loopCount < 100) {
+              loopCount++;
+              
+              // Identify Candidates
+              const candidates = [];
+              
+              // A. Add Unit to Optional Slot
+              armyFormations.forEach((f, fIdx) => {
+                  (f.optional || []).forEach((slot, sIdx) => {
+                      // Check if slot is empty (assuming 1 unit per slot for now unless merged)
+                      // Logic: standard slots take 1 unit.
+                      if (!slot.units || slot.units.length === 0) {
+                          const valid = unitsFor(slot.type);
+                          valid.forEach(uDef => {
+                              const cost = Number(UNIT_BASE[uDef.id]?.points) || 0;
+                              if (currentPoints + cost <= pointsCap) {
+                                  // Analyze Tactics
+                                  const tac = analyzeUnitTactics(uDef.id);
+                                  const tacticalScore = tac[selectedAutoStyle] || 0;
+                                  
+                                  candidates.push({
+                                      type: 'ADD_UNIT',
+                                      fIdx, sIdx, slotType: 'optional',
+                                      unitId: uDef.id,
+                                      cost: cost,
+                                      role: uDef.slotType, // e.g. Core, HQ
+                                      tacticalScore: tacticalScore
+                                  });
+                              }
+                          });
+                      }
+                  });
+              });
+
+              // B. Upgrade Existing Units (Brood size)
+              armyFormations.forEach((f, fIdx) => {
+                 ['compulsory','optional'].forEach(sec => {
+                     (f[sec]||[]).forEach((slot, sIdx) => {
+                         (slot.units||[]).forEach((u, uIdx) => {
+                             // Check for BROOD_SIZE upgrades
+                             const loadout = UNIT_LOADOUTS[u.id];
+                             if(!loadout) return;
+                             (loadout.upgrades||[]).forEach(up => {
+                                 if(up.type === 'BROOD_SIZE') {
+                                     // Check if we can add more
+                                     // Current models
+                                     const currentModels = u.models || u.baseModels || UNIT_DEFAULT_MODELS[u.id] || 1;
+                                     const max = up.maxModels || UNIT_MAX_MODELS[u.id] || 100;
+                                     if (currentModels < max) {
+                                         const cost = up.points; // Per step
+                                         if (currentPoints + cost <= pointsCap) {
+                                              // Tactical score for upgrade? 
+                                              // Assume adding more of a "good" unit is good.
+                                              const tac = analyzeUnitTactics(u.id);
+                                              const tacticalScore = tac[selectedAutoStyle] || 0;
+
+                                              candidates.push({
+                                                  type: 'UPGRADE_SIZE',
+                                                  fIdx, sec, sIdx, uIdx,
+                                                  unitId: u.id,
+                                                  cost: cost,
+                                                  role: slot.type,
+                                                  upgradeId: up.id,
+                                                  delta: up.modelsDelta || 1,
+                                                  tacticalScore: tacticalScore
+                                              });
+                                         }
+                                     }
+                                 }
+                             });
+                         });
+                     });
+                 });
+              });
+              
+              // C. Add New Formation (if we have lots of points)
+              if (pointsCap - currentPoints > 600) { // arbitrary threshold
+                  availForms.forEach(fname => {
+                       // Estimate min cost of formation
+                       // For simplicity, assume ~200-300.
+                       // We'll just add candidate.
+                       candidates.push({
+                           type: 'ADD_FORMATION',
+                           name: fname,
+                           cost: 300, // Estimate
+                           role: 'Formation',
+                           tacticalScore: 0 // Formations themselves don't have score yet, maybe avg of compulsory?
+                       });
+                  });
+              }
+
+              if (candidates.length === 0) break;
+
+              // Synergy Cache
+              const existingKeywords = new Set();
+              armyFormations.forEach(f => {
+                  ['compulsory','optional','special'].forEach(k => {
+                      if(f[k] && Array.isArray(f[k])) {
+                          f[k].forEach(slot => {
+                              (slot.units||[]).forEach(u => {
+                                  (UNIT_LOADOUTS[u.id]?.specialRules || []).forEach(r => existingKeywords.add(r.split('(')[0].trim().toLowerCase()));
+                                  existingKeywords.add(u.type); // e.g. INFANTRY
+                              });
+                          });
+                      } else if(f.special && f.special.units) {
+                          f.special.units.forEach(u => {
+                              (UNIT_LOADOUTS[u.id]?.specialRules || []).forEach(r => existingKeywords.add(r.split('(')[0].trim().toLowerCase()));
+                          });
+                      }
+                  });
+              });
+
+              // Scoring
+              candidates.forEach(c => {
+                  let score = 0;
+                  
+                  // 1. Role Weight (Base)
+                  const roleWeight = styleWeights[c.role] || styleWeights['Core'] || 1; 
+                  score += roleWeight * 10;
+                  
+                  // 2. Tactical Bonus (The big new feature)
+                  // If unit fits archetype, boost significantly
+                  score += (c.tacticalScore || 0) * 1.5;
+
+                  // 3. Synergy/Variety
+                  // Prefer filling empty slots over upgrades slightly
+                  if (c.type === 'ADD_UNIT') {
+                      score += 5;
+                      
+                      // Synergy Check
+                      if(c.unitId) {
+                          const rules = (UNIT_LOADOUTS[c.unitId]?.specialRules || []).map(r => r.split('(')[0].trim().toLowerCase());
+                          let synergy = 0;
+                          rules.forEach(r => {
+                              if(existingKeywords.has(r)) synergy += 1;
+                          });
+                          score += Math.min(synergy, 5); // Cap synergy bonus
+                      }
+                  }
+                  
+                  // Random Factor (keep it interesting)
+                  score += Math.random() * 15;
+                  
+                  c.score = score;
+              });
+
+              // Pick Winner
+              candidates.sort((a,b) => b.score - a.score);
+              const winner = candidates[0];
+
+              // Execute
+              if (winner.type === 'ADD_UNIT') {
+                  const uInstance = createUnitInstance(winner.unitId);
+                  armyFormations[winner.fIdx].optional[winner.sIdx].units = [uInstance];
+              } else if (winner.type === 'UPGRADE_SIZE') {
+                  const u = armyFormations[winner.fIdx][winner.sec][winner.sIdx].units[winner.uIdx];
+                  // Mark upgrade as applied?
+                  // The system uses u.upgrades array {id, count}
+                  u.upgrades = u.upgrades || [];
+                  const existing = u.upgrades.find(x => x.id === winner.upgradeId);
+                  if (existing) {
+                      existing.count = (existing.count || 0) + 1;
+                  } else {
+                      u.upgrades.push({ id: winner.upgradeId, count: 1 });
+                  }
+                  
+                  // Update models count on instance for quick calculation
+                  u.models = (u.models || (u.baseModels || UNIT_DEFAULT_MODELS[u.id] || 1)) + winner.delta;
+              } else if (winner.type === 'ADD_FORMATION') {
+                  const nf = createFormation(winner.name);
+                  if(nf) {
+                      // Must fill compulsory immediately to be valid?
+                      // Yes, let's fill compulsory for new formation immediately
+                      // If points exceed, we revert.
+                      let tempCost = 0;
+                      nf.compulsory.forEach(slot => {
+                          const valid = unitsFor(slot.type).sort((a,b) => (Number(UNIT_BASE[a.id]?.points)||0) - (Number(UNIT_BASE[b.id]?.points)||0));
+                          if(valid.length) {
+                              const pick = valid[0];
+                              tempCost += (Number(UNIT_BASE[pick.id]?.points)||0);
+                              slot.units = [createUnitInstance(pick.id)];
+                          }
+                      });
+                      
+                      if (currentPoints + tempCost <= pointsCap) {
+                          armyFormations.push(nf);
+                      }
+                  }
+              }
+              
+              // Recalc
+              currentPoints = armyFormations.reduce((s,f) => s + formationPoints(f), 0);
+          }
+          
+          renderContent();
+          saveState();
+      }
+
+      function createUnitInstance(unitId) {
+          // Helper to create a fresh unit object
+          const base = UNIT_BASE[unitId] || {};
+          const defModels = UNIT_DEFAULT_MODELS[unitId] || 1;
+          return {
+              id: unitId,
+              name: base.name || unitId, // Should use slugToName if name missing
+              models: defModels,
+              baseModels: defModels,
+              points: base.points,
+              upgrades: [],
+              _uuid: Math.random().toString(36).substr(2, 9) // Unique ID for UI handling
+          };
+      }
+
+      function handleAutoGenerateConfirm(){
+        const faction = document.getElementById('auto-gen-faction').value;
+        const name = document.getElementById('auto-gen-name').value;
+        const points = Number(document.getElementById('auto-gen-points').value);
+
+        if(faction === 'Select Army'){
+          alert('Please select a faction.');
+          return;
+        }
+
+        // Update Builder State
+        selectedArmy = faction;
+        builderMeta.name = name;
+        builderMeta.pointsCap = points;
+
+        // Ensure data is loaded
+        loadConsolidatedArmyMaster(faction).then(() => {
+             console.log('Generating army for:', faction, name, points);
+             console.log('Selected Style:', selectedAutoStyle);
+             console.log('Composition:', styleComposition);
+             
+             generateRandomArmy(faction, points, styleComposition);
+             
+             closeModal();
+             // renderContent handled in generate
+        });
+      }
+
       function renderArmyBuilder(){
         const armyOptions = Object.keys(ARMIES).map(a => `<option value="${a}" ${a === selectedArmy ? 'selected' : ''}>${a}</option>`).join('');
         const formationList = ARMIES[selectedArmy]?.formations || [];
@@ -3502,6 +4011,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         
         const cap = builderMeta.pointsCap || 2000;
         const diff = listTotal - cap;
+        const autoGenBtn = (armyFormations.length === 0) ? `<button class="btn btn-sm btn-blue" style="margin-left:12px" onclick="openAutoGenerateModal()">Auto Generate</button>` : '';
         let warnHtml = '';
         if(diff > 0) {
           warnHtml = `<span style="color:#ef4444;margin-left:8px;font-weight:bold">Game Size Exceeded: +${diff}</span>`;
@@ -3513,7 +4023,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           <div style="padding:12px">
             <div class="crumbs small muted">Lists › Builder</div>
             <div class="builder-bar">
-              <div class="builder-controls-row"><label class="small muted">Faction</label><select class="select-compact" onchange="handleArmySelection(this.value)">${armyOptions}</select><label class="small muted">Name</label><input class="mini-input" value="${builderMeta.name}" onchange="setBuilderName(this.value)"/><label class="small muted">Game size</label><input type="number" class="mini-input" value="${builderMeta.pointsCap}" onchange="setBuilderPoints(this.value)"/> pts </div>
+              <div class="builder-controls-row"><label class="small muted">Faction</label><select class="select-compact" onchange="handleArmySelection(this.value)">${armyOptions}</select><label class="small muted">Name</label><input class="mini-input" value="${builderMeta.name}" onchange="setBuilderName(this.value)"/><label class="small muted">Game size</label><input type="number" class="mini-input" value="${builderMeta.pointsCap}" onchange="setBuilderPoints(this.value)"/> pts ${autoGenBtn}</div>
               <div class="summary small">Formations: ${armyFormations.length} • Total: ${listTotal} pts • Total models: ${listModels}${warnHtml}</div>
             </div>
             <div class="builder-controls"><select id="formation-select" class="select-compact" onchange="handleFormationSelection(this.value)">${formationOptions}</select><button class="btn btn-green btn-sm" onclick="addFormation()">+ Add Formation</button></div>
