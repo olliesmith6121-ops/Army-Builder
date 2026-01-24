@@ -1965,7 +1965,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
         let chosenUps = upBoxes.filter(b=>b.checked).map(b=>{
 
-          return { id: b.getAttribute('data-id'), name: b.getAttribute('data-name'), points: Number(b.getAttribute('data-points')||0), desc: b.getAttribute('data-desc')||'', type: b.getAttribute('data-type')||'', replaces: b.getAttribute('data-replaces')||'', grants: b.getAttribute('data-grants')||'', limit: b.getAttribute('data-limit')||'', detachmentSize: Number(b.getAttribute('data-detach')||0) };
+          return { id: b.getAttribute('data-id'), name: b.getAttribute('data-name'), points: Number(b.getAttribute('data-points')||0), desc: b.getAttribute('data-desc')||'', type: b.getAttribute('data-type')||'', replaces: b.getAttribute('data-replaces')||'', grants: b.getAttribute('data-grants')||'', limit: b.getAttribute('data-limit')||'', detachmentSize: Number(b.getAttribute('data-detach')||0), maxModels: Number(b.getAttribute('data-maxmodels')||0) };
 
         });
 
@@ -1991,7 +1991,16 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const grants = row ? (row.getAttribute('data-grants') || '') : (inp.getAttribute('data-grants') || '');
           const detach = row ? Number(row.getAttribute('data-detach')||0) : Number(inp.getAttribute('data-detach')||0);
           const obj = { id, name, points: base * cnt, desc: '', type, replaces, grants, limit:'', detachmentSize: detach, count: cnt };
-          if(type==='BROOD_SIZE'){ const step = Number(inp.getAttribute('data-step') || (UNIT_BROOD_STEP && UNIT_BROOD_STEP[unit.id]) || 1); obj.modelsDeltaTotal = step * cnt; obj.maxModels = (UNIT_MAX_MODELS && UNIT_MAX_MODELS[unit.id]) || 0; }
+          if(type==='BROOD_SIZE'){
+             const step = Number(inp.getAttribute('data-step') || (UNIT_BROOD_STEP && UNIT_BROOD_STEP[unit.id]) || 1);
+             obj.modelsDeltaTotal = step * cnt;
+             
+             // Try to find existing maxModels from checkbox
+             const cb = document.querySelector(`.modal-upgrade-checkbox[data-id="${id}"]`);
+             const explicitMax = cb ? Number(cb.getAttribute('data-maxmodels')||0) : 0;
+             
+             obj.maxModels = explicitMax || ((UNIT_MAX_MODELS && UNIT_MAX_MODELS[unit.id]) || 0); 
+          }
           return obj;
         }).filter(u=>u.count>0);
         // merge countedUps into chosenUps (override points/count/models delta)
@@ -2007,17 +2016,25 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const mInput = document.getElementById('modal-models-input');
         if(mInput){ let val = Number(mInput.value||0); const min = Number(mInput.getAttribute('min')||1); const max = Number(mInput.getAttribute('max')||val); const step = Number(mInput.getAttribute('step')||1); if(val<min) val=min; if(val>max) val=max; if(step>1){ const offset = (val - min) % step; val = val - offset; } unit.models = val; unit.baseModels = unit.baseModels || min; } else {
           const baseM = (UNIT_DEFAULT_MODELS[unit.id]||unit.baseModels||1);
-          const stepM = (UNIT_BROOD_STEP[unit.id]||1);
-          const maxM = (UNIT_MAX_MODELS[unit.id]||baseM);
-          let curM = Number(unit.models||baseM);
-          if(curM<baseM) curM=baseM; if(curM>maxM) curM=maxM;
-          unit.models = curM;
-          const inc = Math.max(0, Math.floor((curM - baseM)/stepM));
-          const cost = (UNIT_BROOD_POINTS[unit.id]||0);
-          const upId = 'u_bsize_apply_'+unit.id;
-          const entry = { id: upId, name:'Brood size', points: inc*cost, type:'BROOD_SIZE', count: inc, modelsDeltaTotal: inc*stepM, maxModels: maxM };
-          const idx = chosenUps.findIndex(u=>u.id===upId);
-          if(idx>-1){ chosenUps[idx] = entry; } else if(inc>0){ chosenUps.push(entry); }
+          const explicitBrood = chosenUps.filter(u=>u.type==='BROOD_SIZE' && !u.id.startsWith('u_bsize_apply_'));
+
+          if(explicitBrood.length > 0){
+             let delta = 0;
+             explicitBrood.forEach(u => delta += (u.modelsDeltaTotal||0));
+             unit.models = baseM + delta;
+          } else {
+             const stepM = (UNIT_BROOD_STEP[unit.id]||1);
+             const maxM = (UNIT_MAX_MODELS[unit.id]||baseM);
+             let curM = Number(unit.models||baseM);
+             if(curM<baseM) curM=baseM; if(curM>maxM) curM=maxM;
+             unit.models = curM;
+             const inc = Math.max(0, Math.floor((curM - baseM)/stepM));
+             const cost = (UNIT_BROOD_POINTS[unit.id]||0);
+             const upId = 'u_bsize_apply_'+unit.id;
+             const entry = { id: upId, name:'Brood size', points: inc*cost, type:'BROOD_SIZE', count: inc, modelsDeltaTotal: inc*stepM, maxModels: maxM };
+             const idx = chosenUps.findIndex(u=>u.id===upId);
+             if(idx>-1){ chosenUps[idx] = entry; } else if(inc>0){ chosenUps.push(entry); }
+          }
         }
 
         let weapons;
@@ -2162,7 +2179,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const maxCount = u.type==='BROOD_SIZE' ? Math.max(0, Math.floor((maxM - baseM) / stepM)) : 0;
           const control = u.type==='BROOD_SIZE' ? `<div style="margin-top:6px;display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${stepM} models (+${u.points||0} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" data-upid="${u.id}" data-step="${stepM}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>` : '';
 
-          return `<div class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-limit="${u.limit||''}" data-detach="${u.detachmentSize||''}" ${checked ? 'checked' : ''} ${disabledAttr} onchange="onModalUpgradeToggle(this)"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div>${hint}${bsizeHint}${control}</div></label></div>`;
+          return `<div class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-limit="${u.limit||''}" data-detach="${u.detachmentSize||''}" data-maxmodels="${u.maxModels||''}" ${checked ? 'checked' : ''} ${disabledAttr} onchange="onModalUpgradeToggle(this)"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div>${hint}${bsizeHint}${control}</div></label></div>`;
 
         }).join('');
         const tableUps = (lib.upgrades||[]).filter(u => (u.type||'').startsWith('WEAPON') && u.grants && !unit.id.includes('hierodule') && !unit.id.includes('hierophant'));
@@ -3594,6 +3611,12 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
            styleComposition = JSON.parse(JSON.stringify(ARMY_STYLES[selectedAutoStyle] || ARMY_STYLES['All Round']));
         }
         
+        // Initial Name Check
+        let initialName = builderMeta.name || 'Auto Army';
+        if (initialName === 'Auto Army' || initialName === 'New List' || Object.keys(ARMY_STYLES).includes(initialName)) {
+             initialName = selectedAutoStyle;
+        }
+
         root.innerHTML = `
           <div class="modal-backdrop" onclick="closeModal()">
             <div class="modal" onclick="event.stopPropagation()">
@@ -3625,7 +3648,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
               <div class="form-group" style="margin-top:12px">
                 <label>List Name</label>
-                <input id="auto-gen-name" type="text" class="form-control" value="${builderMeta.name || 'Auto Army'}" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:8px; width:100%; border-radius:4px"/>
+                <input id="auto-gen-name" type="text" class="form-control" value="${initialName}" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:8px; width:100%; border-radius:4px"/>
               </div>
 
               <div class="form-group" style="margin-top:12px">
