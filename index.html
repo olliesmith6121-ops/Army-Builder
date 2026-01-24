@@ -503,7 +503,7 @@
         // "Orks": { formations: ["Warband","Speed Freaks","Blood Axes Warband","Snakebites Warband"] }
       };
 
-      let UNIT_DEFAULT_MODELS = { 'hive-tyrant':1, 'tyranid-warrior':3, 'termagant':6, 'hormagaunt':6, 'genestealer':6, 'harpy':1, 'mycetic-spores':1, 'carnifex':1, 'exocrine':1, 'dominatrix':1 };
+      let UNIT_DEFAULT_MODELS = { 'hive-tyrant':1, 'tyranid-warrior':3, 'termagant':6, 'hormagaunt':6, 'genestealer':6, 'harpy':1, 'mycetic-spores':1, 'carnifex':1, 'exocrine':1, 'tyrannofex':1, 'dominatrix':1 };
       let UNIT_MAX_MODELS = { 'termagant':12, 'hormagaunt':12, 'genestealer':12 };
       let UNIT_BROOD_STEP = { 'termagant':3, 'hormagaunt':3, 'genestealer':3 };
       let UNIT_BROOD_POINTS = {};
@@ -522,10 +522,10 @@
         const typeStr = String(uType).toUpperCase();
         if(!bSize){
            if(typeStr==='INFANTRY' || (typeStr==='WALKER' && uScale==1) || (typeStr==='VEHICLE' && uScale==2)) bSize = '25mm';
-           else if(typeStr==='VEHICLE' && uScale==3) bSize = '80mm';
+           else if(typeStr==='VEHICLE' && uScale>=3) bSize = '80mm';
         }
 
-        UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: uScale, type: uType, base_size: bSize, unit_note: m.unit_note??base.unit_note }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; (m.weapons||[]).forEach(w=>{ const n=WEAPON_SLUG_TO_NAME[w]||slugToName(w); if(!UNIT_LOADOUTS[id].weapons.some(x=>x.src===n)) UNIT_LOADOUTS[id].weapons.push({id:'w_'+w, name:n, src:n, base:true}); }); ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type:(/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : (/Increase\s+Brood\s+size/i.test(name)?'BROOD_SIZE':'MODEL_UPGRADE')), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
+        UNIT_BASE[id]={ points: m.points??base.points, movement: s.move??base.movement, save: s.save??base.save, CAF: s.caf??base.CAF, morale: s.morale??base.morale, wounds: s.wounds??base.wounds, scale: uScale, type: uType, base_size: bSize, unit_note: m.unit_note??base.unit_note }; const ups=(m.upgrades||[]); UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:UNIT_BASE[id].CAF, baseWounds:UNIT_BASE[id].wounds, specialRules:(m.special_rules||[]) }; (m.weapons||[]).forEach(w=>{ const n=WEAPON_SLUG_TO_NAME[w]||slugToName(w); if(!UNIT_LOADOUTS[id].weapons.some(x=>x.src===n)) UNIT_LOADOUTS[id].weapons.push({id:'w_'+w, name:n, src:n, base:true}); }); ups.forEach((u,i)=>{ const name=u.name||u.description||''; const points=u.cost||u.points||0; const entry={ id:u.id||('u_master_'+id+'_'+i), name, points, desc:u.limit||u.description||'', type: u.type || (/swap/i.test(name)? (/(1\s*per\s*3)/i.test(name)?'WEAPON_SWAP_LIMITED':'WEAPON_SWAP') : (/Increase\s+Brood\s+size/i.test(name)?'BROOD_SIZE':'MODEL_UPGRADE')), replaces: slugToName(u.replaces||''), grants: slugToName(u.grants||''), detachmentSize: u.detachmentSize||undefined }; const normName=normUpgrade(entry.name); const hasUp=(UNIT_LOADOUTS[id].upgrades||[]).some(x=>normUpgrade(x.name)===normName); const hasPsy=(UNIT_LOADOUTS[id].psychicPowers||[]).some(x=>normUpgrade(x.name)===normName); if(!hasUp && !hasPsy) UNIT_LOADOUTS[id].upgrades.push(entry); }); }); const lib=json.weaponLibrary||json.weapons||{}; Object.entries(lib).forEach(([slug,def])=>{ const name=WEAPON_SLUG_TO_NAME[slug]||slugToName(slug); WEAPON_LIBRARY[name]=WEAPON_LIBRARY[name]||{ range:def.range||'-', dice:def.dice||'-', toHit:def.toHit||def.tohit||'-', AP:def.ap??'-', traits: Array.isArray(def.traits)?def.traits.join('; '):(def.traits||''), points: WEAPON_POINTS[name]??(def.points||0) }; }); const b=json.broodSizes||json.unitBroodSizes||{}; Object.keys(b).forEach(k=>{ const id=norm(k); const d=b[k]||{}; const init=Number(d.initial_brood_size||UNIT_DEFAULT_MODELS[id]||1); const max=Number(d.max_brood_size||init); const step=Number(d.upgrade_increment||1); const cost=Number(d.upgrade_cost_per_increment||0); UNIT_DEFAULT_MODELS[id]=init; UNIT_MAX_MODELS[id]=max; UNIT_BROOD_STEP[id]=step; UNIT_BROOD_POINTS[id]=cost; if(max>init){ UNIT_LOADOUTS[id]=UNIT_LOADOUTS[id]||{ weapons:[], upgrades:[], psychicPowers:[], baseCAF:'', baseWounds:1, specialRules:[] }; const exists=(UNIT_LOADOUTS[id].upgrades||[]).some(u=>u.type==='BROOD_SIZE'); if(!exists){ UNIT_LOADOUTS[id].upgrades=(UNIT_LOADOUTS[id].upgrades||[]).concat([{ id:'u_bsize_'+id, name:`Increase the Brood size by ${step}`, points: cost, type:'BROOD_SIZE', modelsDelta: step, maxModels: max }]); } } }); const cons=json.weaponConstraints||{}; Object.keys(cons).forEach(k=>{ const id=norm(k); const rules=cons[k]||[]; const entry={ mutexPairs:[], disableWhenUpgrade:{} }; rules.forEach(r=>{ const opts=(r.options||[]).map(slugToName); if(r.type && r.type.indexOf('MUTUALLY_EXCLUSIVE')>-1){ for(let i=0;i<opts.length;i++){ for(let j=i+1;j<opts.length;j++){ entry.mutexPairs.push([opts[i],opts[j]]); } } } if(r.hide_when_upgrade){ Object.entries(r.hide_when_upgrade||{}).forEach(([up,list])=>{ entry.disableWhenUpgrade[up]=(entry.disableWhenUpgrade[up]||[]).concat((list||[]).map(slugToName)); }); } }); WEAPON_CONSTRAINTS[id]=entry; }); return json; }catch(e){ return null; } }
 
 
 
@@ -638,6 +638,8 @@
       const UNIT_BASE = {
 
         'hive-tyrant':{points:100,movement:'5"',save:'4+',CAF:'+10',morale:'2+',wounds:2},
+        'exocrine':{points:100,movement:'5"',save:'3+',CAF:'+4',morale:'3+',wounds:2,scale:4,type:'VEHICLE',base_size:'80mm'},
+        'tyrannofex':{points:90,movement:'5"',save:'3+',CAF:'+5',morale:'3+',wounds:2,scale:3,type:'VEHICLE',base_size:'80mm'},
 
         'malefactor':{
           baseCAF:'+7', baseWounds:2,
@@ -671,7 +673,9 @@
         'haruspex':{points:100,movement:'6"',save:'3+',CAF:'+8',morale:'3+',wounds:2},
         'tervigon':{points:100,movement:'5"',save:'3+',CAF:'+3',morale:'3+',wounds:2},
         'toxicrene':{points:120,movement:'6"',save:'4+',CAF:'+8',morale:'3+',wounds:2},
-        'harpy':{points:120,movement:'18"',save:'5+',CAF:'+2',morale:'4+',wounds:1,type:'VEHICLE',scale:2}
+        'harpy':{points:120,movement:'18"',save:'5+',CAF:'+2',morale:'4+',wounds:1,type:'VEHICLE',scale:2},
+        'trygon':{points:120,movement:'10"',save:'3+',CAF:'+8',morale:'2+',wounds:3,scale:4,type:'VEHICLE',base_size:'80mm'},
+        'hierodule':{points:150,movement:'8"',save:'3+',CAF:'+10',morale:'2+',wounds:3,scale:4,type:'VEHICLE',base_size:'80mm'}
       };
 
 
@@ -694,6 +698,9 @@
         "Bio Cannon":{range:'22"',dice:6,toHit:'5+',AP:-3,traits:'Anti-Tank',points:0},
         "Warp Pulse":{range:'20"',dice:'-',toHit:'Auto',AP:-4,traits:'Beam; Armorbane',points:0},
         "Spore Cysts":{range:'6"',dice:12,toHit:'6+',AP:0,traits:'Light',points:0},
+        "Rupture Cannon":{range:'12"',dice:2,toHit:'5+',AP:-2,traits:'Arc (Front); Anti-Tank',points:0},
+        "Fleshborer Hive":{range:'6"',dice:6,toHit:'5+',AP:0,traits:'Arc (Front); Light',points:0},
+        "Acid Spray":{range:'T',dice:1,toHit:'5+',AP:-1,traits:'Arc (Front); Light AT',points:0},
         "Stranglethorn Cannon":{range:'22"',dice:4,toHit:'4+',AP:0,traits:'Light AT; Blast (5")',points:0},
         "Drool Cannon":{range:'8"',dice:3,toHit:'4+',AP:-1,traits:'Template; Ignore Cover',points:0},
         "Flesh Hooks":{range:'6"',dice:1,toHit:'4+',AP:0,traits:'Light; Ignore Cover; Attract (1)',points:0},
@@ -715,9 +722,25 @@
         "Horrible Claws":{range:'Melee',dice:'-',toHit:'-',AP:'-',traits:'-',points:0},
         "Mauling Limbs":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Wrecker (1)',points:0},
         "Frag Spines":{range:'8"',dice:1,toHit:'5+',AP:0,traits:'Blast (3")',points:0},
-        "Spore Cysts (Malefactor)":{range:'3"',dice:2,toHit:'2+',AP:0,traits:'Light; Point Defense; Ignores Cover',points:0}
+        "Spore Cysts (Malefactor)":{range:'3"',dice:2,toHit:'2+',AP:0,traits:'Light; Point Defense; Ignores Cover',points:0},
+        "Bio-Plasmic Cannon":{range:'18"',dice:1,toHit:'5+',AP:-2,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
+        "Spore Cysts (Exocrine)":{range:'3"',dice:2,toHit:'2+',AP:0,traits:'Light; Point Defense; Ignores Cover',points:0},
+        "Bio-Shock":{range:'D6x3"',dice:6,toHit:'3+',AP:-1,traits:'Arc (Front); Blast (3")',points:0},
+        "Razor Claws":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Rend; Wrecker (2)',points:0},
+        "Toxin Spike":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'-',points:0},
+        "Razor Claws (Hierodule)":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Arc (Front); Rend; Wrecker (2)',points:0},
+        "Bio-Cannon (Hierodule)":{range:'10"',dice:4,toHit:'5+',AP:-3,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
+        "Pyro-Acid Spray":{range:'T',dice:'-',toHit:'4+',AP:-2,traits:'Arc (Front); Light AT; Shieldbane; Skyfire',points:0},
+        "Ripper Tentacles":{range:'4"',dice:6,toHit:'2+',AP:0,traits:'Arc (Front); Skyfire; Attract; Engine Killer (2)',points:0},
+        "Spore Pods":{range:'8"',dice:2,toHit:'2+',AP:0,traits:'Light; Point Defense; Ignores Cover',points:0},
+        "Stinger Salvo":{range:'6"',dice:3,toHit:'5+',AP:-1,traits:'Light AT; Point Defense; SkyFire',points:0},
+        "Razor Claws (Hierophant)":{range:'-',dice:'-',toHit:'-',AP:'-',traits:'Arc (Front); Rend; Wrecker (2)',points:0},
+        "Bio-Cannon (Hierophant)":{range:'10"',dice:4,toHit:'5+',AP:-3,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
+        "Bio-Cannon (1)":{range:'10"',dice:4,toHit:'5+',AP:-3,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
+        "Bio-Cannon (2)":{range:'10"',dice:4,toHit:'5+',AP:-3,traits:'Arc (Front); Anti-Tank; Engine Killer (1)',points:0},
+        "Bile Launcher":{range:'8"-50"',dice:5,toHit:'4+',AP:-1,traits:'Arc (Front); Heavy Barrage',points:0}
       };
-      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0, 'Toxic Fumes':0, 'Stranglethorn Cannon (Harpy)':0, 'Spore Launcher (Harpy)':0, 'Drool Cannon (Harpy)':0, 'Bio-Cannon (Harridan)':0, 'Spore Launcher (Harridan)':0, 'Mauling Limbs':0, 'Frag Spines':0, 'Spore Cysts (Malefactor)':0 };
+      const WEAPON_POINTS = { 'Venom Cannon':15, 'Barbed Strangler':5, 'Lash Whip & Bone Sword':0, 'Fleshborer':0, 'Flamespurt':1, 'Death Spitter':5, 'Rending Claws':0, 'Devourer':1, 'Stranglewebs':3, 'Bone Swords':0, 'Pyroacid Launcher':0, 'Spore Launcher':0, 'Thoracic Spinefist':0, 'Stunning Tendrils':0, 'Warp Blast (Focused)':0, 'Warp Blast (Diffused)':0, 'Toxic Lashes':0, 'Ravenous maw':0, 'Grasping Tongue':0, 'Toxic Fumes':0, 'Stranglethorn Cannon (Harpy)':0, 'Spore Launcher (Harpy)':0, 'Drool Cannon (Harpy)':0, 'Bio-Cannon (Harridan)':0, 'Spore Launcher (Harridan)':0, 'Mauling Limbs':0, 'Frag Spines':0, 'Spore Cysts (Malefactor)':0, 'Bio-Plasmic Cannon':0, 'Spore Cysts (Exocrine)':0, 'Bio-Shock':0, 'Razor Claws':0, 'Toxin Spike':0, 'Razor Claws (Hierodule)':0, 'Bio-Cannon (Hierodule)':0, 'Pyro-Acid Spray':0, 'Ripper Tentacles':0, 'Spore Pods':0, 'Stinger Salvo':0, 'Razor Claws (Hierophant)':0, 'Bio-Cannon (Hierophant)':0, 'Bio-Cannon (1)':0, 'Bio-Cannon (2)':0, 'Bile Launcher':0 };
 
 
 
@@ -762,7 +785,30 @@
             "Psychic Scream"
 
           ]
+        },
 
+        'exocrine':{
+          baseCAF:'+4', baseWounds:2,
+          weapons:[
+            {id:'w_bio_plasmic',name:'Bio-Plasmic Cannon',src:'Bio-Plasmic Cannon',base:true},
+            {id:'w_cysts_exo',name:'Spore Cysts',src:'Spore Cysts (Exocrine)',base:true}
+          ],
+          upgrades:[
+            {id:'u_bsize_exocrine',name:'Increase Brood size by 1',points:90,type:'BROOD_SIZE',modelsDelta:1,maxModels:3}
+          ],
+          specialRules:['Instinct: Nest','Armored']
+        },
+        'tyrannofex':{
+          baseCAF:'+5', baseWounds:2,
+          weapons:[
+            {id:'w_rupture',name:'Rupture Cannon',src:'Rupture Cannon',base:true}
+          ],
+          upgrades:[
+            {id:'u_bsize_tyrannofex',name:'Increase Brood size by 1',points:80,type:'BROOD_SIZE',modelsDelta:1,maxModels:3},
+            {id:'u_tfex_swap_flesh',name:'Swap Rupture Cannon for Fleshborer Hive',points:0,type:'WEAPON_SWAP',replaces:'Rupture Cannon',grants:'Fleshborer Hive'},
+            {id:'u_tfex_swap_acid',name:'Swap Rupture Cannon for Acid Spray',points:0,type:'WEAPON_SWAP',replaces:'Rupture Cannon',grants:'Acid Spray'}
+          ],
+          specialRules:['Instinct: Hunt','Armored']
         },
 
         'tyranid-warrior':{
@@ -852,11 +898,6 @@
           ],
           upgrades:[], psychicPowers:[], specialRules:['Instinct: Nest','Bulky']
         },
-        'exocrine':{
-          baseCAF:'+4', baseWounds:2,
-          weapons:[{id:'w_bpc',name:'Bio-Plasmic Cannon',src:'Bio-Plasmic Cannon',base:true},{id:'w_scysts',name:'Spore Cysts',src:'Spore Cysts',base:true}],
-          upgrades:[], psychicPowers:[], specialRules:['Instinct: Nest','Armored']
-        },
         'mycetic-spores':{
           baseCAF:'+1', baseWounds:1,
           weapons:[{id:'w_flensing',name:'Flensing Whips',src:'Flensing Whips',base:true}],
@@ -873,13 +914,39 @@
           weapons:[{id:'w_toxic_lashes',name:'Toxic Lashes',src:'Toxic Lashes',base:true},{id:'w_toxic_fumes',name:'Toxic Fumes',src:'Toxic Fumes',base:true}],
           upgrades:[{id:'u_bsize_toxicrene',name:'Increase Brood size by 2',points:80,type:'BROOD_SIZE',modelsDelta:2,maxModels:7}],
           psychicPowers:[], specialRules:['Instinct: Rampage','Miasma']
+        },
+        'trygon':{
+          baseCAF:'+8', baseWounds:3,
+          weapons:[
+            {id:'w_bioshock',name:'Bio-Shock',src:'Bio-Shock',base:true},
+            {id:'w_razor',name:'Razor Claws',src:'Razor Claws',base:true},
+            {id:'w_toxin',name:'Toxin Spike',src:'Toxin Spike',base:true}
+          ],
+          upgrades:[
+            {id:'u_bsize_trygon',name:'Increase Brood size by 1',points:110,type:'BROOD_SIZE',modelsDelta:1,maxModels:3},
+            {id:'u_prime_trygon',name:'Upgrade to Trygon Prime',points:60,type:'MODEL_UPGRADE',limit:1,desc:'Adds special rule Synapse (6”)'}
+          ],
+          specialRules:['Instinct: Rampage','Deep Strike','Burrow','Nimble']
+        },
+        'hierodule':{
+          baseCAF:'+10', baseWounds:3,
+          weapons:[
+            {id:'w_stinger',name:'Stinger Salvo',src:'Stinger Salvo',base:true}
+          ],
+          upgrades:[
+            {id:'u_bsize_hierodule',name:'Increase Brood size by 1',points:150,type:'BROOD_SIZE',modelsDelta:1,maxModels:3},
+            {id:'u_hierodule_scythed',name:'Scythed Variant (Razor Claws & Spore Pods)',points:0,type:'WEAPON_SWAP',grants:'Razor Claws (Hierodule), Spore Pods'},
+            {id:'u_hierodule_barbed',name:'Barbed Variant (Bio-Cannon)',points:0,type:'WEAPON_SWAP',grants:'Bio-Cannon (Hierodule)'},
+            {id:'u_hierodule_hive',name:'Hive Variant (Ripper Tentacles & Pyro-Acid Spray)',points:0,type:'WEAPON_SWAP',grants:'Ripper Tentacles, Pyro-Acid Spray'}
+          ],
+          specialRules:['Instinct: Rampage','Armored']
         }
 
       };
 
 
 
-      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue', stranglethorn_cannon_harpy:'Stranglethorn Cannon (Harpy)', spore_launcher_harpy:'Spore Launcher (Harpy)', drool_cannon_harpy:'Drool Cannon (Harpy)', bio_cannon_harridan:'Bio-Cannon (Harridan)', spore_launcher_harridan:'Spore Launcher (Harridan)', spore_cysts_malefactor:'Spore Cysts (Malefactor)', mauling_limbs:'Mauling Limbs', frag_spines:'Frag Spines' };
+      const WEAPON_SLUG_TO_NAME = { death_spitter:'Death Spitter', barbed_strangler:'Barbed Strangler', venom_cannon:'Venom Cannon', scything_talons:'Scything Talons', bone_swords:'Bone Swords', spore_launcher:'Spore Launcher', pyroacid_launcher:'Pyroacid Launcher', stranglewebs:'Stranglewebs', devourer:'Devourer', bio_plasma:'Bio-Plasma', bio_plasmic_cannon:'Bio-Plasmic Cannon', bio_cannon_dominatrix:'Bio Cannon', warp_pulse:'Warp Pulse', spore_cysts_dominatrix:'Spore Cysts', stranglethorn_cannon:'Stranglethorn Cannon', drool_cannon:'Drool Cannon', flesh_hooks:'Flesh Hooks', flensing_whips:'Flensing Whips', thoracic_spinefist:'Thoracic Spinefist', stunning_tendrils:'Stunning Tendrils', warp_blast_focused:'Warp Blast (Focused)', warp_blast_diffused:'Warp Blast (Diffused)', flamespurt:'Flamespurt', toxic_lashes:'Toxic Lashes', ravenous_maw:'Ravenous maw', grasping_tongue:'Grasping Tongue', stranglethorn_cannon_harpy:'Stranglethorn Cannon (Harpy)', spore_launcher_harpy:'Spore Launcher (Harpy)', drool_cannon_harpy:'Drool Cannon (Harpy)', bio_cannon_harridan:'Bio-Cannon (Harridan)', spore_launcher_harridan:'Spore Launcher (Harridan)', spore_cysts_malefactor:'Spore Cysts (Malefactor)', mauling_limbs:'Mauling Limbs', frag_spines:'Frag Spines', spore_cysts_exocrine:'Spore Cysts (Exocrine)', rupture_cannon:'Rupture Cannon', fleshborer_hive:'Fleshborer Hive', acid_spray:'Acid Spray', bio_shock:'Bio-Shock', razor_claws:'Razor Claws', toxin_spike:'Toxin Spike', stinger_salvo:'Stinger Salvo', razor_claws_hierodule:'Razor Claws (Hierodule)', spore_pods:'Spore Pods', bio_cannon_hierodule:'Bio-Cannon (Hierodule)', ripper_tentacles:'Ripper Tentacles', pyro_acid_spray:'Pyro-Acid Spray', razor_claws_hierophant:'Razor Claws (Hierophant)', bio_cannon_hierophant:'Bio-Cannon (Hierophant)', bile_launcher:'Bile Launcher', bio_cannon_hierophant_1:'Bio-Cannon (1)', bio_cannon_hierophant_2:'Bio-Cannon (2)' };
 
       async function loadWeaponsData(){ return; }
 
@@ -1168,13 +1235,56 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       function weaponConstraintsFor(id){ const r = WEAPON_CONSTRAINTS[id]; return r || { mutexPairs:[], disableWhenUpgrade:{} }; }
       function computeDisabledWeapons(unit, checked, activeUpgrades){ const rules=weaponConstraintsFor(unit.id); const disable=new Set(), hide=new Set(); (rules.mutexPairs||[]).forEach(([a,b])=>{ if(checked.includes(a)) disable.add(b); if(checked.includes(b)) disable.add(a); }); const upsActive = new Set(activeUpgrades||[]); Object.entries(rules.disableWhenUpgrade||{}).forEach(([upId,list])=>{ if(upsActive.has(upId)) list.forEach(n=>{ disable.add(n); hide.add(n); }); }); const load=UNIT_LOADOUTS[unit.id]||{}; (load.upgrades||[]).forEach(u=>{ if(upsActive.has(u.id) && u.replaces){ const rList=u.replaces.split(',').map(s=>s.trim()); rList.forEach(n=>disable.add(n)); } }); return { disable, hide }; }
-      function enforceWeaponConstraints(){ if(!editContext) return; const {fIdx,section,sIdx,uIdx}=editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(!unit) return; const checked=Array.from(document.querySelectorAll('.modal-weapon-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-name')); const activeUps = Array.from(document.querySelectorAll('.modal-upgrade-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id')).concat(Array.from(document.querySelectorAll('.modal-special-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id'))); const {disable, hide} = computeDisabledWeapons(unit, checked, activeUps); document.querySelectorAll('.modal-weapon-checkbox').forEach(cb=>{ const n=cb.getAttribute('data-name'); const row=cb.closest('tr'); const dis=disable.has(n); cb.disabled = dis; if(dis && cb.checked){ cb.checked=false; } else if(!dis && !cb.checked && cb.getAttribute('data-base')==='true'){ cb.checked=true; } if(row){ row.style.opacity = dis ? 0.5 : ''; row.style.display = hide.has(n) ? 'none' : 'table-row'; } }); }
+      function enforceWeaponConstraints(){
+        if(!editContext) return;
+        const {fIdx,section,sIdx,uIdx}=editContext;
+        const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx];
+        const unit=slot&&slot.units&&slot.units[uIdx];
+        if(!unit) return;
+        const checked=Array.from(document.querySelectorAll('.modal-weapon-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-name'));
+        const activeUps = Array.from(document.querySelectorAll('.modal-upgrade-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id')).concat(Array.from(document.querySelectorAll('.modal-special-checkbox')).filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-id')));
+        const {disable, hide} = computeDisabledWeapons(unit, checked, activeUps);
+        document.querySelectorAll('.modal-weapon-checkbox').forEach(cb=>{
+          const n=cb.getAttribute('data-name');
+          const row=cb.closest('tr');
+          const dis=disable.has(n);
+          // Tyrannofex Rupture Cannon: allow manual re-selection
+          const isTfexRupture = unit.id === 'tyrannofex' && n === 'Rupture Cannon';
+          cb.disabled = dis && !isTfexRupture;
+          if(dis && cb.checked){
+            cb.checked=false;
+          } else if(!dis && !cb.checked && cb.getAttribute('data-base')==='true'){
+            cb.checked=true;
+          }
+          if(row){
+            row.style.opacity = (dis && !isTfexRupture) ? 0.5 : '';
+            row.style.display = hide.has(n) ? 'none' : 'table-row';
+          }
+        });
+      }
+      window.onModalWeaponToggle = function(target){
+        if(target && window._modalUnitRef && window._modalUnitRef.id === 'tyrannofex' && target.checked && target.getAttribute('data-name') === 'Rupture Cannon'){
+           ['u_tfex_swap_flesh', 'u_tfex_swap_acid'].forEach(id => {
+             const cb = document.querySelector(`.modal-upgrade-checkbox[data-id="${id}"]`);
+             if(cb && cb.checked) {
+               cb.checked = false;
+               const oInp = document.getElementById('upcnt-'+id);
+               if(oInp) oInp.value = 0;
+               const oRm = document.getElementById('uprm-'+id);
+               if(oRm) oRm.style.display = 'none';
+             }
+           });
+        }
+      }
       function filterWepsByConstraints(unitId, weps, ups){ const rules=weaponConstraintsFor(unitId); let out=weps.slice(); (rules.mutexPairs||[]).forEach(([a,b])=>{ const hasA=out.find(w=>w.name===a); const hasB=out.find(w=>w.name===b); if(hasA&&hasB){ out = out.filter(w=>w.name!==b); } }); Object.entries(rules.disableWhenUpgrade||{}).forEach(([upId,list])=>{ if((ups||[]).some(u=>u.id===upId)) out = out.filter(w=>!list.includes(w.name)); }); return out; }
       const UPGRADE_EFFECTS = {};
       let RULE_NAME_CATALOG = [];
       async function loadTyranidRules(){ return; }
       let RULES_INDEX = {};
       const CROSS_TRAIT_INDEX = {
+        'Agile': 'Models with this special rule may change the direction they are facing any number of times during their movement. (Verify Titan specific rule: may turn up to 2 times)',
+        'Regenerate': 'Roll a D6 for each wound lost at the end of the turn; on a 5+, the wound is regained. (Verify text)',
+        'The Horror': 'Enemy units in contact suffer -1 to Hit rolls? (Text to be verified)',
         'Light':'Cannot damage Light Armoured vehicles or better',
         'Light AT':'AP counts as 0 against Vehicles/Knights/Titans',
         'Anti-Tank':'AP counts as 0 against Infantry/Cavalry',
@@ -1299,7 +1409,78 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       function setModalUnitSizeLabel(models){ const root=document.getElementById('modal-root'); const lbl = root && root.querySelector('.modal-drawer #bsize-label'); if(!lbl) return; const {fIdx,section,sIdx,uIdx}=window.editContext||{}; const slot=(section==='special')?(armyFormations[fIdx]&&armyFormations[fIdx].special):(armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); const unit=slot&&slot.units&&slot.units[uIdx]; const pts=unit? unitPoints(unit) : ''; lbl.innerHTML = pts!=='' ? ('Unit size: ' + models + ' <span class="cost">' + pts + ' PTS</span>') : ('Unit size: ' + models); lbl.setAttribute('data-models', String(models)); }
       function scheduleUpdateTotals(){ try{ requestAnimationFrame(()=>updateModalTotals()); }catch(e){ setTimeout(updateModalTotals,0); } }
-      window.onModalUpgradeToggle = function(){ updateModalTotals(); enforceWeaponConstraints(); }
+      window.updateHieroduleVisuals = function(){
+        const baseEl = document.getElementById('hierodule-base-count');
+        if(baseEl){
+            const inputs = Array.from(document.querySelectorAll('.modal-upgrade-count[data-upid^="u_hierodule_"]'));
+            const sum = inputs.reduce((s,i)=>s+Number(i.value||0),0);
+            
+            let total = 1;
+            const valEl = document.getElementById('modal-unit-val');
+            if(valEl){
+                total = Number(valEl.value || valEl.textContent || 0);
+            } else {
+                const lbl = document.querySelector('.modal-drawer #bsize-label');
+                total = lbl ? Number(lbl.getAttribute('data-models')||1) : 1;
+            }
+
+            const rem = Math.max(0, total - sum);
+            
+            if(baseEl.tagName === 'INPUT') baseEl.value = rem;
+            else baseEl.textContent = 'x' + rem;
+            
+            const scythedTable = document.getElementById('table-container-u_hierodule_scythed');
+            if(scythedTable) scythedTable.style.opacity = rem > 0 ? '1' : '0.5';
+            
+            inputs.forEach(inp => {
+                const id = inp.getAttribute('data-upid');
+                const table = document.getElementById('table-container-' + id);
+                if(table) table.style.opacity = Number(inp.value||0) > 0 ? '1' : '0.5';
+            });
+
+            const btnDec = document.getElementById('btn-base-dec');
+            if(btnDec){
+                const isDisabled = (rem <= 0);
+                btnDec.disabled = isDisabled;
+                btnDec.style.opacity = isDisabled ? '0.5' : '1';
+                btnDec.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+            }
+            
+            const btnInc = document.getElementById('btn-base-inc');
+            if(btnInc){
+                 const headerSum = document.getElementById('modal-unit-summary');
+                 const max = headerSum ? Number(headerSum.getAttribute('data-max')||99) : 99;
+                 const isMax = total >= max;
+                 btnInc.disabled = isMax;
+                 btnInc.style.opacity = isMax ? '0.5' : '1';
+                 btnInc.style.cursor = isMax ? 'not-allowed' : 'pointer';
+            }
+        }
+      };
+
+    window.onModalUpgradeToggle = function(target){
+        if(target && window._modalUnitRef && window._modalUnitRef.id === 'tyrannofex' && target.checked){
+          const id = target.getAttribute('data-id');
+          const swaps = ['u_tfex_swap_flesh', 'u_tfex_swap_acid'];
+          if(swaps.includes(id)){
+            const rupture = document.querySelector('.modal-weapon-checkbox[data-name="Rupture Cannon"]');
+            if(rupture && rupture.checked) rupture.checked = false;
+            swaps.forEach(otherId => {
+              if(otherId !== id){
+                const otherCb = document.querySelector(`.modal-upgrade-checkbox[data-id="${otherId}"]`);
+                if(otherCb && otherCb.checked){
+                  otherCb.checked = false;
+                  const oInp = document.getElementById('upcnt-'+otherId);
+                  if(oInp) oInp.value = 0;
+                  const oRm = document.getElementById('uprm-'+otherId);
+                  if(oRm) oRm.style.display = 'none';
+                }
+              }
+            });
+          }
+        }
+        updateModalTotals(); enforceWeaponConstraints(); 
+      }
       function updateModalTotals(){
 
         const ptsEl = document.getElementById('modal-total-points');
@@ -1389,6 +1570,20 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(unit){ const bsize = (unit.upgrades||[]).find(u=> (u.type==='BROOD_SIZE' && String(u.id||'').startsWith('u_bsize_apply_')) ); if(bsize){ total += Number(bsize.points||0); } } }
         ptsEl.textContent = total + ' pts';
         try{ updateBroodSummary(); }catch(e){}
+        try{ updateHieroduleVisuals(); }catch(e){}
+      }
+      function updateHieroduleVisuals(){
+        const unit = window._modalUnitRef;
+        if(!unit || !unit.id.includes('hierodule')) return;
+        const variants = ['u_hierodule_barbed', 'u_hierodule_hive'];
+        let variantSum = 0;
+        variants.forEach(id => {
+          const inp = document.getElementById('upcnt-'+id);
+          if(inp) variantSum += Number(inp.value||0);
+        });
+        const baseCount = Math.max(0, (unit.models||1) - variantSum);
+        const baseInp = document.getElementById('hierodule-base-count');
+        if(baseInp) baseInp.value = baseCount;
       }
       function updateBroodSummary(){
         const {fIdx,section,sIdx,uIdx} = window.editContext || {};
@@ -1415,7 +1610,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         let val = Number(inp.value || 0);
         const {fIdx,section,sIdx,uIdx} = window.editContext || {};
         const slot = (section==='special') ? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]);
-        const unit = slot && slot.units && slot.units[uIdx];
+        let unit = window._modalUnitRef || (slot && slot.units && slot.units[uIdx]);
         const def = unit ? ((UNIT_DEFAULT_MODELS&&UNIT_DEFAULT_MODELS[unit.id])||1) : 1;
         const bInp = unit ? document.getElementById('upcnt-u_bsize_fallback_'+unit.id) : null;
         const step = Number(bInp && bInp.getAttribute('data-step') || 1);
@@ -1423,14 +1618,45 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const lbl = document.getElementById('bsize-label');
         const lblAttr = lbl && lbl.getAttribute('data-models');
         const lblVal = lblAttr ? Number(lblAttr) : (lbl ? Number(((lbl.textContent||'').match(/\d+/)||[])[0]||def) : def);
-        const models = unit ? Math.max(lblVal, def + plus, Number(unit.models||def)) : Math.max(lblVal, def + plus);
+        let models = unit ? Math.max(lblVal, def + plus, Number(unit.models||def)) : Math.max(lblVal, def + plus);
         const replaces = row ? (row.getAttribute('data-replaces') || '') : '';
+        if(replaces === 'Hierophant Arm Weapon') models = 2;
         if(replaces){
-          const peers = Array.from(document.querySelectorAll(`.modal-upgrade-row[data-replaces="${replaces}"]`)).map(r=>{ const iid = r.getAttribute('data-upgrade'); const i = document.getElementById('upcnt-'+iid); return { id: iid, val: Number(i && i.value || 0) }; });
+          const peerRows = Array.from(document.querySelectorAll(`.modal-upgrade-row[data-replaces="${replaces}"]`));
+          const peers = peerRows.map(r=>{ const iid = r.getAttribute('data-upgrade'); const i = document.getElementById('upcnt-'+iid); return { id: iid, val: Number(i && i.value || 0) }; });
           const sumOthers = peers.filter(p=>p.id!==id).reduce((s,p)=>s+p.val,0);
-          const allowed = Math.max(0, models - sumOthers);
+          let allowed = Math.max(0, models - sumOthers);
           val += delta;
           if(val < 0) val = 0;
+          
+          if(val > allowed){
+             const deficit = val - allowed;
+             let recovered = 0;
+             for(const r of peerRows){
+                if(recovered >= deficit) break;
+                const pId = r.getAttribute('data-upgrade');
+                if(pId === id) continue;
+                const pInp = document.getElementById('upcnt-'+pId);
+                if(!pInp) continue;
+                let pVal = Number(pInp.value||0);
+                if(pVal > 0){
+                   const canTake = Math.min(pVal, deficit - recovered);
+                   pVal -= canTake;
+                   recovered += canTake;
+                   pInp.value = String(pVal);
+                   const pDisp = document.getElementById('upval-'+pId);
+                   if(pDisp) pDisp.textContent = String(pVal);
+                   const pRm = document.getElementById('uprm-'+pId);
+                   if(pRm) pRm.style.display = pVal>0 ? '' : 'none';
+                }
+             }
+             const newSumOthers = peerRows.filter(r=>r.getAttribute('data-upgrade')!==id).reduce((s,r)=>{
+                 const i = document.getElementById('upcnt-'+r.getAttribute('data-upgrade'));
+                 return s + Number(i && i.value || 0);
+             }, 0);
+             allowed = Math.max(0, models - newSumOthers);
+          }
+
           if(val > allowed) val = allowed;
           inp.max = String(allowed);
         } else {
@@ -1474,16 +1700,30 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           setTimeout(()=>{ const contLbl = (container && container.querySelector('#bsize-label')) || document.querySelector('.modal-drawer #bsize-label'); if(contLbl){ const pts2 = unit ? unitPoints(unit) : ''; contLbl.innerHTML = pts2!=='' ? ('Unit size: ' + models + ' <span class="cost">' + pts2 + ' PTS</span>') : ('Unit size: ' + models); contLbl.setAttribute('data-models', String(models)); } },0);
           const sel = selEl || document.getElementById(selId || 'bsize-select'); if(sel){ sel.value = String(v); sel.selectedIndex = Number(v); Array.from(sel.options).forEach(o=>{ o.selected = (o.value === String(v)); }); }
           unit.models = models;
-          const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base);
-          baseWeps.forEach(bw=>{
-            const rows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-replaces="'+bw.name+'"]'));
-            const inputs = rows.map(r=>{ const iid=r.getAttribute('data-upgrade'); return document.getElementById('upcnt-'+iid); }).filter(Boolean);
-            inputs.forEach(inp2=>{ if(inp2) inp2.max = String(models); });
-            let sum = inputs.reduce((s,x)=>s+Number(x.value||0),0);
-            if(sum>models){
-              let over = sum - models;
-              for(const x of inputs){ if(over<=0) break; const cur = Number(x.value||0); const dec = Math.min(cur, over); x.value = String(cur - dec); const vb = document.getElementById('upval-'+x.id.replace('upcnt-','')); if(vb) vb.textContent = x.value; over -= dec; }
-            }
+          const swapRows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-type="WEAPON_SWAP"]'));
+          const groups = {};
+          swapRows.forEach(r => {
+              const rep = r.getAttribute('data-replaces') || '';
+              if(!groups[rep]) groups[rep] = [];
+              groups[rep].push(r);
+          });
+          Object.keys(groups).forEach(rep => {
+              const rows = groups[rep];
+              const inputs = rows.map(r => document.getElementById('upcnt-' + r.getAttribute('data-upgrade'))).filter(Boolean);
+              inputs.forEach(inp => inp.max = String(models));
+              let sum = inputs.reduce((s, inp) => s + Number(inp.value||0), 0);
+              if(sum > models){
+                  let over = sum - models;
+                  for(const inp of inputs){
+                      if(over <= 0) break;
+                      const cur = Number(inp.value||0);
+                      const dec = Math.min(cur, over);
+                      inp.value = String(cur - dec);
+                      const disp = document.getElementById('upval-' + inp.id.replace('upcnt-',''));
+                      if(disp) disp.textContent = inp.value;
+                      over -= dec;
+                  }
+              }
           });
         }
         updateModalTotals();
@@ -1496,8 +1736,60 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       function updateBroodSizeUpgrade(unit){ const min=(UNIT_DEFAULT_MODELS[unit.id]||1); const max=(UNIT_MAX_MODELS[unit.id]||min); const step=(UNIT_BROOD_STEP[unit.id]||1); const inc=Math.max(0, Math.floor((Number(unit.models||min)-min)/step)); const cost=(UNIT_BROOD_POINTS[unit.id]||0); const upId='u_bsize_apply_'+unit.id; unit.upgrades=(unit.upgrades||[]).filter(u=>u.id!==upId); if(inc>0){ unit.upgrades.push({ id: upId, name:'Brood size', points: inc*cost, type:'BROOD_SIZE', count: inc, modelsDeltaTotal: inc*step, maxModels: max }); } }
       function headerModelBump(delta){ bumpHeaderUnit(delta, document.getElementById('modal-unit-summary')); }
       window.headerModelBump = headerModelBump;
-      function bumpHeaderUnit(delta, el){ const cont = (el && (el.closest && el.closest('#modal-unit-summary'))) || document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); const step = Number(cont.getAttribute('data-step')||1); const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; let cur = Number(unit.models || min); cur += delta * step; if(cur < min) cur = min; if(cur > max) cur = max; unit.models = cur; updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT'){ let opt = valBtn.querySelector('option[value="'+cur+'"]'); if(!opt){ opt=document.createElement('option'); opt.value=cur; opt.textContent=cur; valBtn.appendChild(opt); } valBtn.value=cur; } else valBtn.textContent = String(cur); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
-      function setUnitSize(val){ const cont = document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); if(val < min) val = min; if(val > max) val = max; const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; unit.models = val; updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT') valBtn.value=val; else valBtn.textContent = String(val); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
+      function bumpHeaderUnit(delta, el){ const cont = (el && (el.closest && el.closest('#modal-unit-summary'))) || document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); const step = Number(cont.getAttribute('data-step')||1); const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; let cur = Number(unit.models || min); cur += delta * step; if(cur < min) cur = min; if(cur > max) cur = max; unit.models = cur; 
+        const swapRows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-type="WEAPON_SWAP"]'));
+        const groups = {};
+        swapRows.forEach(r => {
+            const rep = r.getAttribute('data-replaces') || '';
+            if(!groups[rep]) groups[rep] = [];
+            groups[rep].push(r);
+        });
+        Object.keys(groups).forEach(rep => {
+            const rows = groups[rep];
+            const inputs = rows.map(r => document.getElementById('upcnt-' + r.getAttribute('data-upgrade'))).filter(Boolean);
+            inputs.forEach(inp => inp.max = String(cur));
+            let sum = inputs.reduce((s, inp) => s + Number(inp.value||0), 0);
+            if(sum > cur){
+                let over = sum - cur;
+                for(const inp of inputs){
+                    if(over <= 0) break;
+                    const val = Number(inp.value||0);
+                    const dec = Math.min(val, over);
+                    inp.value = String(val - dec);
+                    const disp = document.getElementById('upval-' + inp.id.replace('upcnt-',''));
+                    if(disp) disp.textContent = inp.value;
+                    over -= dec;
+                }
+            }
+        });
+        updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT'){ let opt = valBtn.querySelector('option[value="'+cur+'"]'); if(!opt){ opt=document.createElement('option'); opt.value=cur; opt.textContent=cur; valBtn.appendChild(opt); } valBtn.value=cur; } else valBtn.textContent = String(cur); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
+      function setUnitSize(val){ const cont = document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); if(val < min) val = min; if(val > max) val = max; const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; unit.models = val; 
+        const swapRows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-type="WEAPON_SWAP"]'));
+        const groups = {};
+        swapRows.forEach(r => {
+            const rep = r.getAttribute('data-replaces') || '';
+            if(!groups[rep]) groups[rep] = [];
+            groups[rep].push(r);
+        });
+        Object.keys(groups).forEach(rep => {
+            const rows = groups[rep];
+            const inputs = rows.map(r => document.getElementById('upcnt-' + r.getAttribute('data-upgrade'))).filter(Boolean);
+            inputs.forEach(inp => inp.max = String(val));
+            let sum = inputs.reduce((s, inp) => s + Number(inp.value||0), 0);
+            if(sum > val){
+                let over = sum - val;
+                for(const inp of inputs){
+                    if(over <= 0) break;
+                    const cur = Number(inp.value||0);
+                    const dec = Math.min(cur, over);
+                    inp.value = String(cur - dec);
+                    const disp = document.getElementById('upval-' + inp.id.replace('upcnt-',''));
+                    if(disp) disp.textContent = inp.value;
+                    over -= dec;
+                }
+            }
+        });
+        updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT') valBtn.value=val; else valBtn.textContent = String(val); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
       window.setUnitSize = setUnitSize;
       window.bumpHeaderUnit = bumpHeaderUnit;
       function onSpecialUpgradeToggle(id, checked){
@@ -1507,6 +1799,25 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         if(rm) rm.style.display = checked ? '' : 'none';
         const cb = document.querySelector('.modal-special-checkbox[data-id="'+id+'"]');
         if(cb){ cb.checked = checked; cb.style.display = checked ? 'none' : ''; }
+
+        if(window._modalUnitRef && window._modalUnitRef.id === 'tyrannofex' && checked){
+          const swaps = ['u_tfex_swap_flesh', 'u_tfex_swap_acid'];
+          if(swaps.includes(id)){
+            swaps.forEach(otherId => {
+              if(otherId !== id){
+                const otherCb = document.querySelector(`.modal-upgrade-checkbox[data-id="${otherId}"]`);
+                if(otherCb && otherCb.checked){
+                  otherCb.checked = false;
+                  const oInp = document.getElementById('upcnt-'+otherId);
+                  if(oInp) oInp.value = 0;
+                  const oRm = document.getElementById('uprm-'+otherId);
+                  if(oRm) oRm.style.display = 'none';
+                }
+              }
+            });
+          }
+        }
+
         enforceWeaponConstraints();
         updateSpecialRulesBlock();
         scheduleUpdateTotals();
@@ -1623,10 +1934,38 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
             keys.forEach(k=>{ grouped[k]=grouped[k]||[]; grouped[k].push(u); });
           });
           weapons = [];
-          baseWeps.forEach(bw=>{ const ups = grouped[bw.name]||[]; let remaining = unit.models||1; ups.forEach(u=>{ const c = Math.max(0, Math.min(remaining, Number(u.count||0))); u.count = c; remaining -= c; if(u.grants && c>0 && !u._grantAdded){ u._grantAdded=true; const label = c>1 ? `${u.grants} (x${c})` : u.grants; weapons.push({ id:'auto_'+u.id, name: label, src:u.grants, points: 0 }); } }); const baseCount = Math.max(0, remaining); if(baseCount>0){ const baseLabel = baseCount>1 ? `${bw.name} (x${baseCount})` : bw.name; weapons.push({ id: bw.id, name: baseLabel, src: bw.src, points: 0 }); } });
+          baseWeps.forEach(bw=>{ const ups = grouped[bw.name]||[]; let remaining = unit.models||1; ups.forEach(u=>{ const c = Math.max(0, Math.min(remaining, Number(u.count||0))); u.count = c; remaining -= c; if(u.grants && c>0 && !u._grantAdded){ u._grantAdded=true; const gList = u.grants.split(',').map(s=>s.trim()); gList.forEach((gName,gi)=>{ const label = c>1 ? `${gName} (x${c})` : gName; weapons.push({ id:'auto_'+u.id+'_'+gi, name: label, src:gName, points: 0 }); }); } }); const baseCount = Math.max(0, remaining); if(baseCount>0){ const baseLabel = baseCount>1 ? `${bw.name} (x${baseCount})` : bw.name; weapons.push({ id: bw.id, name: baseLabel, src: bw.src, points: 0 }); } });
+          
+          chosenUps.forEach(u => {
+            if((u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED') && !u.replaces && u.grants && !u._grantAdded){
+               const c = (u.count !== undefined) ? u.count : (unit.models||1);
+               if(c > 0){
+                 u._grantAdded = true;
+                 const gList = u.grants.split(',').map(s=>s.trim());
+                 gList.forEach((gName, gi) => {
+                   const gLabel = c > 1 ? `${gName} (x${c})` : gName;
+                   weapons.push({ id:'auto_'+u.id+'_'+gi, name: gLabel, src:gName, points: 0 });
+                 });
+               }
+            }
+          });
         } else {
           weapons = chosenWeps.slice();
-          chosenUps.forEach(u=>{ if(u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED'){ if(u.replaces){ const rList=u.replaces.split(',').map(s=>s.trim()); weapons = weapons.filter(w=>!rList.includes(w.name)); } if(u.grants){ const label = u.count && u.count>1 ? `${u.grants} (x${u.count})` : u.grants; const exists = weapons.some(w=>w.name === label); if(!exists){ weapons.push({ id:'auto_'+u.id, name: label, src:u.grants, points: 0 }); } } } });
+          chosenUps.forEach(u=>{ 
+            if(u.type==='WEAPON_SWAP' || u.type==='WEAPON_SWAP_LIMITED'){ 
+              if(u.replaces){ 
+                const rList=u.replaces.split(',').map(s=>s.trim()); 
+                weapons = weapons.filter(w=>!rList.includes(w.name)); 
+              } 
+              if(u.grants){ 
+                const gList = u.grants.split(',').map(s=>s.trim());
+                gList.forEach((gName, gi) => {
+                  const label = u.count && u.count>1 ? `${gName} (x${u.count})` : gName;
+                  weapons.push({ id:'auto_'+u.id+'_'+gi, name: label, src:gName, points: 0 });
+                });
+              } 
+            } 
+          });
         }
         weapons = filterWepsByConstraints(unit.id, weapons, chosenUps);
 
@@ -1676,6 +2015,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const unit = slot && slot.units && slot.units[uIdx];
 
         if(!unit) return;
+        window._modalUnitRef = unit;
 
         if(unit.id === 'tyranid-warrior'){ }
 
@@ -1709,7 +2049,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
 
-        const upgradesHtml = (lib.upgrades||[]).map(u=>{
+        const upgradesHtml = (lib.upgrades||[]).filter(u => !((u.type||'').startsWith('WEAPON') && u.grants && WEAPON_LIBRARY[u.grants])).map(u=>{
 
           const checked = instanceUpgradeIds.includes(u.id) || (unit._appliedEffects && unit._appliedEffects.swarmLord && u.id === 'u_swarm');
           const limitModels = (unit.models || u.detachmentSize || 0);
@@ -1726,12 +2066,13 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const maxCount = u.type==='BROOD_SIZE' ? Math.max(0, Math.floor((maxM - baseM) / stepM)) : 0;
           const control = u.type==='BROOD_SIZE' ? `<div style="margin-top:6px;display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${stepM} models (+${u.points||0} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" data-upid="${u.id}" data-step="${stepM}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>` : '';
 
-          return `<div class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-limit="${u.limit||''}" data-detach="${u.detachmentSize||''}" ${checked ? 'checked' : ''} ${disabledAttr} onchange="onModalUpgradeToggle()"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div>${hint}${bsizeHint}${control}</div></label></div>`;
+          return `<div class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-limit="${u.limit||''}" data-detach="${u.detachmentSize||''}" ${checked ? 'checked' : ''} ${disabledAttr} onchange="onModalUpgradeToggle(this)"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div>${hint}${bsizeHint}${control}</div></label></div>`;
 
         }).join('');
-        const tableUps = (lib.upgrades||[]).filter(u => (u.type||'').startsWith('WEAPON') && u.grants && WEAPON_LIBRARY[u.grants]);
+        const tableUps = (lib.upgrades||[]).filter(u => (u.type||'').startsWith('WEAPON') && u.grants && !unit.id.includes('hierodule') && !unit.id.includes('hierophant'));
         const tableUpIds = new Set(tableUps.map(u=>u.id));
-        const tableUpGrants = new Set(tableUps.map(u=> String(u.grants||'').toLowerCase()));
+        const tableUpGrants = new Set((lib.weapons||[]).map(w=>String(w.name||'').toLowerCase()));
+        let hieroduleHtml = '';
         let upgradesRowsHtml = tableUps.map(u=>{
           const current = (unit.upgrades||[]).find(x=>x.id===u.id);
           const count = current && current.count ? Number(current.count) : 0;
@@ -1739,43 +2080,53 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           let maxCount = u.type==='MODEL_UPGRADE' ? 1 : (per ? Math.floor((unit.models||per)/per) : (u.type==='WEAPON_SWAP'? (unit.models||1) : (u.type==='BROOD_SIZE'? Math.max(0, Math.floor(((UNIT_MAX_MODELS[unit.id]||0)-(UNIT_DEFAULT_MODELS[unit.id]||0)) / (UNIT_BROOD_STEP[unit.id]||1))) : 0)));
           const isBroodlord = /broodlord/i.test(u.name||'');
           if(isBroodlord){ const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord'); maxCount = count>0 ? 1 : Math.max(0, 1 - others); }
-          const stat = u.grants ? (WEAPON_LIBRARY[u.grants] || {}) : {};
-          if(tableUpGrants.has(String(stat.name||'').toLowerCase())) return '';
-          tableUpGrants.add(String(stat.name||'').toLowerCase());
-          const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
-          const control = u.type==='BROOD_SIZE'
-            ? `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${(UNIT_BROOD_STEP[unit.id]||1)} models (+${UNIT_BROOD_POINTS[unit.id]??(u.points||0)} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${UNIT_BROOD_POINTS[unit.id]??(u.points||0)}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
-            : (u.replaces ? 
-                `<div style="display:none"><input id="upcnt-${u.id}" class="modal-upgrade-count" type="number" value="${count}" data-points="${u.points||0}"/></div>` 
-                : `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',-1)">−</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',1)" ${count>=maxCount ? 'disabled' : ''}>+</button><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
-              );
-          const displayName = (u.grants||'') || (u.name||'').replace(/^Replace\s+.*\s+with\s+/,'');
-          const displayModelName = (u.type==='MODEL_UPGRADE') ? (String(u.name||'').replace(/^Replace\s+.*\s+with\s+/,'').replace(/\(Model Upgrade\)/i,'').trim() || 'Upgrade') : displayName;
           
-          let nameCell;
-          if(u.replaces){
-             // Render as Checkbox for swaps
-             const checked = count > 0;
-             // We need to render a checkbox that acts as the upgrade toggle.
-             // But the 'control' variable above is used for 'count' based upgrades?
-             // Wait, if I use checkbox, I don't need the 'control' buttons.
-             // But I DO need the 'modal-upgrade-checkbox' class for save logic.
-             // And I need to handle the 'count' logic? 
-             // If I use 'modal-upgrade-checkbox', saveEditFromModal treats it as count=1 (or based on logic).
-             // Actually saveEditFromModal logic:
-             // checked.forEach(cb => { ... u.count = ... })
-             // It sets count to models? No.
-             // Line 1533: const existing = unit.upgrades.find...
-             // It adds it to chosenUps.
-             // Then line 1572 logic uses chosenUps.
-             // If I use checkbox, I don't need 'modal-upgrade-count' input.
-             
-             nameCell = `<td><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" ${checked ? 'checked' : ''} onchange="onModalUpgradeToggle()"/> ${displayModelName}</label><div class="small muted">${u.limit||''}</div></td>`;
-          } else {
-             nameCell = `<td><div style="font-weight:600">${displayModelName}</div><div class="small muted">${u.limit||''}</div>${control}</td>`;
-          }
+          const grantList = String(u.grants||'').split(',').map(s=>s.trim()).filter(Boolean);
+          if(!grantList.length) return '';
+
           const basePts = u.type==='BROOD_SIZE' ? (UNIT_BROOD_POINTS[unit.id]??(u.points||0)) : (u.points||0);
-          return `<tr class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" data-name="${u.name}">${nameCell}${statCols}<td class="cost">${(count>0? (count*basePts) : basePts)} pts</td></tr>`;
+          
+          return grantList.map((gName, gIdx) => {
+             const stat = WEAPON_LIBRARY[gName] || {};
+             const grantKey = gName.toLowerCase();
+             if(tableUpGrants.has(grantKey)) return ''; // Skip if already present? But if it's the first one, we lose the checkbox? 
+             // Ideally we shouldn't grant things that are already there. 
+             // If we must, we should still render the control row but maybe empty stats?
+             // For now assume no conflicts for new units.
+             tableUpGrants.add(grantKey);
+
+             const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
+             
+             let nameCell;
+             if(gIdx === 0){
+                 // Render Control
+                  const control = u.type==='BROOD_SIZE'
+                    ? `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${(UNIT_BROOD_STEP[unit.id]||1)} models (+${UNIT_BROOD_POINTS[unit.id]??(u.points||0)} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${UNIT_BROOD_POINTS[unit.id]??(u.points||0)}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
+                    : (u.replaces ? 
+                        `<div style="display:none"><input id="upcnt-${u.id}" class="modal-upgrade-count" type="number" value="${count}" data-points="${u.points||0}"/></div>` 
+                        : `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',-1)">−</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${u.id}',1)" ${count>=maxCount ? 'disabled' : ''}>+</button><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>`
+                      );
+                  
+                  const displayName = (u.grants||'') || (u.name||'').replace(/^Replace\s+.*\s+with\s+/,'');
+                  // Use grantList[0] for display name if implicit? 
+                  // If multiple grants, displayName usually includes both? u.grants is the raw string.
+                  // u.name usually "Swap A for B".
+                  // Let's use u.name if available, or list.
+                  
+                  const displayModelName = (u.type==='MODEL_UPGRADE') ? (String(u.name||'').replace(/^Replace\s+.*\s+with\s+/,'').replace(/\(Model Upgrade\)/i,'').trim() || 'Upgrade') : (u.name || u.grants);
+
+                  if(u.replaces){
+                     const checked = count > 0;
+                     nameCell = `<td><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" ${checked ? 'checked' : ''} onchange="onModalUpgradeToggle(this)"/> ${displayModelName}</label><div class="small muted">${u.limit||''}</div></td>`;
+                  } else {
+                     nameCell = `<td><div style="font-weight:600">${displayModelName}</div><div class="small muted">${u.limit||''}</div>${control}</td>`;
+                  }
+                  return `<tr class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" data-name="${u.name}">${nameCell}${statCols}<td class="cost" rowspan="${grantList.length}">${(count>0? (count*basePts) : basePts)} pts</td></tr>`;
+             } else {
+                 // Secondary grant
+                 return `<tr class="modal-upgrade-row" data-upgrade="${u.id}" data-sub="${gName}"><td><div style="padding-left:24px;font-weight:600;font-size:0.9em">${gName}</div></td>${statCols}<td style="display:none"></td></tr>`;
+             }
+          }).join('');
         }).join('');
         if(!upgradesRowsHtml){
           const defM = (UNIT_DEFAULT_MODELS[unit.id]||1), maxM=(UNIT_MAX_MODELS[unit.id]||defM), stepM=(UNIT_BROOD_STEP[unit.id]||0);
@@ -1852,6 +2203,76 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
               upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${e.id}" data-type="WEAPON_SWAP" data-replaces="Fleshborer" data-grants="${e.grants}" data-detach="0" data-name="${e.name}">${nameCell}${statCols}<td class="cost">${curCount>0 ? curCount*e.pts : e.pts} pts</td></tr>`;
               tableUpGrants.add(String(e.grants||'').toLowerCase());
             });
+          } else if(unit.id.includes('hierophant')){
+             const entries = [
+               {id:'u_hiero_bc', name:'Bio-Cannon (Hierophant)', pts:0, grants:'Bio-Cannon (Hierophant)'},
+               {id:'u_hiero_rc', name:'Razor Claws (Hierophant)', pts:0, grants:'Razor Claws (Hierophant)'},
+               {id:'u_hiero_bl', name:'Bile Launcher', pts:0, grants:'Bile Launcher'},
+               {id:'u_hiero_ps', name:'Pyro-Acid Spray', pts:0, grants:'Pyro-Acid Spray'}
+             ];
+             const maxCnt = 2; 
+             entries.forEach(e=>{
+               const stat = WEAPON_LIBRARY[e.grants] || {};
+               const statCols = `<td>${stat.range||'-'}</td><td>${stat.dice||'-'}</td><td>${stat.toHit||'-'}</td><td>${stat.AP===undefined?'-':stat.AP}</td><td>${renderTraitsCell(stat.traits)}</td>`;
+               
+               const existing = (unit.upgrades||[]).find(x=>x.id===e.id);
+               const curCount = existing ? Number(existing.count||0) : 0;
+               
+               const control = `<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${e.id}',-1)">−</button><button id="upval-${e.id}" class="btn btn-xs" style="width:28px;justify-content:center">${curCount}</button><input id="upcnt-${e.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCnt}" step="1" value="${curCount}" data-points="${e.pts}" style="width:0;opacity:0;pointer-events:none"/><button class="btn btn-xs" onclick="window.bumpUpgradeCount('${e.id}',1)">+</button><button id="uprm-${e.id}" class="btn btn-xs btn-red" style="display:${curCount>0?'':'none'}" onclick="document.getElementById('upcnt-${e.id}').value=0; document.getElementById('upval-${e.id}').textContent='0'; updateModalTotals()">✖</button></div>`;
+               
+               const nameCell = `<td><div style="font-weight:600">${e.name}</div>${control}</td>`;
+               upgradesRowsHtml += `<tr class="modal-upgrade-row" data-upgrade="${e.id}" data-type="WEAPON_SWAP" data-replaces="Hierophant Arm Weapon" data-grants="${e.grants}" data-detach="0" data-name="${e.name}">${nameCell}${statCols}<td class="cost">${e.pts} pts</td></tr>`;
+               tableUpGrants.add(String(e.grants||'').toLowerCase());
+             });
+          } else if(unit.id.includes('hierodule')){
+            const variants = [
+              {id:'u_hierodule_scythed', name:'Scythed Variant', isBase:true, grants:['Razor Claws (Hierodule)','Spore Pods','Stinger Salvo']},
+              {id:'u_hierodule_barbed', name:'Barbed Variant', grants:['Bio-Cannon (Hierodule)','Stinger Salvo']},
+              {id:'u_hierodule_hive', name:'Hive Variant', grants:['Ripper Tentacles','Pyro-Acid Spray','Stinger Salvo']}
+            ];
+            
+            hieroduleHtml = variants.map(v => {
+               const rows = v.grants.map(gName => {
+                const stat = WEAPON_LIBRARY[gName] || {};
+                const statCols = `<td style="color:#fff">${stat.range||'-'}</td><td style="color:#fff">${stat.dice||'-'}</td><td style="color:#fff">${stat.toHit||'-'}</td><td style="color:#fff">${stat.AP===undefined?'-':stat.AP}</td><td style="color:#fff">${renderTraitsCell(stat.traits)}</td>`;
+                return `<tr><td><div style="font-weight:600;font-size:0.9em;color:#fff">${gName}</div></td>${statCols}</tr>`;
+              }).join('');
+              
+              let control = '';
+              if(v.isBase){
+                  control = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="font-weight:700;font-size:1.1em;color:#fff">${v.name} (Base)</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <button id="btn-base-dec" class="btn btn-xs" onclick="window.headerModelBump(-1)" style="width:30px;height:30px;font-weight:bold">-</button>
+                        <input id="hierodule-base-count" class="modal-upgrade-count mini-input" type="text" value="1" readonly style="width:40px;text-align:center;background:#222;color:#fff;border:1px solid #555;height:30px">
+                        <button id="btn-base-inc" class="btn btn-xs" onclick="window.headerModelBump(1)" style="width:30px;height:30px;font-weight:bold">+</button>
+                    </div>
+                  </div>`;
+              } else {
+                  const current = (unit.upgrades||[]).find(x=>x.id===v.id);
+                  const count = current ? Number(current.count||0) : 0;
+                  control = `<div class="modal-upgrade-row" data-upgrade="${v.id}" data-replaces="razor_claws_hierodule" data-type="WEAPON_SWAP" data-name="${v.name}" style="margin-bottom:8px">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                       <span style="font-weight:700;font-size:1.1em;color:#fff">${v.name}</span>
+                       <div style="display:flex;align-items:center;gap:8px">
+                         <button class="btn btn-xs" onclick="bumpUpgradeCount('${v.id}', -1)" style="width:30px;height:30px;font-weight:bold">-</button>
+                         <input id="upcnt-${v.id}" class="modal-upgrade-count mini-input" type="number" value="${count}" min="0" data-points="0" data-upid="${v.id}" readonly style="width:40px;text-align:center;background:#222;color:#fff;border:1px solid #555;height:30px">
+                         <button class="btn btn-xs" onclick="bumpUpgradeCount('${v.id}', 1)" style="width:30px;height:30px;font-weight:bold">+</button>
+                       </div>
+                    </div>
+                  </div>`;
+              }
+
+              return `<div id="card-${v.id}" class="hierodule-variant-card" style="border:1px solid #444; background:#222; margin-bottom:10px; padding:10px; border-radius:6px;">
+                ${control}
+                <div id="table-container-${v.id}" style="transition: opacity 0.3s ease;">
+                    <table class="table table-sm table-striped" style="margin:0; background:transparent; color:#fff;">
+                      <thead><tr><th style="color:#fff">Weapon</th><th style="color:#fff">Range</th><th style="color:#fff">Dice</th><th style="color:#fff">To Hit</th><th style="color:#fff">AP</th><th style="color:#fff">Traits</th></tr></thead>
+                      <tbody>${rows}</tbody>
+                    </table>
+                </div>
+              </div>`;
+            }).join('');
           }
         }
 
@@ -1868,7 +2289,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const isBroodSizeName = /increase\s+brood\s+size/i.test(nameLc);
           const isDuplicateBroodlord = /replace\s+one\s+genestealer\s+w\/\s+broodlord/i.test(nameLc);
           return !(
-            t.startsWith('WEAPON') || u.type==='BROOD_SIZE' || isBroodSizeName || isDuplicateBroodlord || tableUpIds.has(u.id) || (weaponLike && isReplace && overlapsGrant)
+            t.startsWith('WEAPON') || u.type==='BROOD_SIZE' || isBroodSizeName || isDuplicateBroodlord || tableUpIds.has(u.id) || (weaponLike && isReplace && overlapsGrant) || (unit.id === 'hierophant_brood' && u.type === 'WEAPON_SWAP')
           );
         });
         const specialUpgradesHtml = specialUps.map(u=>{
@@ -1880,7 +2301,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const available=count>0?1:Math.max(0,1-others);
           const disabledAttr = (!count && available===0) ? 'disabled' : '';
           const eff = UPGRADE_EFFECTS[u.id]||{};
-          const grants = (eff.rules||[]).length ? `<div class="muted small" style="margin-top:4px">Grants: ${(eff.rules||[]).join('; ')}</div>` : '';
+          const grants = (eff.rules||[]).length && window._modalUnitRef.id !== 'tyrannofex' ? `<div class="muted small" style="margin-top:4px">Grants: ${(eff.rules||[]).join('; ')}</div>` : '';
           const statTxt = eff.stats && (eff.stats.CAF||eff.stats.Wounds||eff.stats.Movement) ? `<div class="muted small">Stats: ${[eff.stats.CAF?('CAF '+eff.stats.CAF):'', eff.stats.Wounds?('Wounds '+eff.stats.Wounds):'', eff.stats.Movement?('Move '+eff.stats.Movement):''].filter(Boolean).join('; ')}</div>` : '';
           let extra = '';
           const isPyrovore = unit.id==='biovore' && /pyrovor/i.test(u.name||'');
@@ -1967,7 +2388,6 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           <div class="modal-backdrop" onclick="closeModal()">
 
             <div class="modal-drawer" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-              <button class="btn btn-sm btn-red" style="position:absolute;right:8px;top:8px" onclick="closeModal()">✖</button>
               <h3 id="modal-title" style="margin:0 0 8px 0">${unit.name} — Edit</h3>
               ${headerSummary}
               <div class="drawer-stack">
@@ -1980,11 +2400,12 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
                     </div>`;
                   })()}
 
-                  ${(weaponsHtml || upgradesRowsHtml) ? `
+                  ${(weaponsHtml || upgradesRowsHtml) && !unit.id.includes('hierodule') ? `
                     <div class="table-scroll-wrapper">
                       <table class="table" style="min-width:600px"><thead><tr><th>Weapon / Upgrade</th><th>Range</th><th>Dice</th><th>ToHit</th><th>AP</th><th>Traits</th><th class="text-end" style="width: 80px;">Cost</th></tr></thead><tbody>${weaponsHtml+upgradesRowsHtml}</tbody></table>
                     </div>
-                  ` : ''}>
+                  ` : ''}
+                  ${hieroduleHtml ? `<div style="margin-top:10px">${hieroduleHtml}</div>` : ''}
 
                   ${modelCtrl}
 
@@ -2068,7 +2489,6 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
               <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-                <button class="btn btn-sm btn-red" onclick="closeModal()">Cancel</button>
                 <button id="modal-save-btn" class="btn btn-sm btn-blue">Save</button>
               </div>
             </div>
@@ -2079,13 +2499,13 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         try{ const drawer=document.querySelector('.modal-drawer'); if(drawer){ trapFocus(drawer); setTimeout(()=>{ const first=drawer.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'); if(first && first.focus) first.focus(); },0); } }catch(e){}
         (function bindHeaderControls(){ try{ const dec=document.getElementById('modal-unit-dec'); const inc=document.getElementById('modal-unit-inc'); if(dec) dec.addEventListener('click', ()=>window.headerModelBump(-1)); if(inc) inc.addEventListener('click', ()=>window.headerModelBump(1)); }catch(e){} })();
 
-        setTimeout(()=>{ try{ onModalUpgradeToggle(); }catch(e){} try{ updateModalTotals(); }catch(e){} try{ enforceWeaponConstraints(); }catch(e){} try{ updateSpecialRulesBlock(); }catch(e){} }, 0);
+        setTimeout(()=>{ try{ onModalUpgradeToggle(); }catch(e){} try{ updateModalTotals(); }catch(e){} try{ enforceWeaponConstraints(); }catch(e){} try{ updateSpecialRulesBlock(); }catch(e){} try{ updateHieroduleVisuals(); }catch(e){} }, 0);
 
         const saveBtn = document.getElementById('modal-save-btn'); if(saveBtn) saveBtn.addEventListener('click', saveEditFromModal, { once:true });
 
 
 
-        Array.from(document.querySelectorAll('.modal-weapon-checkbox')).forEach(cb => cb.addEventListener('change', ()=>{ updateModalTotals(); enforceWeaponConstraints(); }));
+        Array.from(document.querySelectorAll('.modal-weapon-checkbox')).forEach(cb => cb.addEventListener('change', (e)=>{ if(window.onModalWeaponToggle) window.onModalWeaponToggle(e.target); updateModalTotals(); enforceWeaponConstraints(); }));
 
         Array.from(document.querySelectorAll('.modal-upgrade-count')).forEach(inp => inp.addEventListener('change', updateModalTotals));
 
@@ -2120,6 +2540,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
       const RECENT_UPDATES = [
+        { date: '2026-01-24', text: 'Added Hierophant Brood (Biotitan) with full weapon options and logic.' },
+        { date: '2026-01-23', text: 'Added Hierodule Brood to Tyranid army list (Biotitan).' },
+        { date: '2026-01-23', text: 'Added Tyrannofex Brood, Exocrine Brood, and Malefactor Brood to Tyranid army list.' },
         { date: '2026-01-22', text: 'Update: All units with Flyer rule now default to 32mm base size.' },
         { date: '2026-01-22', text: 'Added Harpy Brood to Tyranid army list (Flyer Support).' },
         { date: '2026-01-22', text: 'Added Guest Mode with local storage support.' },

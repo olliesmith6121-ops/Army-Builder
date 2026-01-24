@@ -1,0 +1,183 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test Hierodule Logic</title>
+</head>
+<body>
+<div id="modal-root">
+    <div class="modal-drawer">
+        <div id="bsize-label" data-models="1">Unit size: 1</div>
+        <div id="modal-unit-summary" data-unit="hierodule" data-min="1" data-max="3" data-step="1"></div>
+        <div id="modal-content">
+            <!-- Scythed (Base) -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-weight:700;font-size:1.1em;color:#fff">Scythed Variant (Base)</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <button id="btn-base-dec" onclick="window.headerModelBump(-1)">-</button>
+                    <input id="hierodule-base-count" class="modal-upgrade-count mini-input" type="text" value="1" readonly>
+                    <button id="btn-base-inc" onclick="window.headerModelBump(1)">+</button>
+                </div>
+            </div>
+
+            <!-- Barbed -->
+            <div class="modal-upgrade-row" data-upgrade="u_hierodule_barbed" data-replaces="razor_claws_hierodule" data-type="WEAPON_SWAP" data-name="Barbed Variant">
+                <button onclick="bumpUpgradeCount('u_hierodule_barbed', -1)">-</button>
+                <input id="upcnt-u_hierodule_barbed" class="modal-upgrade-count" type="number" value="0" min="0" data-upid="u_hierodule_barbed" readonly>
+                <button onclick="bumpUpgradeCount('u_hierodule_barbed', 1)">+</button>
+            </div>
+
+            <!-- Hive -->
+            <div class="modal-upgrade-row" data-upgrade="u_hierodule_hive" data-replaces="razor_claws_hierodule" data-type="WEAPON_SWAP" data-name="Hive Variant">
+                <button onclick="bumpUpgradeCount('u_hierodule_hive', -1)">-</button>
+                <input id="upcnt-u_hierodule_hive" class="modal-upgrade-count" type="number" value="0" min="0" data-upid="u_hierodule_hive" readonly>
+                <button onclick="bumpUpgradeCount('u_hierodule_hive', 1)">+</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Mock Data
+    const UNIT_DEFAULT_MODELS = { 'hierodule': 1 };
+    const UNIT_MAX_MODELS = { 'hierodule': 3 };
+    const UNIT_BROOD_POINTS = { 'hierodule': 150 };
+    const UNIT_BROOD_STEP = { 'hierodule': 1 };
+    const UNIT_BASE = { 'hierodule': { points: 150 } };
+    
+    // Mock Unit
+    const unit = { id: 'hierodule', models: 1, upgrades: [] };
+    window._modalUnitRef = unit;
+    window.editContext = { fIdx:0, section:'compulsory', sIdx:0, uIdx:0 }; // Mock context
+    const armyFormations = [{ compulsory: [{ units: [unit] }] }]; // Mock army
+
+    // Helper Functions
+    function unitPoints(u) { return 150 * (u.models || 1); }
+    function currentLoadout(id) { return { weapons: [{name:'Razor Claws (Hierodule)', base:true}] }; }
+    function scheduleUpdateTotals() { updateModalTotals(); }
+    
+    // Functions to Test (Copied/Adapted from index.html)
+    function updateModalTotals(){
+        console.log('updateModalTotals called');
+        updateHieroduleVisuals();
+    }
+
+    window.updateHieroduleVisuals = function(){
+        const baseEl = document.getElementById('hierodule-base-count');
+        if(baseEl){
+            const inputs = Array.from(document.querySelectorAll('.modal-upgrade-count[data-upid^="u_hierodule_"]'));
+            const sum = inputs.reduce((s,i)=>s+Number(i.value||0),0);
+            
+            // Get total from unit.models directly for test
+            let total = unit.models;
+
+            const rem = Math.max(0, total - sum);
+            
+            if(baseEl.tagName === 'INPUT') baseEl.value = rem;
+            else baseEl.textContent = 'x' + rem;
+            
+            console.log(`Visuals Updated: Total=${total}, Sum=${sum}, Rem=${rem}`);
+        }
+    };
+
+    function bumpHeaderUnit(delta, el){
+        const min = 1;
+        const max = 3;
+        let cur = Number(unit.models || min);
+        cur += delta;
+        if(cur < min) cur = min;
+        if(cur > max) cur = max;
+        unit.models = cur;
+
+        // Sync logic
+        const swapRows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-type="WEAPON_SWAP"]'));
+        const groups = {};
+        swapRows.forEach(r => {
+            const rep = r.getAttribute('data-replaces') || '';
+            if(!groups[rep]) groups[rep] = [];
+            groups[rep].push(r);
+        });
+        Object.keys(groups).forEach(rep => {
+            const rows = groups[rep];
+            const inputs = rows.map(r => document.getElementById('upcnt-' + r.getAttribute('data-upgrade'))).filter(Boolean);
+            inputs.forEach(inp => inp.max = String(cur));
+            let sum = inputs.reduce((s, inp) => s + Number(inp.value||0), 0);
+            if(sum > cur){
+                let over = sum - cur;
+                for(const inp of inputs){
+                    if(over <= 0) break;
+                    const val = Number(inp.value||0);
+                    const dec = Math.min(val, over);
+                    inp.value = String(val - dec);
+                    over -= dec;
+                }
+            }
+        });
+
+        // Update Label
+        document.getElementById('bsize-label').setAttribute('data-models', String(cur));
+        document.getElementById('bsize-label').textContent = 'Unit size: ' + cur;
+
+        updateModalTotals();
+    }
+    window.headerModelBump = function(d){ bumpHeaderUnit(d); };
+
+    function bumpUpgradeCount(id, delta){
+        const inp = document.getElementById('upcnt-'+id);
+        if(!inp) return;
+        const row = document.querySelector(`.modal-upgrade-row[data-upgrade="${id}"]`);
+        let val = Number(inp.value || 0);
+        
+        // Logic from file
+        const models = unit.models;
+        const replaces = row ? (row.getAttribute('data-replaces') || '') : '';
+        
+        console.log(`Bump ${id}: models=${models}, replaces=${replaces}`);
+
+        if(replaces){
+          const peerRows = Array.from(document.querySelectorAll(`.modal-upgrade-row[data-replaces="${replaces}"]`));
+          const peers = peerRows.map(r=>{ const iid = r.getAttribute('data-upgrade'); const i = document.getElementById('upcnt-'+iid); return { id: iid, val: Number(i && i.value || 0) }; });
+          const sumOthers = peers.filter(p=>p.id!==id).reduce((s,p)=>s+p.val,0);
+          let allowed = Math.max(0, models - sumOthers);
+          
+          console.log(`SumOthers=${sumOthers}, Allowed=${allowed}`);
+
+          val += delta;
+          if(val < 0) val = 0;
+          
+          if(val > allowed){
+             const deficit = val - allowed;
+             let recovered = 0;
+             for(const r of peerRows){
+                if(recovered >= deficit) break;
+                const pId = r.getAttribute('data-upgrade');
+                if(pId === id) continue;
+                const pInp = document.getElementById('upcnt-'+pId);
+                if(!pInp) continue;
+                let pVal = Number(pInp.value||0);
+                if(pVal > 0){
+                   const canTake = Math.min(pVal, deficit - recovered);
+                   pVal -= canTake;
+                   recovered += canTake;
+                   pInp.value = String(pVal);
+                }
+             }
+             const newSumOthers = peerRows.filter(r=>r.getAttribute('data-upgrade')!==id).reduce((s,r)=>{
+                 const i = document.getElementById('upcnt-'+r.getAttribute('data-upgrade'));
+                 return s + Number(i && i.value || 0);
+             }, 0);
+             allowed = Math.max(0, models - newSumOthers);
+          }
+
+          if(val > allowed) val = allowed;
+          inp.max = String(allowed);
+        }
+        
+        inp.value = val;
+        updateModalTotals();
+    }
+    window.bumpUpgradeCount = bumpUpgradeCount;
+
+</script>
+</body>
+</html>
