@@ -12,6 +12,8 @@
 
   <title>Xenos Army Builder</title>
   <link rel="icon" type="image/png" href="Images/WebIcon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111827">
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 
@@ -4002,6 +4004,16 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       window.removeUnit = removeUnit;
       window.removeSpecialUnit = removeSpecialUnit;
 
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
   </script>
 
 </body>
