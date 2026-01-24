@@ -1282,9 +1282,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       async function loadTyranidRules(){ return; }
       let RULES_INDEX = {};
       const CROSS_TRAIT_INDEX = {
-        'Agile': 'Models with this special rule may change the direction they are facing any number of times during their movement. (Verify Titan specific rule: may turn up to 2 times)',
-        'Regenerate': 'Roll a D6 for each wound lost at the end of the turn; on a 5+, the wound is regained. (Verify text)',
-        'The Horror': 'Enemy units in contact suffer -1 to Hit rolls? (Text to be verified)',
+        'Agile': 'Models with this special rule may change the direction they are facing any number of times during their movement.',
+        'Regenerate': 'Roll a D6 for each wound lost at the end of the turn; on a 5+, the wound is regained. (Verify with rulebook)',
+        'The Horror': 'Enemy units in contact suffer -1 to Hit rolls. (Verify with rulebook)',
         'Light':'Cannot damage Light Armoured vehicles or better',
         'Light AT':'AP counts as 0 against Vehicles/Knights/Titans',
         'Anti-Tank':'AP counts as 0 against Infantry/Cavalry',
@@ -2540,6 +2540,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
       const RECENT_UPDATES = [
+        { date: '2026-01-24', text: 'Tyranid Army List Complete! All units and formations are now available.' },
         { date: '2026-01-24', text: 'Added Hierophant Brood (Biotitan) with full weapon options and logic.' },
         { date: '2026-01-23', text: 'Added Hierodule Brood to Tyranid army list (Biotitan).' },
         { date: '2026-01-23', text: 'Added Tyrannofex Brood, Exocrine Brood, and Malefactor Brood to Tyranid army list.' },
@@ -2559,7 +2560,6 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
       const COMING_SOON = [
         "Auto Army Builder",
-        "Full Tyranid Unit List",
         "Offline Mode",
         "Ork Army Data",
         "Eldar Army Data"
