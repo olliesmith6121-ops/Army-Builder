@@ -2540,6 +2540,9 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
       const RECENT_UPDATES = [
+        { date: '2026-01-24', text: 'Exports: Added Detailed Roster PDF/Print with full stats, weapons, and special rules.' },
+        { date: '2026-01-24', text: 'Exports: Refined Builder List layout with points per unit and spacing.' },
+        { date: '2026-01-24', text: 'Exports: Standardized filenames (Name - Faction - Points).' },
         { date: '2026-01-24', text: 'Tyranid Army List Complete! All units and formations are now available.' },
         { date: '2026-01-24', text: 'Added Hierophant Brood (Biotitan) with full weapon options and logic.' },
         { date: '2026-01-23', text: 'Added Hierodule Brood to Tyranid army list (Biotitan).' },
@@ -2933,13 +2936,556 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       function duplicateList(id){ const l=savedLists.find(x=>x.id===id); if(!l) return; const now=Date.now(); const copy={...l, id:String(now), name:(l.name||'List')+' (copy)', createdAt: now, updatedAt: now}; savedLists.push(copy); persistSavedLists(); renderContent(); }
       function deleteList(id){ const idx=savedLists.findIndex(x=>x.id===id); if(idx>-1){ savedLists.splice(idx,1); persistSavedLists(); renderContent(); } }
       function copyBuilderLink(id){ const l=savedLists.find(x=>x.id===id); if(!l) return; const text=JSON.stringify(l); if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text); } alert('Builder link copied to clipboard'); }
+
+      function openExportModal(id) {
+        const list = savedLists.find(l => l.id === id);
+        if (!list) return;
+        const root = document.getElementById('modal-root');
+        root.innerHTML = `
+        <div class="modal-backdrop" onclick="closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+                <h3 style="margin:0 0 12px 0">Export List: ${list.name}</h3>
+                <div style="display:flex; flex-direction:column; gap:8px">
+                    <button class="btn btn-blue" onclick="exportListPDF('${id}'); closeModal();">PDF</button>
+                    <button class="btn btn-blue" onclick="exportListPrint('${id}'); closeModal();">Print</button>
+                    <button class="btn btn-blue" onclick="exportListCSV('${id}'); closeModal();">CSV</button>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </div>
+        </div>`;
+      }
+
+      function exportListPrint(idOrList) {
+        const list = (typeof idOrList === 'string') ? savedLists.find(l => l.id === idOrList) : idOrList;
+        if (!list) return;
+        
+        const pointsUsed = (list.formations || []).reduce((s, f) => s + formationPoints(f), 0);
+        const pointsCap = list.pointsCap || 2000;
+        
+        let html = `<!doctype html><html><head><meta charset="utf-8"><title>${getExportFilename(list)}</title>
+        <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 40px; color: #333; }
+            h1 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .meta { margin-bottom: 30px; font-size: 1.1em; color: #666; }
+            .formation { margin-bottom: 30px; page-break-inside: avoid; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+            .formation-header { background: #f4f4f4; padding: 10px 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em; }
+            .unit-row { padding: 8px 15px; border-bottom: 1px solid #eee; }
+            .unit-row:last-child { border-bottom: none; }
+            .unit-main { display: flex; width: 100%; align-items: baseline; justify-content: space-between; }
+            .unit-name { font-weight: bold; }
+            .unit-meta { font-size: 0.9em; color: #666; margin-left: 10px; }
+            .unit-cost { font-weight: bold; white-space: nowrap; margin-left: 10px; }
+            .unit-details { font-size: 0.9em; color: #555; margin-top: 4px; padding-left: 10px; border-left: 2px solid #ddd; }
+            @media print {
+                body { margin: 0; }
+                .formation { border: 1px solid #999; }
+            }
+        </style>
+        </head><body>
+        <h1>${list.name}</h1>
+        <div class="meta">
+            Faction: ${list.faction || '-'} &bull; 
+            Points: <strong>${pointsUsed} / ${pointsCap}</strong>
+        </div>`;
+    
+        (list.formations || []).forEach(f => {
+            html += `<div class="formation">
+                <div class="formation-header">
+                    <span>${f.name}</span>
+                    <span>${formationPoints(f)} pts</span>
+                </div>`;
+            
+            const processUnits = (units) => {
+                 (units || []).forEach(slot => {
+                    (slot.units || []).forEach(u => {
+                        const weapons = (u.weapons || []).map(w => w.name).join(', ');
+                        const upgrades = (u.upgrades || []).map(up => `${up.name}${up.count ? ' x'+up.count : ''}`).join(', ');
+                        const details = [weapons, upgrades].filter(x=>x).join('; ');
+                        
+                        html += `<div class="unit-row">
+                            <div class="unit-main">
+                                <div>
+                                    <span class="unit-name">${u.name}</span>
+                                    <span class="unit-meta">Models: ${u.models || u.baseModels || 1}</span>
+                                </div>
+                                <div class="unit-cost">${unitPoints(u)} pts</div>
+                            </div>
+                            ${details ? `<div class="unit-details">${details}</div>` : ''}
+                        </div>`;
+                    });
+                });
+            };
+            
+            processUnits(f.compulsory);
+            processUnits(f.optional);
+            if(f.special && f.special.units) {
+                 (f.special.units).forEach(u => {
+                    const weapons = (u.weapons || []).map(w => w.name).join(', ');
+                    const upgrades = (u.upgrades || []).map(up => `${up.name}${up.count ? ' x'+up.count : ''}`).join(', ');
+                    const details = [weapons, upgrades].filter(x=>x).join('; ');
+                    html += `<div class="unit-row">
+                        <div class="unit-main">
+                            <div>
+                                <span class="unit-name">${u.name}</span>
+                                <span class="unit-meta">Special</span>
+                            </div>
+                            <div class="unit-cost">${unitPoints(u)} pts</div>
+                        </div>
+                        ${details ? `<div class="unit-details">${details}</div>` : ''}
+                    </div>`;
+                 });
+            }
+    
+            html += `</div>`;
+        });
+    
+        html += `</body></html>`;
+        const w=window.open('', '_blank');
+        if(!w) return;
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        setTimeout(()=>{ try{ w.print(); }catch(err){} }, 300);
+      }
+
+      function exportListCSV(id) {
+        const list = savedLists.find(l => l.id === id);
+        if (!list) return;
+
+        let csv = `List Name,${list.name || 'Untitled'}\n`;
+        csv += `Faction,${list.faction || '-'}\n`;
+        csv += `Points Limit,${list.pointsCap || 2000}\n`;
+        const totalPoints = (list.formations || []).reduce((s, f) => s + formationPoints(f), 0);
+        csv += `Points Used,${totalPoints}\n\n`;
+
+        csv += `Formation,Unit,Role,Size,Points,Weapons,Upgrades\n`;
+
+        (list.formations || []).forEach(f => {
+            const formationName = f.name;
+            const processUnits = (units, role) => {
+                (units || []).forEach(slot => {
+                    (slot.units || []).forEach(u => {
+                        const name = u.name;
+                        const size = u.models || u.baseModels || 1;
+                        const points = unitPoints(u);
+                        const weapons = (u.weapons || []).map(w => w.name).join('; ');
+                        const upgrades = (u.upgrades || []).map(up => `${up.name}${up.count ? ' x'+up.count : ''}`).join('; ');
+                        const escape = (s) => `"${(s || '').replace(/"/g, '""')}"`;
+                        csv += `${escape(formationName)},${escape(name)},${escape(role)},${size},${points},${escape(weapons)},${escape(upgrades)}\n`;
+                    });
+                });
+            };
+
+            processUnits(f.compulsory, 'Compulsory');
+            processUnits(f.optional, 'Optional');
+            if(f.special) {
+                 (f.special.units || []).forEach(u => {
+                        const name = u.name;
+                        const size = u.models || u.baseModels || 1;
+                        const points = unitPoints(u);
+                        const weapons = (u.weapons || []).map(w => w.name).join('; ');
+                        const upgrades = (u.upgrades || []).map(up => `${up.name}${up.count ? ' x'+up.count : ''}`).join('; ');
+                        const escape = (s) => `"${(s || '').replace(/"/g, '""')}"`;
+                        csv += `${escape(formationName)},${escape(name)},Special,${size},${points},${escape(weapons)},${escape(upgrades)}\n`;
+                 });
+            }
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${getExportFilename(list)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      function openRosterExportModal() {
+        let list = null;
+        if(currentListId) {
+            list = savedLists.find(x => x.id === currentListId);
+        }
+        if(!list) {
+            list = {
+                id: 'temp',
+                name: (typeof builderMeta!=='undefined' && builderMeta.name) || 'Current List',
+                faction: selectedArmy,
+                gamemode: (typeof builderMeta!=='undefined' && builderMeta.gamemode) || 'Standard',
+                allegiance: (typeof builderMeta!=='undefined' && builderMeta.allegiance) || 'Loyalist',
+                pointsCap: (typeof builderMeta!=='undefined' && builderMeta.pointsCap) || 2000,
+                formations: armyFormations || []
+            };
+        }
+        window.tempExportList = list;
+        const root = document.getElementById('modal-root');
+        root.innerHTML = `
+        <div class="modal-backdrop" onclick="closeModal()">
+            <div class="modal" onclick="event.stopPropagation()">
+                <h3 style="margin:0 0 12px 0">Export Roster: ${list.name}</h3>
+                <div style="display:flex; flex-direction:column; gap:8px">
+                    <button class="btn btn-blue" onclick="exportRosterPDF([window.tempExportList]); closeModal();">PDF (Detailed)</button>
+                    <button class="btn btn-blue" onclick="exportRosterPrint(window.tempExportList); closeModal();">Print (Detailed)</button>
+                    <button class="btn btn-blue" onclick="exportListCSV(window.tempExportList); closeModal();">CSV</button>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                    <button class="btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </div>
+        </div>`;
+      }
       function openInBuilder(id){ const l=savedLists.find(x=>x.id===id); if(!l) return; l.updatedAt = Date.now(); persistSavedLists(); currentListId = l.id; builderMeta = { name: l.name||'New List', gamemode: l.gamemode||'Standard', allegiance: l.allegiance||'Loyalist', pointsCap: l.pointsCap||2000 }; selectedArmy=l.faction||'Select Army'; selectedFormationName='Select a Formation'; armyFormations=JSON.parse(JSON.stringify(l.formations||[])); closeModal(); setActiveTab('army-builder'); saveState(); }
       async function exportListPDF(id){ const prev = (selectedListIds||[]).slice(); selectedListIds = [id]; try{ await exportSelectedListsPDF(); } finally { selectedListIds = prev; } }
       function listModels(id){ const l=savedLists.find(x=>x.id===id); if(!l) return; const units=(l.formations||[]).flatMap(f=>[...f.compulsory,...f.optional].flatMap(s=>s.units||[])); const total=units.reduce((s,u)=>s+(u.models||u.baseModels||1),0); const root=document.getElementById('modal-root'); root.innerHTML = `<div class="modal-backdrop" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3 style="margin:0 0 8px 0">${l.name} — Models</h3><div class="small">Total models: ${total}</div></div></div>`; }
       function buildCompactTextForList(l){ const lines=[]; const pointsCap=l.pointsCap||2000; const pointsUsed=(l.formations||[]).reduce((s,f)=>s+formationPoints(f),0); lines.push(`${l.name||'Untitled'} — ${l.faction||'-'} — ${pointsUsed}/${pointsCap} pts`); (l.formations||[]).forEach(f=>{ lines.push(`- ${f.name}: ${formationPoints(f)} pts`); [f.compulsory,f.optional].forEach(arr=>arr.forEach(s=> (s.units||[]).forEach(u=>{ lines.push(`  • ${u.name} (${unitPoints(u)} pts)`);}))); if(f.special) (f.special.units||[]).forEach(u=>lines.push(`  • ${u.name} (${unitPoints(u)} pts)`)); }); return lines.join('\n'); }
-      async function ensureJsPDF(){ if(window.jspdf && window.jspdf.jsPDF) return; const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; document.head.appendChild(s); await new Promise(r=>{ s.onload=r; s.onerror=r; }); }
-      async function exportSelectedListsPDF(){ const chosen=(savedLists||[]).filter(l=> selectedListIds.includes(l.id)); if(!chosen.length) return; try{ await ensureJsPDF(); const jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null; if(!jsPDF) throw new Error('jsPDF unavailable'); const doc=new jsPDF({ unit:'pt', format:'a4' }); const pageW=doc.internal.pageSize.getWidth(); const pageH=doc.internal.pageSize.getHeight(); const margin=36; const lineH=14; const colText=[31,41,55]; const colHeader=[63,58,54]; const colLight=[211,207,201]; const drawHeader=(title, meta)=>{ doc.setFillColor(colHeader[0],colHeader[1],colHeader[2]); doc.rect(0,0,pageW,42,'F'); doc.setTextColor(255,255,255); doc.setFont('times','bold'); doc.setFontSize(15); doc.text(String(title||'Army Lists').toUpperCase(), margin, 26); doc.setFillColor(colLight[0],colLight[1],colLight[2]); doc.rect(0,42,pageW,28,'F'); doc.setTextColor(colText[0],colText[1],colText[2]); doc.setFont('times','normal'); doc.setFontSize(12); if(meta){ doc.text(meta, margin, 60); } }; const drawSectionHead=(label)=>{ const y=doc.lastAutoTable && doc.lastAutoTable.finalY ? doc.lastAutoTable.finalY : null; }; const ensureSpace=(needed)=>{ const y=state.y; if(y + needed > pageH - margin){ doc.addPage(); drawHeader('Army Lists',''); state.y = 42 + 28 + margin/2; } }; const state={ y: 42 + 28 + margin/2 }; const lists=chosen.slice(); lists.forEach((l,idx)=>{ if(idx===0){ const pointsUsed=(l.formations||[]).reduce((s,f)=>s+formationPoints(f),0); const pointsCap=l.pointsCap||2000; drawHeader(l.name||'Untitled', `Army: ${l.faction||'-'} • Points: ${pointsUsed}/${pointsCap}`); state.y = 42 + 28 + margin/2; } else { doc.addPage(); const pointsUsed=(l.formations||[]).reduce((s,f)=>s+formationPoints(f),0); const pointsCap=l.pointsCap||2000; drawHeader(l.name||'Untitled', `Army: ${l.faction||'-'} • Points: ${pointsUsed}/${pointsCap}`); state.y = 42 + 28 + margin/2; }
-        const fms=(l.formations||[]); fms.forEach(f=>{ ensureSpace(28); doc.setFillColor(colLight[0],colLight[1],colLight[2]); doc.rect(margin, state.y, pageW - margin*2, 22, 'F'); doc.setTextColor(colText[0],colText[1],colText[2]); doc.setFont('times','bold'); doc.setFontSize(12); doc.text(`${f.name}: ${formationPoints(f)} pts`, margin+8, state.y+15); state.y += 26; doc.setFont('times','normal'); doc.setFontSize(11); const bullets=[]; [f.compulsory,f.optional].forEach(arr=> (arr||[]).forEach(s=> (s.units||[]).forEach(u=> bullets.push(`• ${u.name} (${unitPoints(u)} pts)`)))); if(f.special) (f.special.units||[]).forEach(u=> bullets.push(`• ${u.name} (${unitPoints(u)} pts)`)); const wrapped=doc.splitTextToSize(bullets.join('\n'), pageW - margin*2); wrapped.forEach(line=>{ ensureSpace(lineH+2); doc.text(line, margin, state.y); state.y += lineH; }); }); }); doc.save('Army_Lists.pdf'); }catch(e){ const chosenText=(savedLists||[]).filter(l=> selectedListIds.includes(l.id)).map(buildCompactTextForList).join('\n\n'); const html=`<!doctype html><html><head><meta charset=\"utf-8\"><title>Xenos Export</title><style>body{font-family:Georgia,Times,serif;margin:24px;color:#1f2937}h1{font-size:18px;margin:0 0 12px}pre{white-space:pre-wrap;font-size:13px;line-height:1.45;border:1px solid #c6c2bd;padding:12px;border-radius:6px;background:#f7f7f7}</style></head><body><h1>Army Lists</h1><pre>${chosenText.replace(/</g,'&lt;')}</pre></body></html>`; const w=window.open('', '_blank'); if(!w) return; w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.print(); }catch(err){} }, 300); } }
+      async function ensureJsPDF(){ 
+        if(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API.autoTable) return;
+        
+        if(!window.jspdf || !window.jspdf.jsPDF) {
+            const s=document.createElement('script'); 
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; 
+            document.head.appendChild(s); 
+            await new Promise(r=>{ s.onload=r; s.onerror=r; });
+        }
+
+        if(!window.jspdf.jsPDF.API.autoTable) {
+             const s2=document.createElement('script');
+             s2.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
+             document.head.appendChild(s2);
+             await new Promise(r=>{ s2.onload=r; s2.onerror=r; });
+        }
+      }
+
+      function getUnitStats(unitId) {
+          const base = UNIT_BASE[unitId] || {};
+          return {
+              m: base.movement || '-',
+              sv: base.save || '-',
+              caf: base.CAF || '-',
+              mor: base.morale || '-',
+              w: base.wounds || '-',
+              type: base.type || '-',
+              scale: base.scale || 1
+          };
+      }
+
+      function getWeaponStats(weaponName) {
+          // Handle custom/suffixed names (e.g. "Weapon (Harpy)")
+          let cleanName = weaponName;
+          let stats = WEAPON_LIBRARY[cleanName];
+          if(!stats && cleanName.includes('(')) {
+              // Try removing suffix
+              cleanName = cleanName.replace(/\s*\(.*?\)\s*/g, '').trim();
+              stats = WEAPON_LIBRARY[cleanName];
+          }
+          return stats || { range:'-', dice:'-', toHit:'-', AP:'-', traits:'-' };
+      }
+
+      function getExportFilename(list) {
+          const pts = (list.formations||[]).reduce((s,f)=>s+formationPoints(f),0);
+          const safeName = (list.name || 'Untitled').replace(/[^a-z0-9\-\s]/gi, '_').trim();
+          const safeFaction = (list.faction || 'Army').replace(/[^a-z0-9\-\s]/gi, '_').trim();
+          return `${safeName} - ${safeFaction} - ${pts}pts`;
+      }
+
+      async function exportRosterPDF(explicitLists){
+        const chosen = explicitLists || (savedLists||[]).filter(l=> selectedListIds.includes(l.id)); 
+        if(!chosen.length) return; 
+        
+        try {
+            await ensureJsPDF(); 
+            const jsPDF = window.jspdf.jsPDF;
+            const doc = new jsPDF({ unit:'pt', format:'a4' });
+            
+            chosen.forEach((list, listIdx) => {
+                if(listIdx > 0) doc.addPage();
+                
+                // Header
+                doc.setFontSize(18);
+                doc.setFont('helvetica', 'bold');
+                doc.text((list.name || 'Army Roster').toUpperCase(), 40, 40);
+                
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                const totalPts = (list.formations||[]).reduce((s,f)=>s+formationPoints(f),0);
+                doc.text(`Faction: ${list.faction || '-'}   |   Points: ${totalPts} / ${list.pointsCap || 2000}`, 40, 60);
+
+                let y = 80;
+
+                (list.formations || []).forEach(f => {
+                    // Check page break
+                    if(y > 750) { doc.addPage(); y = 40; }
+
+                    // Formation Header
+                    doc.setFillColor(220, 220, 220);
+                    doc.rect(40, y, 515, 20, 'F');
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0,0,0);
+                    doc.text(`${f.name} (${formationPoints(f)} pts)`, 45, y + 14);
+                    y += 30;
+
+                    // Collect Units
+                    const allUnits = [];
+                    const collect = (arr) => (arr||[]).forEach(s => (s.units||[]).forEach(u => allUnits.push(u)));
+                    collect(f.compulsory);
+                    collect(f.optional);
+                    if(f.special && f.special.units) f.special.units.forEach(u => allUnits.push(u));
+
+                    // Group by ID + Loadout to avoid duplicates? 
+                    // User wants "Full Expanded", but readable. 
+                    // Distinct unit types + unique loadouts seems best.
+                    const groups = {};
+                    allUnits.forEach(u => {
+                        const weapons = (u.weapons||[]).map(w=>w.name).sort().join('|');
+                        const upgrades = (u.upgrades||[]).map(up=>up.name).sort().join('|');
+                        const key = `${u.id}__${weapons}__${upgrades}`;
+                        if(!groups[key]) groups[key] = { unit: u, count: 0 };
+                        groups[key].count++;
+                    });
+
+                    Object.values(groups).forEach(g => {
+                        const u = g.unit;
+                        const stats = getUnitStats(u.id);
+                        
+                        if(y > 700) { doc.addPage(); y = 40; }
+
+                        // Unit Title Row
+                        doc.setFontSize(11);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`${u.name}`, 40, y);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(`Qty: ${g.count}`, 400, y);
+                        doc.text(`${unitPoints(u)} pts/model`, 480, y);
+                        y += 5;
+
+                        // Stats Table
+                        doc.autoTable({
+                            startY: y,
+                            head: [['Type', 'Speed', 'Save', 'CAF', 'Morale', 'Wounds']],
+                            body: [[
+                                `${stats.type} (${stats.scale})`, 
+                                stats.m, 
+                                stats.sv, 
+                                stats.caf, 
+                                stats.mor, 
+                                stats.w
+                            ]],
+                            theme: 'grid',
+                            headStyles: { fillColor: [50, 50, 50], textColor: 255, fontSize: 9 },
+                            bodyStyles: { fontSize: 9 },
+                            margin: { left: 40, right: 40 },
+                            tableWidth: 515
+                        });
+                        y = doc.lastAutoTable.finalY + 10;
+
+                        // Weapons Table
+                        const weaponRows = (u.weapons||[]).map(w => {
+                            const ws = getWeaponStats(w.name);
+                            return [w.name, ws.range, ws.dice, ws.toHit, ws.AP, ws.traits];
+                        });
+
+                        if(weaponRows.length > 0) {
+                            doc.autoTable({
+                                startY: y,
+                                head: [['Weapon', 'Range', 'Dice', 'To Hit', 'AP', 'Traits']],
+                                body: weaponRows,
+                                theme: 'striped',
+                                headStyles: { fillColor: [100, 100, 100], textColor: 255, fontSize: 9 },
+                                bodyStyles: { fontSize: 9 },
+                                margin: { left: 40, right: 40 },
+                                tableWidth: 515
+                            });
+                            y = doc.lastAutoTable.finalY + 10;
+                        }
+
+                        // Special Rules & Upgrades
+                        const baseRules = UNIT_BASE[u.id]?.specialRules || [];
+                        const upgradeRules = (u.upgrades||[]).filter(up => !up.type || up.type!=='BROOD_SIZE').map(up => up.name);
+                        const allRules = [...new Set([...baseRules, ...upgradeRules])];
+
+                        if(allRules.length > 0) {
+                            doc.setFontSize(9);
+                            doc.setFont('helvetica', 'bold');
+                            doc.text('Special Rules: ', 40, y);
+                            doc.setFont('helvetica', 'normal');
+                            const rulesText = doc.splitTextToSize(allRules.join(', '), 430);
+                            doc.text(rulesText, 110, y);
+                            y += (rulesText.length * 10) + 10;
+                        }
+                        
+                        y += 10; // Spacing between units
+                    });
+                    
+                    y += 10; // Spacing between formations
+                });
+            });
+
+            // Use name of first list
+            const fName = chosen.length ? getExportFilename(chosen[0]) : 'Army_Roster';
+            doc.save(`${fName}.pdf`);
+
+        } catch(e) {
+            console.error(e);
+            alert('Error generating PDF: ' + e.message);
+        }
+      }
+
+      function exportRosterPrint(idOrList) {
+         const list = (typeof idOrList === 'string') ? savedLists.find(l => l.id === idOrList) : idOrList;
+         if (!list) return;
+ 
+         let html = `<!doctype html><html><head><title>${getExportFilename(list)}</title>
+         <style>
+            body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 20px; }
+            h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+            .meta { margin-bottom: 20px; color: #666; font-size: 1.1em; }
+            .formation { margin-bottom: 30px; border: 1px solid #ccc; page-break-inside: avoid; }
+            .formation-header { background: #eee; padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; display:flex; justify-content:space-between; }
+            .unit-card { padding: 10px; border-bottom: 1px solid #eee; page-break-inside: avoid; }
+            .unit-card:last-child { border-bottom: none; }
+            .unit-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+            .unit-name { font-weight: bold; font-size: 1.1em; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 0.9em; }
+            th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
+            th { background: #f9f9f9; font-weight: bold; }
+            .rules { font-size: 0.9em; color: #444; }
+            .label { font-weight: bold; color: #222; }
+            @media print {
+                body { padding: 0; }
+                .formation { border: 1px solid #000; }
+                .formation-header { background: #ddd; color: #000; }
+            }
+         </style>
+         </head><body>
+         <h1>${list.name}</h1>
+         <div class="meta">Faction: ${list.faction || '-'} &bull; Points: ${(list.formations||[]).reduce((s,f)=>s+formationPoints(f),0)} / ${list.pointsCap}</div>`;
+
+         (list.formations || []).forEach(f => {
+             html += `<div class="formation">
+                <div class="formation-header"><span>${f.name}</span><span>${formationPoints(f)} pts</span></div>`;
+             
+             const allUnits = [];
+             const collect = (arr) => (arr||[]).forEach(s => (s.units||[]).forEach(u => allUnits.push(u)));
+             collect(f.compulsory);
+             collect(f.optional);
+             if(f.special && f.special.units) f.special.units.forEach(u => allUnits.push(u));
+
+             const groups = {};
+             allUnits.forEach(u => {
+                const weapons = (u.weapons||[]).map(w=>w.name).sort().join('|');
+                const upgrades = (u.upgrades||[]).map(up=>up.name).sort().join('|');
+                const key = `${u.id}__${weapons}__${upgrades}`;
+                if(!groups[key]) groups[key] = { unit: u, count: 0 };
+                groups[key].count++;
+             });
+
+             Object.values(groups).forEach(g => {
+                 const u = g.unit;
+                 const stats = getUnitStats(u.id);
+                 const baseRules = UNIT_BASE[u.id]?.specialRules || [];
+                 const upgradeRules = (u.upgrades||[]).filter(up => !up.type || up.type!=='BROOD_SIZE').map(up => up.name);
+                 const allRules = [...new Set([...baseRules, ...upgradeRules])];
+
+                 html += `<div class="unit-card">
+                    <div class="unit-header">
+                        <span class="unit-name">${u.name} ${g.count > 1 ? `(x${g.count})` : ''}</span>
+                        <span>${unitPoints(u)} pts/model</span>
+                    </div>
+                    
+                    <table>
+                        <thead><tr><th>Type</th><th>Speed</th><th>Save</th><th>CAF</th><th>Morale</th><th>Wounds</th></tr></thead>
+                        <tbody><tr>
+                            <td>${stats.type} (${stats.scale})</td>
+                            <td>${stats.m}</td>
+                            <td>${stats.sv}</td>
+                            <td>${stats.caf}</td>
+                            <td>${stats.mor}</td>
+                            <td>${stats.w}</td>
+                        </tr></tbody>
+                    </table>
+
+                    ${(u.weapons && u.weapons.length) ? `
+                    <table>
+                        <thead><tr><th>Weapon</th><th>Range</th><th>Dice</th><th>To Hit</th><th>AP</th><th>Traits</th></tr></thead>
+                        <tbody>
+                            ${u.weapons.map(w => {
+                                const ws = getWeaponStats(w.name);
+                                return `<tr>
+                                    <td>${w.name}</td>
+                                    <td>${ws.range}</td>
+                                    <td>${ws.dice}</td>
+                                    <td>${ws.toHit}</td>
+                                    <td>${ws.AP}</td>
+                                    <td>${ws.traits}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>` : '<div style="font-style:italic; font-size:0.9em; margin-bottom:8px">No Weapons</div>'}
+
+                    ${allRules.length ? `<div class="rules"><span class="label">Special Rules:</span> ${allRules.join(', ')}</div>` : ''}
+                 </div>`;
+             });
+
+             html += `</div>`;
+         });
+
+         html += `</body></html>`;
+         
+         const w = window.open('', '_blank');
+         if(w) {
+             w.document.open();
+             w.document.write(html);
+             w.document.close();
+             setTimeout(() => { try{ w.print(); }catch(e){} }, 500);
+         }
+      }
+
+      async function exportSelectedListsPDF(explicitLists){ const chosen=explicitLists || (savedLists||[]).filter(l=> selectedListIds.includes(l.id)); if(!chosen.length) return; try{ await ensureJsPDF(); const jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null; if(!jsPDF) throw new Error('jsPDF unavailable'); const doc=new jsPDF({ unit:'pt', format:'a4' }); const pageW=doc.internal.pageSize.getWidth(); const pageH=doc.internal.pageSize.getHeight(); const margin=36; const lineH=14; const colText=[31,41,55]; const colHeader=[63,58,54]; const colLight=[211,207,201]; const drawHeader=(title, meta)=>{ doc.setFillColor(colHeader[0],colHeader[1],colHeader[2]); doc.rect(0,0,pageW,42,'F'); doc.setTextColor(255,255,255); doc.setFont('times','bold'); doc.setFontSize(15); doc.text(String(title||'Army Lists').toUpperCase(), margin, 26); doc.setFillColor(colLight[0],colLight[1],colLight[2]); doc.rect(0,42,pageW,28,'F'); doc.setTextColor(colText[0],colText[1],colText[2]); doc.setFont('times','normal'); doc.setFontSize(12); if(meta){ doc.text(meta, margin, 60); } }; const drawSectionHead=(label)=>{ const y=doc.lastAutoTable && doc.lastAutoTable.finalY ? doc.lastAutoTable.finalY : null; }; const ensureSpace=(needed)=>{ const y=state.y; if(y + needed > pageH - margin){ doc.addPage(); drawHeader('Army Lists',''); state.y = 42 + 28 + margin/2; } }; const state={ y: 42 + 28 + margin/2 }; const lists=chosen.slice(); lists.forEach((l,idx)=>{ if(idx===0){ const pointsUsed=(l.formations||[]).reduce((s,f)=>s+formationPoints(f),0); const pointsCap=l.pointsCap||2000; drawHeader(l.name||'Untitled', `Army: ${l.faction||'-'} • Points: ${pointsUsed}/${pointsCap}`); state.y = 42 + 28 + margin/2; } else { doc.addPage(); const pointsUsed=(l.formations||[]).reduce((s,f)=>s+formationPoints(f),0); const pointsCap=l.pointsCap||2000; drawHeader(l.name||'Untitled', `Army: ${l.faction||'-'} • Points: ${pointsUsed}/${pointsCap}`); state.y = 42 + 28 + margin/2; }
+        const fms=(l.formations||[]); fms.forEach(f=>{ ensureSpace(28); doc.setFillColor(colLight[0],colLight[1],colLight[2]); doc.rect(margin, state.y, pageW - margin*2, 22, 'F'); doc.setTextColor(colText[0],colText[1],colText[2]); doc.setFont('times','bold'); doc.setFontSize(12); doc.text(`${f.name}: ${formationPoints(f)} pts`, margin+8, state.y+15); state.y += 38; doc.setFont('times','normal'); doc.setFontSize(11); 
+        
+        const units = [];
+        const collect = (arr) => (arr||[]).forEach(s => (s.units||[]).forEach(u => units.push(u)));
+        collect(f.compulsory);
+        collect(f.optional);
+        if(f.special && f.special.units) f.special.units.forEach(u => units.push(u));
+
+        units.forEach(u => {
+            const weapons = (u.weapons || []).map(w => w.name).join(', ');
+            const upgrades = (u.upgrades || []).map(up => `${up.name}${up.count ? ' x'+up.count : ''}`).join(', ');
+            const details = [weapons, upgrades].filter(x=>x).join('; ');
+            const models = u.models || u.baseModels || 1;
+            
+            const line1 = `• ${u.name} (${models} models, ${unitPoints(u)} pts)`;
+            ensureSpace(lineH);
+            doc.text(line1, margin, state.y);
+            state.y += lineH;
+            
+            if(details) {
+                doc.setFontSize(10);
+                doc.setTextColor(60,60,60);
+                const detailLines = doc.splitTextToSize(details, pageW - margin*2 - 16);
+                detailLines.forEach(l => {
+                    ensureSpace(12);
+                    doc.text(l, margin + 12, state.y);
+                    state.y += 12;
+                });
+                doc.setFontSize(11);
+                doc.setTextColor(colText[0],colText[1],colText[2]);
+                state.y += 6;
+            } else {
+                state.y += 4;
+            }
+        });
+        state.y += 12;
+        }); }); 
+        
+        const fName = chosen.length ? getExportFilename(chosen[0]) : 'Army_Lists';
+        doc.save(`${fName}.pdf`);
+        
+        }catch(e){ console.error(e); const chosenText=(savedLists||[]).filter(l=> selectedListIds.includes(l.id)).map(buildCompactTextForList).join('\n\n'); const html=`<!doctype html><html><head><meta charset=\"utf-8\"><title>Export</title><style>body{font-family:Georgia,Times,serif;margin:24px;color:#1f2937}h1{font-size:18px;margin:0 0 12px}pre{white-space:pre-wrap;font-size:13px;line-height:1.45;border:1px solid #c6c2bd;padding:12px;border-radius:6px;background:#f7f7f7}</style></head><body><h1>Army Lists</h1><pre>${chosenText.replace(/</g,'&lt;')}</pre></body></html>`; const w=window.open('', '_blank'); if(!w) return; w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.print(); }catch(err){} }, 300); } }
 
 
 
@@ -3314,7 +3860,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const formations = active.formations||[];
           const pointsUsed = formations.reduce((s,f)=>s+formationPoints(f),0);
           const pointsCap = active.pointsCap||2000;
-          const header = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong class="roster-title">${active.name}</strong><div class="small muted">${active.faction||'-'}</div></div><div style="display:flex;gap:8px;align-items:center"><div class="small muted">${pointsUsed}/${pointsCap} pts</div><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="printRoster()">Print</button></div></div>`;
+          const header = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong class="roster-title">${active.name}</strong><div class="small muted">${active.faction||'-'}</div></div><div style="display:flex;gap:8px;align-items:center"><div class="small muted">${pointsUsed}/${pointsCap} pts</div><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="openRosterExportModal()">Export</button></div></div>`;
           const armyRulesHtml = renderArmyRulesSection(active.faction || selectedArmy);
           const body = formations.length ? formations.map(f=>renderRosterFormation(f, '12px', '12px')).join('') : `<div class=\"muted small p-4\">No formations yet.</div>`;
           return `<div style="padding:8px"><div class="crumbs small muted">Roster › ${active.name}</div><div class="card" style="padding:8px">${header}</div>${armyRulesHtml}${body.replace(/padding:12px/g,'padding:8px').replace(/margin-bottom:12px/g,'margin-bottom:8px')}</div>`;
@@ -3327,7 +3873,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         if(!armyFormations.length) return `<div style="padding:12px" class="muted small">No formations added.</div>`;
 
         const armyRulesHtml = renderArmyRulesSection(selectedArmy);
-        return `<div style="padding:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="crumbs small muted">Roster</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="printRoster()">Print</button></div></div>${armyRulesHtml}${armyFormations.map((f,fi)=>renderRosterFormation(f, '8px', '8px')).join('')}</div>`;
+        return `<div style="padding:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="crumbs small muted">Roster</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-blue btn-sm" onclick="setActiveTab('army-builder')">Open in Builder</button><button class="btn btn-blue btn-sm" onclick="openRosterExportModal()">Export</button></div></div>${armyRulesHtml}${armyFormations.map((f,fi)=>renderRosterFormation(f, '8px', '8px')).join('')}</div>`;
 
       }
 
@@ -3405,7 +3951,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
       document.addEventListener('DOMContentLoaded', ()=>{ loadState(true); document.body.classList.add('rb-theme'); document.body.addEventListener('click',(e)=>{ const btn=e.target.closest('.icon-btn[data-action]'); if(btn){ const act=btn.getAttribute('data-action'); if(act==='delete-list') deleteCurrentList(); e.preventDefault(); }
         const fbtn=e.target.closest('.mini-icons .icon-btn[data-action]'); if(fbtn){ const act=fbtn.getAttribute('data-action'); const fi=Number(fbtn.getAttribute('data-fi')); if(act==='formation-toggle') toggleCollapse(fi); else if(act==='formation-clone') cloneFormation(fi); else if(act==='formation-remove') removeFormation(fi); e.preventDefault(); }
         const lbtn=e.target.closest('td button[data-action]'); if(lbtn){ const act=lbtn.getAttribute('data-action'); const id=lbtn.getAttribute('data-id'); if(act==='list-models') listModels(id); else if(act==='duplicate-list') duplicateList(id); else if(act==='view-list') viewList(id); else if(act==='copy-link') copyBuilderLink(id); else if(act==='delete-list') deleteList(id); e.preventDefault(); }
-        const bulkBtn=e.target.closest('button[data-action]'); if(bulkBtn){ const act=bulkBtn.getAttribute('data-action'); if(act==='bulk-del'){ if(selectedListIds.length){ savedLists = (savedLists||[]).filter(l=> !selectedListIds.includes(l.id)); selectedListIds = []; persistSavedLists(); renderContent(); } e.preventDefault(); } else if(act==='bulk-export'){ if(selectedListIds.length){ exportSelectedListsPDF(); } e.preventDefault(); } else if(act==='bulk-open'){ if(selectedListIds.length===1){ const id=selectedListIds[0]; openInBuilder(id); setActiveTab('army-builder'); } e.preventDefault(); } else if(act==='list-open'){ const id=bulkBtn.getAttribute('data-id'); if(id){ openInBuilder(id); setActiveTab('army-builder'); } e.preventDefault(); } else if(act==='list-export'){ const id=bulkBtn.getAttribute('data-id'); if(id){ exportListPDF(id); } e.preventDefault(); } else if(act==='list-del'){ const id=bulkBtn.getAttribute('data-id'); if(id){ deleteList(id); } e.preventDefault(); } }
+        const bulkBtn=e.target.closest('button[data-action]'); if(bulkBtn){ const act=bulkBtn.getAttribute('data-action'); if(act==='bulk-del'){ if(selectedListIds.length){ savedLists = (savedLists||[]).filter(l=> !selectedListIds.includes(l.id)); selectedListIds = []; persistSavedLists(); renderContent(); } e.preventDefault(); } else if(act==='bulk-export'){ if(selectedListIds.length){ exportSelectedListsPDF(); } e.preventDefault(); } else if(act==='bulk-open'){ if(selectedListIds.length===1){ const id=selectedListIds[0]; openInBuilder(id); setActiveTab('army-builder'); } e.preventDefault(); } else if(act==='list-open'){ const id=bulkBtn.getAttribute('data-id'); if(id){ openInBuilder(id); setActiveTab('army-builder'); } e.preventDefault(); } else if(act==='list-export'){ const id=bulkBtn.getAttribute('data-id'); if(id){ openExportModal(id); } e.preventDefault(); } else if(act==='list-del'){ const id=bulkBtn.getAttribute('data-id'); if(id){ deleteList(id); } e.preventDefault(); } }
         const mh=e.target.closest('#modal-unit-summary .btn[data-action]'); if(mh){ const act=mh.getAttribute('data-action'); if(act==='unit-dec') window.headerModelBump(-1); else if(act==='unit-inc') window.headerModelBump(1); e.preventDefault(); }
         const dd=e.target.closest('#account-menu .dropdown-item[data-action]'); if(dd){ const act=dd.getAttribute('data-action'); if(act==='open-profile') openProfile(); else if(act==='logout') handleLogout(); e.preventDefault(); }
         const a=e.target.closest('a[href=\"#\"]'); if(a){ e.preventDefault(); } });
