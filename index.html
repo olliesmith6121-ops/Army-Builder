@@ -1660,8 +1660,45 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
         });
 
-        if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot = (section==='special') ? armyFormations[fIdx].special : armyFormations[fIdx][section][sIdx]; const unit = slot && slot.units && slot.units[uIdx]; if(unit){ const models = Number(unit.models || (UNIT_DEFAULT_MODELS[unit.id]||1)); const totalPts = unitPoints(unit); const root=document.getElementById('modal-root'); const lbl = root && root.querySelector('.modal-drawer #bsize-label'); if(lbl){ lbl.innerHTML = 'Unit size: ' + models + ' <span class="cost">' + totalPts + ' PTS</span>'; lbl.setAttribute('data-models', String(models)); }
-          const sumEl = document.getElementById('modal-unit-summary'); if(sumEl){ const costEl=document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = totalPts + ' PTS'; const valBtn=document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT') valBtn.value=String(models); else valBtn.textContent = String(models); } const incLbl=document.getElementById('modal-inc-label'); const baseM=(UNIT_DEFAULT_MODELS[unit.id]||1); if(incLbl) incLbl.textContent = 'Increase by: +' + Math.max(0, models - baseM); } const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base); baseWeps.forEach(bw=>{ const replacingRows = Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r => (r.getAttribute('data-replaces')||'').split(',').map(s=>s.trim()).includes(bw.name)); replacingRows.forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); const sum = replacingRows.reduce((s,r)=>{ const id=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+id); if(inp) return s + Number(inp.value||0); const cb = r.querySelector('.modal-upgrade-checkbox'); return s + (cb && cb.checked ? 1 : 0); },0); const remain = Math.max(0, models - sum); const cb = Array.from(document.querySelectorAll('.modal-weapon-checkbox')).find(b=>b.getAttribute('data-name')===bw.name); if(cb){ cb.checked = remain>0; } const span = document.getElementById('base-rem-'+bw.id); if(span){ span.textContent = remain>0 ? `(x${remain})` : ''; } }); Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r=>{ const t=r.getAttribute('data-type')||''; return t.startsWith('WEAPON_SWAP'); }).forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); } }
+        if(window.editContext){ 
+             const {fIdx,section,sIdx,uIdx}=window.editContext; 
+             const slot = (section==='special') ? armyFormations[fIdx].special : armyFormations[fIdx][section][sIdx]; 
+             const unit = slot && slot.units && slot.units[uIdx]; 
+             if(unit){ 
+                 const baseM = (UNIT_DEFAULT_MODELS[unit.id]||1);
+                 let models = baseM;
+                 const bInputs = Array.from(document.querySelectorAll('.modal-upgrade-count'));
+                 bInputs.forEach(i => {
+                      const upId = i.getAttribute('data-upid');
+                      const r = document.querySelector(`.modal-upgrade-row[data-upgrade="${upId}"]`);
+                      const typ = (r && r.getAttribute('data-type')) || i.getAttribute('data-type');
+                      if(typ === 'BROOD_SIZE'){
+                           models += Number(i.value||0) * Number(i.getAttribute('data-step')||1);
+                      }
+                 });
+                 const chkBoxes = Array.from(document.querySelectorAll('.modal-upgrade-checkbox'));
+                 chkBoxes.filter(b=>b.checked).forEach(b=>{
+                      const typ = b.getAttribute('data-type');
+                      if(typ === 'BROOD_SIZE'){
+                           const id = b.getAttribute('data-id');
+                           const hasInput = bInputs.some(i=>i.getAttribute('data-upid')===id && Number(i.value)>0);
+                           if(!hasInput){
+                                models += Number(b.getAttribute('data-modelsdelta')||0);
+                           }
+                      }
+                 });
+                 const totalPts = total; 
+                  
+                  // Update unit reference with calculated models so other dependencies (limits etc) are valid
+                  unit.models = models;
+
+                  const root=document.getElementById('modal-root'); 
+                  const lbl = root && root.querySelector('.modal-drawer #bsize-label'); 
+                 if(lbl){ 
+                     lbl.innerHTML = 'Unit size: ' + models + ' <span class="cost">' + totalPts + ' PTS</span>'; 
+                     lbl.setAttribute('data-models', String(models)); 
+                 }
+                 const sumEl = document.getElementById('modal-unit-summary'); if(sumEl){ const costEl=document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = totalPts + ' PTS'; const valBtn=document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT') valBtn.value=String(models); else valBtn.textContent = String(models); } const incLbl=document.getElementById('modal-inc-label'); if(incLbl) incLbl.textContent = 'Increase by: +' + Math.max(0, models - baseM); } const baseWeps = (currentLoadout(unit.id).weapons||[]).filter(w=>w.base); baseWeps.forEach(bw=>{ const replacingRows = Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r => (r.getAttribute('data-replaces')||'').split(',').map(s=>s.trim()).includes(bw.name)); replacingRows.forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); const sum = replacingRows.reduce((s,r)=>{ const id=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+id); if(inp) return s + Number(inp.value||0); const cb = r.querySelector('.modal-upgrade-checkbox'); return s + (cb && cb.checked ? 1 : 0); },0); const remain = Math.max(0, models - sum); const cb = Array.from(document.querySelectorAll('.modal-weapon-checkbox')).find(b=>b.getAttribute('data-name')===bw.name); if(cb){ cb.checked = remain>0; } const span = document.getElementById('base-rem-'+bw.id); if(span){ span.textContent = remain>0 ? `(x${remain})` : ''; } }); Array.from(document.querySelectorAll('.modal-upgrade-row')).filter(r=>{ const t=r.getAttribute('data-type')||''; return t.startsWith('WEAPON_SWAP'); }).forEach(r=>{ const iid=r.getAttribute('data-upgrade'); const inp=document.getElementById('upcnt-'+iid); if(inp) inp.max = String(models); }); } }
 
         if(window.editContext){ const {fIdx,section,sIdx,uIdx}=window.editContext; const slot=(section==='special')?armyFormations[fIdx].special:armyFormations[fIdx][section][sIdx]; const unit=slot&&slot.units&&slot.units[uIdx]; if(unit){ const bsize = (unit.upgrades||[]).find(u=> (u.type==='BROOD_SIZE' && String(u.id||'').startsWith('u_bsize_apply_')) ); if(bsize){ total += Number(bsize.points||0); } } }
         ptsEl.textContent = total + ' pts';
@@ -1756,19 +1793,26 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           if(val > allowed) val = allowed;
           inp.max = String(allowed);
         } else {
-          let max = models;
           const typ = row ? (row.getAttribute('data-type')||'') : '';
-          const name = row ? (row.getAttribute('data-name')||'') : '';
-          if(typ==='MODEL_UPGRADE' && /broodlord/i.test(name)){
-            const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord');
-            max = val>0 ? 1 : Math.max(0, 1 - others);
-          } else if(typ==='MODEL_UPGRADE') {
-            max = 1;
+          let max = models;
+          if(typ === 'BROOD_SIZE'){
+             max = Number(inp.getAttribute('max')||100);
+             val += delta;
+             if(val < 0) val = 0;
+             if(val > max) val = max;
+          } else {
+             const name = row ? (row.getAttribute('data-name')||'') : '';
+             if(typ==='MODEL_UPGRADE' && /broodlord/i.test(name)){
+               const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord');
+               max = val>0 ? 1 : Math.max(0, 1 - others);
+             } else if(typ==='MODEL_UPGRADE') {
+               max = 1;
+             }
+             val += delta;
+             if(val < 0) val = 0;
+             if(val > max) val = max;
+             inp.max = String(max);
           }
-          val += delta;
-          if(val < 0) val = 0;
-          if(val > max) val = max;
-          inp.max = String(max);
         }
         inp.value = val;
         const disp = document.getElementById('upval-'+id);
@@ -1860,6 +1904,29 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         });
         updateBroodSizeUpgrade(unit); const valBtn = document.getElementById('modal-unit-val'); if(valBtn){ if(valBtn.tagName==='SELECT'){ let opt = valBtn.querySelector('option[value="'+cur+'"]'); if(!opt){ opt=document.createElement('option'); opt.value=cur; opt.textContent=cur; valBtn.appendChild(opt); } valBtn.value=cur; } else valBtn.textContent = String(cur); } const costEl = document.getElementById('modal-unit-cost'); if(costEl) costEl.textContent = unitPoints(unit) + ' PTS'; scheduleUpdateTotals(); try{ updateBroodSummary(); }catch(e){} }
       function setUnitSize(val){ const cont = document.getElementById('modal-unit-summary'); if(!cont) return; const unitId = cont.getAttribute('data-unit'); const min = Number(cont.getAttribute('data-min')||1); const max = Number(cont.getAttribute('data-max')||min); if(val < min) val = min; if(val > max) val = max; const ctx=window.editContext||{}; const {fIdx,section,sIdx,uIdx}=ctx; const slot=(section==='special')? (armyFormations[fIdx]&&armyFormations[fIdx].special) : (armyFormations[fIdx]&&armyFormations[fIdx][section]&&armyFormations[fIdx][section][sIdx]); let unit = window._modalUnitRef || (slot&&slot.units&&slot.units[uIdx]); if(!unit || (unitId && unit.id!==unitId)) unit = slot && slot.units && slot.units[uIdx]; if(!unit) return; unit.models = val; 
+        
+        // Sync explicit BROOD_SIZE upgrades
+        const broodRows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-type="BROOD_SIZE"]'));
+        const baseM = (UNIT_DEFAULT_MODELS[unit.id]||1);
+        broodRows.forEach(row => {
+            const upId = row.getAttribute('data-upgrade');
+            const step = Number(row.querySelector('.modal-upgrade-count')?.getAttribute('data-step') || 1);
+            const delta = Math.max(0, val - baseM);
+            const count = Math.floor(delta / step);
+            const inp = document.getElementById('upcnt-'+upId);
+            if(inp){
+                inp.value = String(count);
+                const disp = document.getElementById('upval-'+upId);
+                if(disp) disp.textContent = String(count);
+                const rm = document.getElementById('uprm-'+upId);
+                if(rm) rm.style.display = count > 0 ? '' : 'none';
+            }
+            const cb = document.querySelector(`.modal-upgrade-checkbox[data-id="${upId}"]`);
+            if(cb){
+                cb.checked = count > 0;
+            }
+        });
+
         const swapRows = Array.from(document.querySelectorAll('.modal-upgrade-row[data-type="WEAPON_SWAP"]'));
         const groups = {};
         swapRows.forEach(r => {
@@ -1965,7 +2032,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
         let chosenUps = upBoxes.filter(b=>b.checked).map(b=>{
 
-          return { id: b.getAttribute('data-id'), name: b.getAttribute('data-name'), points: Number(b.getAttribute('data-points')||0), desc: b.getAttribute('data-desc')||'', type: b.getAttribute('data-type')||'', replaces: b.getAttribute('data-replaces')||'', grants: b.getAttribute('data-grants')||'', limit: b.getAttribute('data-limit')||'', detachmentSize: Number(b.getAttribute('data-detach')||0), maxModels: Number(b.getAttribute('data-maxmodels')||0) };
+          return { id: b.getAttribute('data-id'), name: b.getAttribute('data-name'), points: Number(b.getAttribute('data-points')||0), desc: b.getAttribute('data-desc')||'', type: b.getAttribute('data-type')||'', replaces: b.getAttribute('data-replaces')||'', grants: b.getAttribute('data-grants')||'', limit: b.getAttribute('data-limit')||'', detachmentSize: Number(b.getAttribute('data-detach')||0), maxModels: Number(b.getAttribute('data-maxmodels')||0), modelsDelta: Number(b.getAttribute('data-modelsdelta')||0), modelsDeltaTotal: Number(b.getAttribute('data-modelsdelta')||0) };
 
         });
 
@@ -2179,7 +2246,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const maxCount = u.type==='BROOD_SIZE' ? Math.max(0, Math.floor((maxM - baseM) / stepM)) : 0;
           const control = u.type==='BROOD_SIZE' ? `<div style="margin-top:6px;display:flex;gap:6px;align-items:center"><button class="btn btn-xs btn-green" onclick="window.bumpUpgradeCount('${u.id}',1)">+ ${stepM} models (+${u.points||0} pts)</button><button id="upval-${u.id}" class="btn btn-xs" style="width:28px;justify-content:center">${count}</button><input id="upcnt-${u.id}" class="modal-upgrade-count mini-input" type="number" min="0" max="${maxCount}" step="1" value="${count}" data-points="${u.points||0}" data-upid="${u.id}" data-step="${stepM}" style="width:0;opacity:0;pointer-events:none"/><button id="uprm-${u.id}" class="btn btn-xs btn-red" style="display:${count>0?'':'none'}" onclick="document.getElementById('upcnt-${u.id}').value=0; document.getElementById('upval-${u.id}').textContent='0'; updateModalTotals()">✖</button></div>` : '';
 
-          return `<div class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-limit="${u.limit||''}" data-detach="${u.detachmentSize||''}" data-maxmodels="${u.maxModels||''}" ${checked ? 'checked' : ''} ${disabledAttr} onchange="onModalUpgradeToggle(this)"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div>${hint}${bsizeHint}${control}</div></label></div>`;
+          return `<div class="modal-upgrade-row" data-upgrade="${u.id}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-detach="${u.detachmentSize||0}" style="margin-bottom:8px"><label style="display:flex;align-items:flex-start;gap:8px"><input type="checkbox" class="modal-upgrade-checkbox" data-id="${u.id}" data-name="${u.name}" data-points="${u.points}" data-desc="${u.desc||''}" data-type="${u.type||''}" data-replaces="${u.replaces||''}" data-grants="${u.grants||''}" data-limit="${u.limit||''}" data-detach="${u.detachmentSize||''}" data-maxmodels="${u.maxModels||''}" data-modelsdelta="${u.modelsDelta||''}" ${checked ? 'checked' : ''} ${disabledAttr} onchange="onModalUpgradeToggle(this)"/><div><strong>${u.name}</strong> <span class="muted">(+${u.points} pts)</span><div class="muted" style="margin-top:6px">${u.desc||''}</div>${hint}${bsizeHint}${control}</div></label></div>`;
 
         }).join('');
         const tableUps = (lib.upgrades||[]).filter(u => (u.type||'').startsWith('WEAPON') && u.grants && !unit.id.includes('hierodule') && !unit.id.includes('hierophant'));
