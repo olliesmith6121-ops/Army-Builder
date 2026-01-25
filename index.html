@@ -1808,10 +1808,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
              if(val > max) val = max;
           } else {
              const name = row ? (row.getAttribute('data-name')||'') : '';
-             if(typ==='MODEL_UPGRADE' && /broodlord/i.test(name)){
-               const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord');
-               max = val>0 ? 1 : Math.max(0, 1 - others);
-             } else if(typ==='MODEL_UPGRADE') {
+             if(typ==='MODEL_UPGRADE') {
                max = 1;
              }
              val += delta;
@@ -2276,7 +2273,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const per = (u.type==='WEAPON_SWAP_LIMITED' && (u.detachmentSize||3)) || null;
           let maxCount = u.type==='MODEL_UPGRADE' ? 1 : (per ? Math.floor((unit.models||per)/per) : (u.type==='WEAPON_SWAP'? (unit.models||1) : (u.type==='BROOD_SIZE'? Math.max(0, Math.floor(((UNIT_MAX_MODELS[unit.id]||0)-(UNIT_DEFAULT_MODELS[unit.id]||0)) / (UNIT_BROOD_STEP[unit.id]||1))) : 0)));
           const isBroodlord = /broodlord/i.test(u.name||'');
-          if(isBroodlord){ const others = countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord'); maxCount = count>0 ? 1 : Math.max(0, 1 - others); }
+          if(isBroodlord){ }
           
           const grantList = String(u.grants||'').split(',').map(s=>s.trim()).filter(Boolean);
           if(!grantList.length) return '';
@@ -2494,8 +2491,8 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
           const count=cur&&cur.count?Number(cur.count):0;
           const pts=u.points||0;
           const isBroodlord=/broodlord/i.test(u.name||'');
-          const others=isBroodlord? countCoreUpgradeTotal(fIdx, section, sIdx, 'broodlord'):0;
-          const available=count>0?1:Math.max(0,1-others);
+          const others=0;
+          const available=1;
           const disabledAttr = (!count && available===0) ? 'disabled' : '';
           const eff = UPGRADE_EFFECTS[u.id]||{};
           const grants = (eff.rules||[]).length && window._modalUnitRef.id !== 'tyrannofex' ? `<div class="muted small" style="margin-top:4px">Grants: ${(eff.rules||[]).join('; ')}</div>` : '';
@@ -2686,6 +2683,7 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
 
 
               <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+                <button class="btn btn-sm btn-red" onclick="closeModal()">Cancel</button>
                 <button id="modal-save-btn" class="btn btn-sm btn-blue">Save</button>
               </div>
             </div>
@@ -4209,17 +4207,19 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const uScale = base.scale || 1;
         const baseSize = base.base_size ? ` | ${base.base_size}` : '';
         const typeStr = (uType ? ` | ${uType} (${uScale})` : '') + baseSize;
-        const unitsHtml = selectedUnit ? `
-          <div class="unit-item"><div class="u-actions"><button class="btn btn-xs btn-blue" onclick="window.openEditModal(${fIdx},'${section}',${sIdx},0)">Upgrades</button><button class="btn btn-xs btn-red" title="Remove" onclick="window.removeUnit(${fIdx},'${section}',${sIdx},0)">🗑</button></div></div>
-        ` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
+        const unitsHtml = selectedUnit ? `` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
         const loadList = selectedUnit && (selectedUnit.weapons||[]).length ? `<div class="slot-details"><span class="label">Loadout</span> ${(selectedUnit.weapons||[]).map(w=>w.name).join(', ')}</div>` : '';
         const upItems = selectedUnit ? ([]).concat(
           (selectedUnit.upgrades||[]).map(u=>{ const cnt=Number(u.count||0); if(u.type==='BROOD_SIZE'){ const step=(UNIT_BROOD_STEP&&UNIT_BROOD_STEP[selectedUnit.id])||1; const delta=cnt? step*cnt : (u.modelsDelta||0); return `${u.name}${cnt? ' x'+cnt:''}${u.points? ' +'+u.points+'pts':''}${delta? ' (+'+delta+' models)':''}`; } else { return `${u.name}${cnt? ' x'+cnt:''}${u.points? ' +'+u.points+'pts':''}`; } }),
           (selectedUnit.psychic||[]).map(p=>`${p.name}${p.points? ' +'+p.points+'pts':''}`)
         ) : [];
         const upList = selectedUnit && upItems.length ? `<div class="slot-details"><span class="label">Upgrades</span> ${upItems.join(', ')}</div>` : '';
-        const selectHtml = `<select class="select-compact" onchange="setSlotSelection(${fIdx},'${section}',${sIdx}, this.value)">${options}</select>`;
-        return `<div class="slot-compact"><div class="slot-pill">${slot.label}${slot._group?` #${slot._group.index}`:''}</div><div class="slot-meta-row">Unit size: ${unitSize}${typeStr} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
+        
+        const upBtn = selectedUnit ? `<button class="btn btn-sm btn-blue" style="margin-left:6px" onclick="window.openEditModal(${fIdx},'${section}',${sIdx},0)">Upgrades</button>` : '';
+        const removeBtn = selectedUnit ? `<button class="btn btn-xs btn-red" title="Remove" style="position:absolute;top:4px;right:4px" onclick="window.removeUnit(${fIdx},'${section}',${sIdx},0)">🗑</button>` : '';
+        const selectHtml = `<div style="display:flex;align-items:center"><select class="select-compact" style="flex:1" onchange="setSlotSelection(${fIdx},'${section}',${sIdx}, this.value)">${options}</select>${upBtn}</div>`;
+        
+        return `<div class="slot-compact" style="position:relative">${removeBtn}<div class="slot-pill">${slot.label}${slot._group?` #${slot._group.index}`:''}</div><div class="slot-meta-row">Unit size: ${unitSize}${typeStr} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
 
       }
 
@@ -4239,17 +4239,19 @@ function autoSaveList(reason){ if(selectedArmy==='Select Army') return; const no
         const uScale = base.scale || 1;
         const baseSize = base.base_size ? ` | ${base.base_size}` : '';
         const typeStr = (uType ? ` | ${uType} (${uScale})` : '') + baseSize;
-        const unitsHtml = selectedUnit ? `
-          <div class="unit-item"><div class="u-actions"><button class="btn btn-xs btn-blue" onclick="window.openEditModal(${fIdx},'special',0,0)">Upgrades</button><button class="btn btn-xs btn-red" title="Remove" onclick="window.removeSpecialUnit(${fIdx},0)">🗑</button></div></div>
-        ` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
+        const unitsHtml = selectedUnit ? `` : `<div class="small muted" style="margin-top:6px">Select unit</div>`;
         const loadList = selectedUnit && (selectedUnit.weapons||[]).length ? `<div class="slot-details"><span class="label">Loadout</span> ${(selectedUnit.weapons||[]).map(w=>w.name).join(', ')}</div>` : '';
         const upItems = selectedUnit ? ([]).concat(
           (selectedUnit.upgrades||[]).map(u=>{ const cnt=Number(u.count||0); if(u.type==='BROOD_SIZE'){ const step=(UNIT_BROOD_STEP&&UNIT_BROOD_STEP[selectedUnit.id])||1; const delta=cnt? step*cnt : (u.modelsDelta||0); return `${u.name}${cnt? ' x'+cnt:''}${u.points? ' +'+u.points+'pts':''}${delta? ' (+'+delta+' models)':''}`; } else { return `${u.name}${cnt? ' x'+cnt:''}${u.points? ' +'+u.points+'pts':''}`; } }),
           (selectedUnit.psychic||[]).map(p=>`${p.name}${p.points? ' +'+p.points+'pts':''}`)
         ) : [];
         const upList = selectedUnit && upItems.length ? `<div class="slot-details"><span class="label">Upgrades</span> ${upItems.join(', ')}</div>` : '';
-        const selectHtml = `<select class="select-compact" onchange="addUnitToSpecial(${fIdx}, this.value)">${options}</select>`;
-        return `<div class="slot-compact"><div class="slot-pill">${special.label}</div><div class="slot-meta-row">Unit size: ${unitSize}${typeStr} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
+        
+        const upBtn = selectedUnit ? `<button class="btn btn-sm btn-blue" style="margin-left:6px" onclick="window.openEditModal(${fIdx},'special',0,0)">Upgrades</button>` : '';
+        const removeBtn = selectedUnit ? `<button class="btn btn-xs btn-red" title="Remove" style="position:absolute;top:4px;right:4px" onclick="window.removeSpecialUnit(${fIdx},0)">🗑</button>` : '';
+        const selectHtml = `<div style="display:flex;align-items:center"><select class="select-compact" style="flex:1" onchange="addUnitToSpecial(${fIdx}, this.value)">${options}</select>${upBtn}</div>`;
+        
+        return `<div class="slot-compact" style="position:relative">${removeBtn}<div class="slot-pill">${special.label}</div><div class="slot-meta-row">Unit size: ${unitSize}${typeStr} <span class="cost">${slotPts} PTS</span></div><div class="slot-select">${selectHtml}</div>${unitsHtml}${loadList}${upList}</div>`;
       }
 
 
